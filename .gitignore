@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Temporary directories
+tmp/
+temp/
+logs/

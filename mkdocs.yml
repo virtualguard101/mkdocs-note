@@ -1,1 +1,221 @@
-site_name: My Docs
+## Project information
+site_author: virtualguard101{}
+# site_description: >-
+#   Write your documentation in Markdown and create a professional static site in
+#   minutes – searchable, customizable, in 60+ languages, for all devices
+site_name: Mkdocs Note
+site_url: https://blog.virtualguard101.com/mkdocs-note
+repo_url: https://github.com/virtualguard101/mkdocs-note
+repo_name: virtualguard101/mkdocs-note
+edit_uri: blob/main/docs/
+
+## Configuration
+theme:
+  name: material
+  language: zh
+  custom_dir: overrides
+  # favicon: assets/logo.png
+
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    # - content.code.select
+    # - content.footnote.tooltips
+    # - content.tabs.link
+    - content.tooltips
+    # - header.autohide
+    # - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    # - navigation.instant
+    # - navigation.instant.prefetch
+    # - navigation.instant.progress
+    # - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    # - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    # - toc.integrate
+
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  # font:
+  #   text: "'LXGW WenKai Screen', 'Noto Sans SC', 'Microsoft YaHei', sans-serif"
+  #   code: "'Cascadia Mono', 'LXGW WenKai Screen', 'Noto Sans SC', 'Microsoft YaHei', sans-serif"
+  icon:
+    repo: fontawesome/brands/github
+    logo: octicons/stack-24
+    edit: material/pencil
+    # tag:
+      # default: fontawesome/solid/hashtag
+
+## Plugins
+plugins:
+  - blog:
+      post_excerpt: required
+      archive_date_format: MMMM yyyy
+      archive_url_date_format: yyyy/MM
+  # - rss:
+  #     match_path: blog/posts/.*
+  #     date_from_meta:
+  #       as_creation: date
+  #     categories:
+  #       - categories
+  #       - tag
+  #     comments_path: "#__comments"
+  # - social:
+  #     cards_layout: default/only/image
+  #     cards_layout_options:
+  #       background_image: assets/images/beihai.jpg
+
+  # - obsidian-interactive-graph
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+      # js_files:
+      #   - assets/javascripts/
+      # css_files:
+      #   - assets/stylesheets/
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - mkdocstrings
+  - drawio
+
+  # - redirects:
+  #     redirect_maps:
+
+# extra_css:
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+hooks:
+  - scripts/hooks/rss.py
+  - scripts/hooks/fancybox.py
+  - scripts/hooks/links.py
+  - scripts/hooks/copyright.py
+  # - scripts/hooks/
+
+## Extensions
+markdown_extensions:
+  - abbr
+  - tables
+  - attr_list
+  - md_in_html
+  - footnotes
+  - admonition
+  # - callouts
+  - pymdownx.details
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.highlight:
+      # auto_title: true
+      # linenums: true
+      # anchor_linenums: true
+      # line_spans: __span # When this option is set, each line of a code block is wrapped in a span, which is essential for features like line highlighting to work correctly
+      use_pygments: true
+
+      # https://facelessuser.github.io/pymdown-extensions/extensions/highlight/#extended-pygments-lexer-options
+      extend_pygments_lang:
+        - name: antlr4
+          lang: antlr
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      # 生成可读的 unicode slug
+      # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#+toc.slugify
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {}
+  - toc:
+      # https://python-markdown.github.io/extensions/toc/
+      permalink: true
+      separator: "-"
+      # 生成可读的 unicode slug
+      # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#+toc.slugify
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {}
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+watch:
+  - overrides
+
+# https://www.mkdocs.org/user-guide/configuration/#validation
+validation:
+  links:
+    anchors: warn
+    unrecognized_links: warn
+
+## Additional configuration
+extra:
+  # alternate:
+  #   - name: 简体中文
+  #     link: /
+  #     lang: zh
+  #   - name: English
+  #     link: /en/
+  #     lang: en
+  status:
+    new: Recently added
+    deprecated: Deprecated
+  analytics:
+    provider: google
+    property: G-3JKT1BJEB6
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/virtualguard101
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/virtualguardi01
+
+## Page tree
+nav:
+  - index.md
+        
+  - Blog:
+    - blog/index.md
+  - Credits: credits.md
+
+not_in_nav: |
+  templates/
+  drafts/
