@@ -85,7 +85,7 @@ def set_note_permalink(file: File) -> List[str]:
 
     return [nodes_list[0], permalink]
 
-def create_new_note(path: Path) -> None:
+def create_new_note(path: Path) -> int:
     """Create a new note at the specified path using the defined template.
 
     Args:
@@ -117,6 +117,8 @@ def create_new_note(path: Path) -> None:
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(frontmatter.dump(post))
+
+    return 0
 
 def set_note_uri(file: File, dest_uri: Union[str, Callable[[str], str]]) -> None:
     """Set the URI for a note file.
