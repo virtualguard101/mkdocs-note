@@ -1,10 +1,11 @@
 import os
+import datetime
 import posixpath
 import frontmatter
 import re
 
 from pathlib import Path
-from typing import Dict, Union, Callable, List
+from typing import Dict, Union, Callable, List, Optional
 from mkdocs.structure.files import File, Files
 from mkdocs.utils import meta, get_relative_url
 from mkdocs.structure.pages import Page
@@ -22,27 +23,23 @@ class NoteLinkedMap(object):
     Attributes:
         node (File): The file associated with this note.
         links (Dict[str, FileLinkedNode]): The links from this note to other notes, which is a dictionary mapping note IDs to their linked nodes.
-        inverse_links (FileLinkedNode): The links from other notes to this note, which is a linked list with head node.
+        inverse_links (Optional[FileLinkedNode]): The links from other notes to this note, which is a linked list with head node.
     """
     def __init__(self, node: File):
         self.node = node
         self.links: Dict[str, FileLinkedNode] = {}
-        self.inverse_links = FileLinkedNode(None)
+        self.inverse_links: Optional[FileLinkedNode] = None
 
     def clear_links(self):
-        """Clear all active links (i.e., links pointing to other 
-           articles from oneself) and remove the relevant nodes from 
+        """Clear all active links (i.e., links pointing to other
+           articles from oneself) and remove the relevant nodes from
            the corresponding reverse linked list.
         """
-        for link in self.links.values():
+        for link in list(self.links.values()):
             link.remove()
         self.links.clear()
+        self.inverse_links = None
 
-NOTES_ROOT_DIR: str = PluginConfig().notes_root_path
-"""The root path of the notes"""
-
-NOTES_TEMPLATE: str = PluginConfig().notes_template
-"""The template used for new notes"""
 
 def init_note_path(path: Path) -> int:
     """Initialize the note path.
@@ -103,25 +100,38 @@ def set_note_permalink(file: File) -> List[str]:
 
     return [nodes_list[0], permalink]
 
-def create_new_note(path: Path) -> int:
+def create_new_note(path: Path, notes_root_path: str, notes_template: str) -> int:
     """Create a new note at the specified path using the defined template.
 
     Args:
         path (Path): The path where the new note will be created.
+        notes_root_path (str): The root path of the notes.
+        notes_template (str): The template used for new notes.
     """
-    template_path = Path(NOTES_TEMPLATE)
+    template_path = Path(notes_template)
 
     if not template_path.exists():
-        return
+        return 1
 
     post = frontmatter.load(template_path)
 
     # Create a mock File object for permalink generation
-    mock_file = type('MockFile', (), {'src_uri': str(path.relative_to(Path(NOTES_ROOT_DIR)))})()
+    try:
+        relative_path = path.relative_to(Path(notes_root_path))
+    except ValueError:
+        logger.error(f"Cannot create new note: the path '{path}' is not inside the notes root directory '{notes_root_path}'.")
+        return 1
     
+    mock_file = type('MockFile', (), {'src_uri': str(relative_path)})()
+    
+    permalink_result = set_note_permalink(mock_file)
+    if not permalink_result:
+        logger.error(f"Failed to generate permalink for new note at '{path}'.")
+        return 1
+        
     frontmatter_args = {
-        "date": datetime.now().isoformat(timespec='seconds'),
-        "permalink": set_note_permalink(mock_file)[1],
+        "date": datetime.datetime.now().isoformat(timespec='seconds'),
+        "permalink": permalink_result[1],
         "publish": False
     }
 
@@ -245,19 +255,19 @@ def transform_notes_links(markdown: str, page: Page, config: MkDocsConfig, note_
     # Use lazy matching to avoid merging multiple link contents
     return re.sub(r'(!)?\[\[(.*?)\]\]', repl, markdown, flags=re.M|re.U)
 
-def insert_recent_notes(markdown: str, note_list: List[File]) -> str:
+def insert_recent_notes(markdown: str, note_list: Dict[str, File]) -> str:
     """Insert recent notes into the notes root index.
 
     Args:
-        markdown (str): The markdown content to insert recent notes into
-        note_list (list): List of note files sorted by date (newest first)
+        markdown (str): The markdown content to insert recent notes into.
+        note_list (Dict[str, File]): Dictionary of note files.
 
     Returns:
-        str: The markdown content with recent notes inserted
+        str: The markdown content with recent notes inserted.
     """
     content = ''
-    for f in note_list[:10]:
-        title = posixpath.splitext(posixpath.basename(f.src_uri))[0]  # Title without extension
+    for f in list(note_list.values())[:10]:
+        title = posixpath.splitext(posixpath.basename(f.src_uri))[0]
         date = f.note_date.strftime('%Y-%m-%d')
-        content += f'- <div class="recent-notes"><a href="{f.page.abs_url}">{title}</a><small>{date}</small></div>\n'
+        content += f'- <div class="recent-notes"><a href="{f.url}">{title}</a><small>{date}</small></div>\n'
     return markdown.replace('<!-- RECENT NOTES -->', content)

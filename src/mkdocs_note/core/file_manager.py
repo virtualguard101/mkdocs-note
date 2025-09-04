@@ -35,14 +35,15 @@ class FileLinkedNode(object):
         if self.next:
             self.next.prev = self.prev
 
-def process_attachment(file: File):
+def process_attachment(file: File, config: PluginConfig):
     """Process the attachment for the given file.
 
     Args:
         file (File): The file to process.
+        config (PluginConfig): The plugin configuration.
     """
     def transform(uri: str) -> str:
-        attachment_path = PluginConfig().attachment_path
+        attachment_path = config.attachment_path
         try:
             return uri[uri.index(attachment_path):]
         except ValueError:

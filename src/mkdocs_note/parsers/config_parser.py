@@ -1,3 +1,4 @@
+from typing import List
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.config import base, config_options as config_opt
 from mkdocs.config import Config

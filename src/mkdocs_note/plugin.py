@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import posixpath
 import click
+import re
+import html
 
 from typing import Dict, List
 from pathlib import Path
@@ -9,6 +11,7 @@ from mkdocs.structure.files import File, Files
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import BasePlugin, event_priority
 from mkdocs.structure.pages import Page
+from mkdocs.utils import get_relative_url
 
 from mkdocs_note.core.note_manager import (
     NoteLinkedMap,init_note_path, 
@@ -46,7 +49,6 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             pass
 
         @note.command("init")
-        @click.argument("path", type=click.Path())
         def init_note():
             """Initialize the note directory.
             """
@@ -65,7 +67,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             Args:
                 path (Path): The path to the new note.
             """
-            res = create_new_note(path)
+            res = create_new_note(path, self.config.notes_root_path, self.config.notes_template)
             if res == 0:
                 logger.info(f"Successfully created a new note at {path}")
             else:
@@ -147,7 +149,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             path_name = f.src_uri.split('/')
 
             # ignore the files which out of notes_root_path
-            if any(posixpath.commonpath([f.src_uri, p]) == p for p in self.config.notes_root_path):
+            if not any(f.src_uri.startswith(p) for p in self.config.notes_root_path):
                 self._normal_docs.append(f)
                 continue
 
@@ -158,9 +160,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 
             # through out and process notes and attachments
             if path_name[1] == self.config.attachment_path:
-                process_attachment(f)
+                process_attachment(f, self.config)
             elif f.is_documentation_page() and parse_note_metadata(f):
-                self._notes_lists.append(f)
+                self._notes_lists[f.src_uri] = f
 
             # process individual note/docs
             if f.is_documentation_page() and f not in self._normal_docs:
@@ -171,8 +173,8 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             self._note_link_name_map[posixpath.basename(f.src_path)] = f
             self._note_link_path_map[f.src_uri] = NoteLinkedMap(f)
 
-        self._note_list.sort(key=lambda f: f.note_date, reverse=True)
-        logger.info(f"Found {len(self._note_list)} valid notes and {len(self._normal_docs)} normal docs.")
+        self._notes_lists = dict(sorted(self._notes_lists.items(), key=lambda item: item[1].note_date, reverse=True))
+        logger.info(f"Found {len(self._notes_lists)} valid notes and {len(self._normal_docs)} normal docs.")
 
         for invalid in invalid_notes:
             # logger.warning(f"Invalid note found: {invalid.src_uri}")
@@ -232,11 +234,11 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             inverse_links_files.append(head.next.node)
             head = head.next
 
-    inverse_links_files.sort(key=lambda f: f.note_date, reverse=True)
+        inverse_links_files.sort(key=lambda f: f.note_date, reverse=True)
 
-    links_html = r'<br><details class="tip" open><summary>反向链接</summary><ul>'
-    for link_file in inverse_link_files:
-        href = get_relative_url(link_file.page.abs_url, page.abs_url)
-        links_html += rf'<li><a href="{href}">{html.escape(link_file.page.title)}</a></li>'
-    links_html += r'</ul></details>'
-    return re.sub(r'(<h2 id=\"__comments\">.*?<\/h2>)?\s*?<\/article>', rf'{links_html}\g<0>', output, count=1)
+        links_html = r'<br><details class="tip" open><summary>反向链接</summary><ul>'
+        for link_file in inverse_links_files:
+            href = get_relative_url(link_file.url, page.url)
+            links_html += rf'<li><a href="{href}">{html.escape(link_file.title)}</a></li>'
+        links_html += r'</ul></details>'
+        return re.sub(r'(<h2 id=\"__comments\">.*?<\/h2>)?\s*?<\/article>', rf'{links_html}\g<0>', output, count=1)
