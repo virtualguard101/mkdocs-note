@@ -156,14 +156,108 @@ def set_note_uri(file: File, dest_uri: Union[str, Callable[[str], str]]) -> None
     delattr_if_exists(file, 'url')
     delattr_if_exists(file, 'abs_dest_path')
 
-def transform_notes_links(markdown: str, page: Page, config: MkDocsConfig) -> str:
+def transform_notes_links(markdown: str, page: Page, config: MkDocsConfig, note_link_name_map: dict, note_link_path_map: dict) -> str:
     """Transform note links in the markdown content.
 
     Args:
-        markdown (str): _description_
-        page (Page): _description_
-        config (MkDocsConfig): _description_
+        markdown (str): The markdown content to transform
+        page (Page): The page being processed
+        config (MkDocsConfig): The MkDocs configuration
+        note_link_name_map (dict): Dictionary mapping note names to File objects
+        note_link_path_map (dict): Dictionary mapping note paths to NoteLinkedMap objects
 
     Returns:
-        str: _description_
+        str: The transformed markdown content with wiki links converted to markdown links
     """
+    link_list = note_link_path_map.get(page.file.src_uri)
+
+    if link_list is not None:
+        assert link_list.node == page.file
+        link_list.clear_links()
+
+    def record_link(target_file: File):
+        if link_list is None or target_file.src_uri in link_list.links:
+            return
+
+        from mkdocs_note.core.file_manager import FileLinkedNode
+        node = FileLinkedNode(page.file)
+        link_list.links[target_file.src_uri] = node
+        node.insert(note_link_path_map[target_file.src_uri].inverse_links)
+
+    def repl(m: re.Match[str]):
+        is_media = m.group(1) is not None
+
+        # [[name#heading|alias]]
+        # In tables, use '\\|' instead of '|', so remove '\\'
+        m2 = re.match(r'^(.+?)(#(.*?))?(\|(.*))?$', m.group(2).replace('\\', ''), flags=re.U)
+        name = m2.group(1).strip()
+        heading = m2.group(3)
+        alias = m2.group(5)
+
+        # Automatically add .md extension to documents
+        if not is_media and (name + '.md') in note_link_name_map:
+            name += '.md'
+
+        if heading:
+            heading = heading.strip()
+        if alias:
+            alias = alias.strip()
+
+        if name.count('/') == 0 and name in note_link_name_map:
+            # name is a filename
+            md_link = note_link_name_map[name].src_uri
+        else:
+            # name is a file path, expand to absolute path
+            abs_path = posixpath.normpath(posixpath.join(posixpath.dirname(page.file.src_uri), name))
+
+            if abs_path in note_link_path_map:
+                md_link = note_link_path_map[abs_path].node.src_uri
+            else:
+                md_link = abs_path
+
+        # Record reverse links
+        if not is_media:
+            if md_link in note_link_path_map:
+                record_link(note_link_path_map[md_link].node)
+            else:
+                logger.warning('Failed to resolve link \'%s\' in \'%s\'', md_link, page.file.src_uri)
+
+        # Convert to relative path so MkDocs will warn if link is not found
+        md_link = get_relative_url(md_link, page.file.src_uri)
+        title = posixpath.splitext(posixpath.basename(name))[0]  # Title without extension
+
+        if heading:
+            # Generate heading ID based on toc configuration
+            # https://python-markdown.github.io/extensions/toc/
+            toc_config = config.mdx_configs['toc']
+            heading_id = toc_config['slugify'](heading, toc_config.get('separator', '-'))
+            md_link += f'#{heading_id}'
+
+        if alias:
+            display_name = alias
+        elif heading:
+            display_name = f'{title} > {heading}'
+        else:
+            display_name = title
+
+        return ('!' if is_media else '') + f'[{display_name}]({md_link})'
+
+    # Use lazy matching to avoid merging multiple link contents
+    return re.sub(r'(!)?\[\[(.*?)\]\]', repl, markdown, flags=re.M|re.U)
+
+def insert_recent_notes(markdown: str, note_list: List[File]) -> str:
+    """Insert recent notes into the notes root index.
+
+    Args:
+        markdown (str): The markdown content to insert recent notes into
+        note_list (list): List of note files sorted by date (newest first)
+
+    Returns:
+        str: The markdown content with recent notes inserted
+    """
+    content = ''
+    for f in note_list[:10]:
+        title = posixpath.splitext(posixpath.basename(f.src_uri))[0]  # Title without extension
+        date = f.note_date.strftime('%Y-%m-%d')
+        content += f'- <div class="recent-notes"><a href="{f.page.abs_url}">{title}</a><small>{date}</small></div>\n'
+    return markdown.replace('<!-- RECENT NOTES -->', content)
