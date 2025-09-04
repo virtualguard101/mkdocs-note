@@ -99,31 +99,35 @@ class TestNoteManager(unittest.TestCase):
         set_note_uri(self.file, lambda uri: uri.replace('.html', '.php'))
         self.assertEqual(self.file.dest_uri, 'new.php')
 
-    @patch('frontmatter.dump')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('frontmatter.load')
     @patch('pathlib.Path.exists')
-    def test_create_new_note(self, mock_path_exists, mock_fm_load, mock_open_file, mock_fm_dump):
+    def test_create_new_note(self, mock_path_exists, mock_open_file):
         mock_path_exists.return_value = True
-        mock_post = frontmatter.Post(content="", metadata={'title': 'template_title'})
-        mock_fm_load.return_value = mock_post
+        
+        # Simulate reading the template file
+        mock_template_content = "---\ntitle: template_title\n---\ncontent"
+        mock_open_file.side_effect = [
+            mock_open(read_data=mock_template_content).return_value,  # For reading template
+            mock_open().return_value  # For writing new note
+        ]
 
-        note_path = Path("/notes/root/new_note.md")
+        note_path = Path("/notes/root/topic/new_note.md")
         root_path = "/notes/root"
         template_path = "/templates/note.md"
         
         res = create_new_note(note_path, root_path, template_path)
         
         self.assertEqual(res, 0)
-        mock_fm_load.assert_called_with(Path(template_path))
-        mock_open_file.assert_called_with(note_path, 'w', encoding='utf-8')
-        mock_fm_dump.assert_called()
-
-        args, _ = mock_fm_dump.call_args
-        dumped_post = args[0]
-        self.assertIn('permalink', dumped_post)
-        self.assertIn('date', dumped_post)
-        self.assertEqual(dumped_post['title'], 'template_title')
+        mock_open_file.assert_any_call(Path(template_path), 'r', encoding='utf-8')
+        mock_open_file.assert_any_call(note_path, 'w', encoding='utf-8')
+        
+        # Check that the write call contains expected content
+        write_calls = [call for call in mock_open_file.mock_calls if call[0] == '().write']
+        self.assertTrue(len(write_calls) > 0)
+        written_content = write_calls[0][1][0]
+        self.assertIn('permalink', written_content)
+        self.assertIn('date', written_content)
+        self.assertIn('template_title', written_content)
 
 '''
     def test_transform_notes_links(self):

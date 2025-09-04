@@ -87,7 +87,7 @@ class TestFileLinkedNode(unittest.TestCase):
 
 class TestProcessAttachment(unittest.TestCase):
 
-    @patch('mkdocs_note.core.file_manager.set_note_uri')
+    @patch('mkdocs_note.core.note_manager.set_note_uri')
     def test_process_attachment(self, mock_set_note_uri):
         # Create a mock file. It doesn't need many attributes because we are mocking set_note_uri
         mock_file = File('image.png', 'docs', 'site', use_directory_urls=False)

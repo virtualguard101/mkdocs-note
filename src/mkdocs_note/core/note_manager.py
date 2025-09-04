@@ -90,15 +90,15 @@ def set_note_permalink(file: File) -> List[str]:
     """
     nodes_list = process_notes_path_node(file)
 
-    if not nodes_list:
+    if len(nodes_list) < 2:
         return []
 
-    head = nodes_list[1]
-    permalink = head
+    head = nodes_list[0]
+    permalink = nodes_list[1]
     for node in nodes_list[2:]:
         permalink += ('-' + node)
 
-    return [nodes_list[0], permalink]
+    return [head, permalink]
 
 def create_new_note(path: Path, notes_root_path: str, notes_template: str) -> int:
     """Create a new note at the specified path using the defined template.
@@ -113,7 +113,9 @@ def create_new_note(path: Path, notes_root_path: str, notes_template: str) -> in
     if not template_path.exists():
         return 1
 
-    post = frontmatter.load(template_path)
+    with open(template_path, 'r', encoding='utf-8') as f:
+        result = frontmatter.Frontmatter.read(f.read())
+        post = {'metadata': result['attributes'], 'content': result['body']}
 
     # Create a mock File object for permalink generation
     try:
@@ -135,16 +137,16 @@ def create_new_note(path: Path, notes_root_path: str, notes_template: str) -> in
         "publish": False
     }
 
-    for key, value in post.metadata.items():
+    for key, value in post['metadata'].items():
         if key not in frontmatter_args:
             frontmatter_args[key] = value
 
     # Update post metadata with new frontmatter
     for key, value in frontmatter_args.items():
-        post[key] = value
+        post['metadata'][key] = value
 
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(frontmatter.dump(post))
+        f.write(f"---\n{frontmatter.yaml.dump(post['metadata'])}---\n{post['content']}")
 
     return 0
 

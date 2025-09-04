@@ -33,6 +33,8 @@ class FileLinkedNode(object):
             self.prev.next = self.next
         if self.next:
             self.next.prev = self.prev
+        self.prev = None
+        self.next = None
 
 def process_attachment(file: File, config: PluginConfig):
     """Process the attachment for the given file.
