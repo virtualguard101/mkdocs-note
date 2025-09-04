@@ -11,7 +11,7 @@ from mkdocs.utils import meta, get_relative_url
 from mkdocs.structure.pages import Page
 from mkdocs.config.defaults import MkDocsConfig
 
-from mkdocs_note.file_manager import FileLinkedNode
+from mkdocs_note.core.file_manager import FileLinkedNode
 from mkdocs_note.parsers.config_parser import PluginConfig
 from mkdocs_note.logger import logger
 

@@ -1,7 +1,6 @@
 from mkdocs.structure.files import File, Files
 
 from mkdocs_note.parsers.config_parser import PluginConfig
-from mkdocs_note.core.note_manager import set_note_uri
 
 class FileLinkedNode(object):
     """File linked list node class.
@@ -13,10 +12,10 @@ class FileLinkedNode(object):
     """
     def __init__(self, file: File):
         self.file = file
-        self.prev: FileLinkedNode | None = None
-        self.next: FileLinkedNode | None = None
+        self.prev: 'FileLinkedNode' | None = None
+        self.next: 'FileLinkedNode' | None = None
 
-    def insert(self, node: FileLinkedNode):
+    def insert(self, node: 'FileLinkedNode'):
         """
         Insert the current node after the given node.
         """
@@ -42,6 +41,7 @@ def process_attachment(file: File, config: PluginConfig):
         file (File): The file to process.
         config (PluginConfig): The plugin configuration.
     """
+    from mkdocs_note.core.note_manager import set_note_uri
     def transform(uri: str) -> str:
         attachment_path = config.attachment_path
         try:
