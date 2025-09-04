@@ -5,8 +5,8 @@ import posixpath
 from mkdocs.structure.files import File, Files
 from mkdocs.utils import meta, get_relative_url
 
-from ..logger import logger
-from ..core import note_manager
+from mkdocs_note.logger import logger
+from mkdocs_note.core import note_manager
 
 def parse_note_metadata(file: File) -> bool:
     """Parse a note file and extract metadata.

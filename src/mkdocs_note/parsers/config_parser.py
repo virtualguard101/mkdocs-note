@@ -32,3 +32,29 @@ class PluginConfig(Config):
             notes_template: 'notes/templates/custom.md'
         ```
     """
+
+    path_blacklist = config_opt.Type(List[str], default=[])
+    """A list of directories to exclude from note processing.
+
+    Example:
+
+        ```yml
+        plugins:
+        - mkdocs-note:
+            path_blacklist:
+            - 'notes/private'
+            - 'notes/archived'
+        ```
+    """
+
+    attachment_path = config_opt.Type(str, default='notes/attachments')
+    """The path to the directory for storing attachments, with 'notes/attachments' as the default.
+
+    Example:
+
+        ```yml
+        plugins:
+        - mkdocs-note:
+            attachment_path: 'notes/attachments'
+        ```
+    """

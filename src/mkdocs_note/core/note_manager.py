@@ -1,15 +1,18 @@
 import os
 import posixpath
 import frontmatter
+import re
 
 from pathlib import Path
 from typing import Dict, Union, Callable, List
 from mkdocs.structure.files import File, Files
 from mkdocs.utils import meta, get_relative_url
+from mkdocs.structure.pages import Page
+from mkdocs.config.defaults import MkDocsConfig
 
-from .file_manager import FileLinkedNode
-from ..parsers.config_parser import PluginConfig
-from ..logger import logger
+from mkdocs_note.file_manager import FileLinkedNode
+from mkdocs_note.parsers.config_parser import PluginConfig
+from mkdocs_note.logger import logger
 
 class NoteLinkedMap(object):
     """Note linked map class, which use for recording the links of 
@@ -40,6 +43,21 @@ NOTES_ROOT_DIR: str = PluginConfig().notes_root_path
 
 NOTES_TEMPLATE: str = PluginConfig().notes_template
 """The template used for new notes"""
+
+def init_note_path(path: Path) -> int:
+    """Initialize the note path.
+
+    Args:
+        path (Path): The path to initialize.
+    """
+    if not path.exists():
+        path.mkdir(parents=True, exist_ok=True)
+
+    attachment_path = path / "attachments"
+    if not attachment_path.exists():
+        attachment_path.mkdir(parents=True, exist_ok=True)
+
+    return 0
 
 def process_notes_path_node(file: File) -> List[str]:
     """Extract the notes path node, and remove its extension.
@@ -137,3 +155,15 @@ def set_note_uri(file: File, dest_uri: Union[str, Callable[[str], str]]) -> None
     # Delete the 'url' and 'abs_dest_path' attribute if it exists
     delattr_if_exists(file, 'url')
     delattr_if_exists(file, 'abs_dest_path')
+
+def transform_notes_links(markdown: str, page: Page, config: MkDocsConfig) -> str:
+    """Transform note links in the markdown content.
+
+    Args:
+        markdown (str): _description_
+        page (Page): _description_
+        config (MkDocsConfig): _description_
+
+    Returns:
+        str: _description_
+    """

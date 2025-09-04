@@ -1,5 +1,8 @@
 from mkdocs.structure.files import File, Files
 
+from mkdocs_note.parsers.config_parser import PluginConfig
+from mkdocs_note.core.note_manager import set_note_uri
+
 class FileLinkedNode(object):
     """File linked list node class.
 
@@ -31,3 +34,18 @@ class FileLinkedNode(object):
             self.prev.next = self.next
         if self.next:
             self.next.prev = self.prev
+
+def process_attachment(file: File):
+    """Process the attachment for the given file.
+
+    Args:
+        file (File): The file to process.
+    """
+    def transform(uri: str) -> str:
+        attachment_path = PluginConfig().attachment_path
+        try:
+            return uri[uri.index(attachment_path):]
+        except ValueError:
+            return uri
+
+    set_note_uri(file, transform)
