@@ -1,63 +1,82 @@
-# MkDocs Note
+# MkDocs-Note
 
-## 项目概述
+<!-- [![PyPI version](https://badge.fury.io/py/mkdocs-note.svg)](https://badge.fury.io/py/mkdocs-note) -->
 
-MkDocs Note 是一个为 MkDocs 设计的智能笔记管理插件，提供强大的笔记组织、链接解析和可视化功能。
+`MkDocs-Note` is a plugin for `MkDocs` that transforms your documentation site into a powerful personal knowledge base with bi-directional linking, similar to Obsidian or Roam Research.
 
-## 核心模块结构 (src/mkdocs_note/core/)
+## Features
+
+- **Bi-directional Linking**: Automatically create and display backlinks for your notes.
+- **Note Management**: Easily create new notes from templates using command line tools.
+- **Recent Notes**: Display a list of recent notes on your homepage.
+- **Attachment Management**: Handles attachments within your notes directory.
+- **Flexible Configuration**: Highly customizable to fit your workflow.
+
+## Installation
+
+Recommanded to use [uv](https://docs.astral.sh/uv/) to manage python virtual environment:
 
 ```
-src/mkdocs_note/core/
-├── builders/              # 构建器模块 - 负责生成文档结构
-│   ├── graph_builder.py   # 图构建器 - 构建笔记关系图
-│   ├── __init__.py        # 构建器模块初始化
-│   └── tree_builder.py    # 树构建器 - 构建文档树结构
-├── __init__.py            # 核心模块初始化 - 提供主要API接口
-├── legacy.py              # 遗留代码支持 - 兼容旧版本API
-├── managers/              # 管理器模块 - 负责文件管理
-│   ├── file_manager.py    # 文件管理器 - 处理文件操作
-│   ├── __init__.py        # 管理器模块初始化
-│   └── note_manager.py    # 笔记管理器 - 管理笔记内容
-├── models/                # 数据模型模块 - 定义数据结构
-│   ├── file_node.py       # 文件节点模型 - 表示文件结构
-│   ├── __init__.py        # 模型模块初始化
-│   ├── note_graph.py      # 笔记图模型 - 表示笔记关系
-│   └── note_node.py       # 笔记节点模型 - 表示单个笔记
-└── parsers/               # 解析器模块 - 负责内容解析
-    ├── base_parser.py     # 基础解析器 - 提供解析接口
-    ├── __init__.py        # 解析器模块初始化
-    ├── link_parser.py     # 链接解析器 - 解析markdown内部链接
-    └── metadata_parser.py # 元数据解析器 - 解析YAML front matter
+uv venv
+uv pip insatll mkdocs-note
 ```
 
-## 模块功能详解
+Or install the plugin using `pip`:
 
-### 1. 数据模型模块 (models/)
-- **FileNode** (`file_node.py`) - 文件节点模型，表示文件系统中的文件结构
-- **NoteNode** (`note_node.py`) - 笔记节点模型，继承FileNode，专门处理.md笔记文件
-- **NoteGraph** (`note_graph.py`) - 笔记图模型，管理笔记之间的关联关系
+```bash
+pip install mkdocs-note
+```
 
-### 2. 解析器模块 (parsers/)
-- **BaseParser** (`base_parser.py`) - 基础解析器接口，定义解析方法
-- **LinkParser** (`link_parser.py`) - 链接解析器，专门解析markdown内部链接 `[[笔记名称]]`
-- **MetadataParser** (`metadata_parser.py`) - 元数据解析器，解析YAML front matter
+Then, add the plugin to your `mkdocs.yml`:
 
-### 3. 构建器模块 (builders/)
-- **TreeBuilder** (`tree_builder.py`) - 树构建器，构建文档的树状结构
-- **GraphBuilder** (`graph_builder.py`) - 图构建器，构建笔记之间的关系图可视化
+```yaml
+plugins:
+  - mkdocs-note
+```
 
-### 4. 管理器模块 (managers/)
-- **FileManager** (`file_manager.py`) - 文件管理器，负责文件的读取和写入操作
-- **NoteManager** (`note_manager.py`) - 笔记管理器，专门管理笔记内容的创建和更新
+## Usage
 
-### 5. 核心模块
-- **__init__.py** - 核心模块初始化，提供主要的API接口
-- **legacy.py** - 遗留代码支持，确保向后兼容性
+### Creating Notes
 
-## 主要特性
+You can create a new note using the following command:
 
-1. **智能链接解析** - 自动解析和创建markdown内部链接
-2. **可视化关系图** - 生成笔记之间的关联关系可视化
-3. **元数据管理** - 支持YAML front matter元数据解析
-4. **双向链接** - 实现笔记之间的双向链接功能
-5. **搜索优化** - 提供高效的笔记搜索和检索功能
+```bash
+mkdocs note new "My New Note"
+```
+
+### Linking Notes
+
+Use `[[wiki-style]]` links to connect your notes. The plugin will automatically convert these into valid Markdown links and generate backlinks.
+
+`[[My Target Note]]` will be converted to a link to `My Target Note.md`.
+
+### Backlinks
+
+Backlinks are automatically added to the bottom of each note, showing you which other notes link to the current one.
+
+## Configuration
+
+You can customize the plugin's behavior in your `mkdocs.yml`:
+
+```yaml
+plugins:
+  - note:
+      # Whether the plugin is enabled
+      enabled: true
+      # The root path for your notes
+      notes_root_path: ["notes", "docs"]
+      # Template for new notes
+      notes_template: "templates/default.md"
+      # Path for attachments
+      attachment_path: "assets"
+      # Paths to exclude from note processing
+      path_blacklist: ["drafts"]
+```
+
+## Contributing
+
+Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
