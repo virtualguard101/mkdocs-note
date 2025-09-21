@@ -64,13 +64,13 @@ plugins:
       # Whether the plugin is enabled
       enabled: true
       # The root path for your notes
-      notes_root_path: ["notes", "docs"]
+      notes_root_path: "docs/notes"
       # Template for new notes
       notes_template: "templates/default.md"
       # Path for attachments
-      attachment_path: "assets"
+      attachment_path: "docs/notes/assets"
       # Paths to exclude from note processing
-      path_blacklist: ["drafts"]
+      path_blacklist: "docs/notes/draft"
 ```
 
 ## Contributing

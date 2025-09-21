@@ -742,6 +742,9 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
+test = [
+    { name = "pytest-cov" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -808,6 +811,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", specifier = "==6.2.1" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'test'" },
     { name = "python-dateutil", specifier = "==2.9.0.post0" },
     { name = "pytz", specifier = "==2025.2" },
     { name = "pyyaml", specifier = "==5.1" },
@@ -826,7 +830,7 @@ requires-dist = [
     { name = "watchdog", specifier = "==6.0.0" },
     { name = "webencodings", specifier = "==0.5.1" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "test"]
 
 [[package]]
 name = "mkdocs-obsidian-interactive-graph-plugin"

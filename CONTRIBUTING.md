@@ -32,11 +32,10 @@ To get started with local development, follow these steps:
 
 2.  **Set Up the Environment**
 
-    It's recommended to use a virtual environment.
+    It's strongly recommended to use a virtual environment, and recommended to use [uv](https://docs.astral.sh/uv/) to manage project configuration and virtual environment.
 
     ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    uv init
     ```
 
 3.  **Install Dependencies**
@@ -44,7 +43,7 @@ To get started with local development, follow these steps:
     Install the project in editable mode along with the development dependencies.
 
     ```bash
-    pip install -e .[dev]
+    uv sync
     ```
 
 4.  **Run Tests**

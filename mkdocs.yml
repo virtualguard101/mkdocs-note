@@ -111,6 +111,13 @@ plugins:
       enable_creation_date: true
   - mkdocstrings
   - drawio
+  # - mkdocs_note:
+  #   - notes_root_path: "docs/notes"
+  #   - notes_template: "docs/templates/note.md"
+  #   - attechment_path: "docs/notes/attachments"
+  #   - path_blacklist: "docs/draft"
+
+
 
   # - redirects:
   #     redirect_maps:
@@ -125,6 +132,7 @@ hooks:
   - scripts/hooks/fancybox.py
   - scripts/hooks/links.py
   - scripts/hooks/copyright.py
+  # - src/mkdocs_note/plugin.py
   # - scripts/hooks/
 
 ## Extensions
