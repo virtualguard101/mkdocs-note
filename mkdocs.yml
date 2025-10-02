@@ -111,6 +111,10 @@ plugins:
       enable_creation_date: true
   - mkdocstrings
   - drawio
+  - mkdocs-note:
+      notes_dir: docs/notes
+
+
 
   # - redirects:
   #     redirect_maps:
@@ -125,6 +129,7 @@ hooks:
   - scripts/hooks/fancybox.py
   - scripts/hooks/links.py
   - scripts/hooks/copyright.py
+  # - src/mkdocs_note/plugin.py
   # - scripts/hooks/
 
 ## Extensions
@@ -199,9 +204,9 @@ extra:
   status:
     new: Recently added
     deprecated: Deprecated
-  analytics:
-    provider: google
-    property: G-3JKT1BJEB6
+  # analytics:
+  #   provider: google
+  #   property:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/virtualguard101
@@ -211,6 +216,7 @@ extra:
 ## Page tree
 nav:
   - index.md
+  - notes/index.md
         
   - Blog:
     - blog/index.md

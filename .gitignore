@@ -14,3 +14,7 @@ wheels/
 tmp/
 temp/
 logs/
+site/
+
+# Secret files
+publish.sh
