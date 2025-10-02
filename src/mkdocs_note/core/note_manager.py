@@ -111,7 +111,8 @@ class NoteProcessor:
     def _generate_relative_url(self, file_path: Path) -> str:
         """Generate MkDocs format relative URL
         """
-        relpath = file_path.relative_to(self.config.index_file.parent)
+        index_file = Path(self.config.index_file)
+        relpath = file_path.relative_to(index_file.parent)
         relurl = relpath.with_suffix('').as_posix() + '/'
         
         # Process index file
@@ -168,13 +169,14 @@ class IndexUpdater:
     def update_index(self, notes: List[NoteInfo]) -> bool:
         """Update index file
         """
-        if not self.config.index_file.exists():
-            self.logger.error(f"Index file does not exist: {self.config.index_file}")
+        index_file = Path(self.config.index_file)
+        if not index_file.exists():
+            self.logger.error(f"Index file does not exist: {index_file}")
             return False
         
         try:
             # Read existing content
-            content = self.config.index_file.read_text(encoding='utf-8')
+            content = index_file.read_text(encoding='utf-8')
             
             # Generate new notes list HTML
             new_section = self._generate_html_list(notes)
@@ -185,7 +187,7 @@ class IndexUpdater:
                 return False
             
             # Write to file
-            self.config.index_file.write_text(updated_content, encoding='utf-8')
+            index_file.write_text(updated_content, encoding='utf-8')
             self.logger.info(f"Updated index file with {len(notes) - 1} notes")
             return True
             

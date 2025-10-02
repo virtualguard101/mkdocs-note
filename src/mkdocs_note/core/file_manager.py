@@ -13,18 +13,19 @@ class FileScanner:
     def scan_notes(self) -> List[Path]:
         """Scan notes directory, return all supported note files
         """
-        if not self.config.notes_dir.exists():
-            self.logger.warning(f"Notes directory does not exist: {self.config.notes_dir}")
+        notes_dir = Path(self.config.notes_dir)
+        if not notes_dir.exists():
+            self.logger.warning(f"Notes directory does not exist: {notes_dir}")
             return []
         
         notes = []
         
         try:
-            for file_path in self.config.notes_dir.rglob('*'):
+            for file_path in notes_dir.rglob('*'):
                 if self._is_valid_note_file(file_path):
                     notes.append(file_path)
         except PermissionError as e:
-            self.logger.error(f"Permission denied while scanning {self.config.notes_dir}: {e}")
+            self.logger.error(f"Permission denied while scanning {notes_dir}: {e}")
             return []
         
         self.logger.info(f"Found {len(notes)} note files")

@@ -104,8 +104,11 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         if not self.plugin_enabled:
             return markdown
         
+        self.logger.debug(f"Processing page: {page.file.src_path}")
+        
         # Check if it is the index page of the notes directory
         if self._is_notes_index_page(page):
+            self.logger.info(f"Found notes index page: {page.file.src_path}")
             markdown = self._insert_recent_notes(markdown)
         
         return markdown
@@ -114,9 +117,29 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         """Check if the page is the notes index page."""
         try:
             # Check if the page path matches the configured index file
-            page_path = Path(page.file.src_path)
-            return page_path == self.config.index_file
-        except Exception:
+            page_src_path = page.file.src_path
+            index_file_path = str(self.config.index_file)
+            
+            # Convert absolute path to relative path from docs directory
+            if index_file_path.startswith('/'):
+                # It's an absolute path, extract the relative part
+                if 'docs/' in index_file_path:
+                    index_relative = index_file_path.split('docs/')[1]
+                else:
+                    # Fallback: use the filename
+                    index_relative = Path(index_file_path).name
+            else:
+                # It's already a relative path
+                if index_file_path.startswith('docs/'):
+                    index_relative = index_file_path[5:]  # Remove 'docs/' prefix
+                else:
+                    index_relative = index_file_path
+            
+            is_match = page_src_path == index_relative
+            self.logger.debug(f"Page matching: '{page_src_path}' == '{index_relative}' = {is_match}")
+            return is_match
+        except Exception as e:
+            self.logger.error(f"Error in page matching: {e}")
             return False
     
     def _insert_recent_notes(self, markdown: str) -> str:

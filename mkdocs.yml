@@ -111,11 +111,8 @@ plugins:
       enable_creation_date: true
   - mkdocstrings
   - drawio
-  # - mkdocs_note:
-  #   - notes_root_path: "docs/notes"
-  #   - notes_template: "docs/templates/note.md"
-  #   - attechment_path: "docs/notes/attachments"
-  #   - path_blacklist: "docs/draft"
+  - mkdocs-note:
+      notes_dir: docs/notes
 
 
 
@@ -207,9 +204,9 @@ extra:
   status:
     new: Recently added
     deprecated: Deprecated
-  analytics:
-    provider: google
-    property: G-3JKT1BJEB6
+  # analytics:
+  #   provider: google
+  #   property:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/virtualguard101
@@ -219,6 +216,7 @@ extra:
 ## Page tree
 nav:
   - index.md
+  - notes/index.md
         
   - Blog:
     - blog/index.md

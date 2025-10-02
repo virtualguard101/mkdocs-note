@@ -14,11 +14,11 @@ class PluginConfig(Config):
     """The root path of the project.
     """
 
-    notes_dir = config_opt.Type(Path, default=Path(__file__).parent.parent / 'docs' / 'notes')
+    notes_dir = config_opt.Dir(default='docs/notes')
     """The directory of the notes.
     """
 
-    index_file = config_opt.Type(Path, default=Path(__file__).parent.parent / 'docs' / 'notes' / 'index.md')
+    index_file = config_opt.File(default='docs/notes/index.md')
     """The index file of the notes.
     """
     
@@ -42,15 +42,15 @@ class PluginConfig(Config):
     """The date format of the output.
     """
     
-    supported_extensions = config_opt.Type(Set[str], default={'.md', '.ipynb'})
+    supported_extensions = config_opt.Type(set, default={'.md', '.ipynb'})
     """The supported extensions of the notes.
     """
     
-    exclude_patterns = config_opt.Type(Set[str], default={'index.md', 'README.md'})
+    exclude_patterns = config_opt.Type(set, default={'index.md', 'README.md'})
     """The patterns to exclude from the notes.
     """
     
-    exclude_dirs = config_opt.Type(Set[str], default={'__pycache__', '.git', 'node_modules'})
+    exclude_dirs = config_opt.Type(set, default={'__pycache__', '.git', 'node_modules'})
     """The directories to exclude from the notes.
     """
 
