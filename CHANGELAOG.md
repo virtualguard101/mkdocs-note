@@ -30,3 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Now only one feature which can insert recent notes at index page of notebook directory has been implemented.
 
 - All things are to be restored, step by step!
+
+### Fixed
+
+- Documented common configuration issues, especially YAML indentation errors that cause "Invalid config options" errors
+
+### Added
+
+- Added comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues
+- Added configuration format warnings in README documentation
+- Documented Jupyter DeprecationWarning explanation (not a plugin error)
