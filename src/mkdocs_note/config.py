@@ -14,11 +14,11 @@ class PluginConfig(Config):
     """The root path of the project.
     """
 
-    notes_dir = config_opt.Dir(default='docs/notes')
+    notes_dir = config_opt.Dir(exists=False, default='docs/notes')
     """The directory of the notes.
     """
 
-    index_file = config_opt.File(default='docs/notes/index.md')
+    index_file = config_opt.File(exists=False, default='docs/notes/index.md')
     """The index file of the notes.
     """
     

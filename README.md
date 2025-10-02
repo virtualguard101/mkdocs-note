@@ -44,6 +44,8 @@ plugins:
       end_marker: "<!-- recent_notes_end -->"
 ```
 
+> **⚠️ Important**: Note the indentation! Use **spaces** (not dashes `-`) for plugin options. The configuration must be a dictionary, not a list. See [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues.
+
 ## Usage
 
 ### Setting Up Your Notes Directory
