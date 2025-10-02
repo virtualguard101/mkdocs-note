@@ -1,275 +1,295 @@
-import os
-import datetime
-import posixpath
-import frontmatter
-import re
+import json
+import hashlib
+from typing import List, Optional
 
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Union, Callable, List, Optional
-from mkdocs.structure.files import File, Files
-from mkdocs.utils import meta, get_relative_url
-from mkdocs.structure.pages import Page
-from mkdocs.config.defaults import MkDocsConfig
 
-from mkdocs_note.core.file_manager import FileLinkedNode
-from mkdocs_note.parsers.config_parser import PluginConfig
-from mkdocs_note.logger import logger
+from mkdocs_note.config import PluginConfig
+from mkdocs_note.logger import Logger
+from mkdocs_note.core.file_manager import FileScanner
 
-class NoteLinkedMap(object):
-    """Note linked map class, which use for recording the links of 
-       an instance itself refer to other instances and the links of
-       other instances refer to itself.
-
-    Attributes:
-        node (File): The file associated with this note.
-        links (Dict[str, FileLinkedNode]): The links from this note to other notes, which is a dictionary mapping note IDs to their linked nodes.
-        inverse_links (Optional[FileLinkedNode]): The links from other notes to this note, which is a linked list with head node.
+@dataclass
+class NoteInfo:
+    """Note information data class
     """
-    def __init__(self, node: File):
-        self.node = node
-        self.links: Dict[str, FileLinkedNode] = {}
-        self.inverse_links: Optional[FileLinkedNode] = None
+    file_path: Path
+    title: str
+    relative_url: str
+    modified_date: str
+    file_size: int
+    modified_time: float
 
-    def clear_links(self):
-        """Clear all active links (i.e., links pointing to other
-           articles from oneself) and remove the relevant nodes from
-           the corresponding reverse linked list.
+class NoteProcessor:
+    """Note processor
+    """
+    
+    def __init__(self, config: PluginConfig, logger: Logger):
+        self.config = config
+        self.logger = logger
+    
+    def process_note(self, file_path: Path) -> Optional[NoteInfo]:
+        """Process a single note file, extract information
         """
-        for link in list(self.links.values()):
-            link.remove()
-        self.links.clear()
-        self.inverse_links = None
-
-
-def init_note_path(path: Path) -> int:
-    """Initialize the note path.
-
-    Args:
-        path (Path): The path to initialize.
-    """
-    if not path.exists():
-        path.mkdir(parents=True, exist_ok=True)
-
-    attachment_path = path / "attachments"
-    if not attachment_path.exists():
-        attachment_path.mkdir(parents=True, exist_ok=True)
-
-    return 0
-
-def process_notes_path_node(file: File) -> List[str]:
-    """Extract the notes path node, and remove its extension.
-
-    Args:
-        file (File): The file to process.
-
-    Returns:
-        List[str]: The processed nodes list.
-    """
-    original_uri = file.src_uri
-
-    normalized = posixpath.normpath(original_uri).lstrip('/')
-
-    # Split path nodes
-    parts = normalized.split('/')
-
-    # Remove the extension of the last node (filename)
-    if parts and '.' in parts[-1]:
-        filename = parts[-1]
-        parts[-1] = posixpath.splitext(filename)[0]
+        try:
+            # Get basic information
+            stat = file_path.stat()
+            
+            # Extract title
+            title = self._extract_title(file_path)
+            if not title or title == "Notebook":
+                return None
+            
+            # Generate relative URL
+            relative_url = self._generate_relative_url(file_path)
+            
+            # Get modified time
+            modified_date = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            
+            return NoteInfo(
+                file_path=file_path,
+                title=title,
+                relative_url=relative_url,
+                modified_date=modified_date,
+                file_size=stat.st_size,
+                modified_time=stat.st_mtime
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Failed to process note {file_path}: {e}")
+            return None
     
-    return [part for part in parts if part]
-
-def set_note_permalink(file: File) -> List[str]:
-    """Set the permalink for a note file.
-
-    Args:
-        file (File): The note file to set the permalink for.
-
-    Returns:
-        List[str]: The list with 2 elements: the first is first node of the processed path, and the second is the permalink formed by connecting various nodes through '-'.
-    """
-    nodes_list = process_notes_path_node(file)
-
-    if len(nodes_list) < 2:
-        return []
-
-    head = nodes_list[0]
-    permalink = nodes_list[1]
-    for node in nodes_list[2:]:
-        permalink += ('-' + node)
-
-    return [head, permalink]
-
-def create_new_note(path: Path, notes_root_path: str, notes_template: str) -> int:
-    """Create a new note at the specified path using the defined template.
-
-    Args:
-        path (Path): The path where the new note will be created.
-        notes_root_path (str): The root path of the notes.
-        notes_template (str): The template used for new notes.
-    """
-    template_path = Path(notes_template)
-
-    if not template_path.exists():
-        return 1
-
-    with open(template_path, 'r', encoding='utf-8') as f:
-        result = frontmatter.Frontmatter.read(f.read())
-        post = {'metadata': result['attributes'], 'content': result['body']}
-
-    # Create a mock File object for permalink generation
-    try:
-        relative_path = path.relative_to(Path(notes_root_path))
-    except ValueError:
-        logger.error(f"Cannot create new note: the path '{path}' is not inside the notes root directory '{notes_root_path}'.")
-        return 1
+    def _extract_title(self, file_path: Path) -> Optional[str]:
+        """Extract title from file
+        """
+        if file_path.suffix == '.ipynb':
+            return self._extract_title_from_notebook(file_path)
+        else:
+            return self._extract_title_from_markdown(file_path)
     
-    mock_file = type('MockFile', (), {'src_uri': str(relative_path)})()
-    
-    permalink_result = set_note_permalink(mock_file)
-    if not permalink_result:
-        logger.error(f"Failed to generate permalink for new note at '{path}'.")
-        return 1
+    def _extract_title_from_notebook(self, file_path: Path) -> Optional[str]:
+        """Extract title from Jupyter Notebook
+        """
+        try:
+            with file_path.open('r', encoding='utf-8') as f:
+                notebook = json.load(f)
+            
+            for cell in notebook.get('cells', []):
+                if cell.get('cell_type') == 'markdown':
+                    source = cell.get('source', [])
+                    if isinstance(source, list):
+                        content = ''.join(source)
+                    else:
+                        content = source
+                    
+                    # Find the first level-1 title
+                    for line in content.split('\n'):
+                        line = line.strip()
+                        if line.startswith('# '):
+                            return line[2:].strip()
+                            
+        except Exception as e:
+            self.logger.warning(f"Failed to extract title from notebook {file_path}: {e}")
         
-    frontmatter_args = {
-        "date": datetime.datetime.now().isoformat(timespec='seconds'),
-        "permalink": permalink_result[1],
-        "publish": False
-    }
+        return file_path.stem
+    
+    def _extract_title_from_markdown(self, file_path: Path) -> Optional[str]:
+        """Extract title from Markdown file
+        """
+        try:
+            with file_path.open('r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('# '):
+                        return line[2:].strip()
+        except Exception as e:
+            self.logger.warning(f"Failed to extract title from markdown {file_path}: {e}")
+        
+        return file_path.stem
+    
+    def _generate_relative_url(self, file_path: Path) -> str:
+        """Generate MkDocs format relative URL
+        """
+        relpath = file_path.relative_to(self.config.index_file.parent)
+        relurl = relpath.with_suffix('').as_posix() + '/'
+        
+        # Process index file
+        if 'index' in relurl:
+            relurl = relurl.replace('index/', '')
+        
+        return relurl
 
-    for key, value in post['metadata'].items():
-        if key not in frontmatter_args:
-            frontmatter_args[key] = value
 
-    # Update post metadata with new frontmatter
-    for key, value in frontmatter_args.items():
-        post['metadata'][key] = value
-
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(f"---\n{frontmatter.yaml.dump(post['metadata'])}---\n{post['content']}")
-
-    return 0
-
-def set_note_uri(file: File, dest_uri: Union[str, Callable[[str], str]]) -> None:
-    """Set the URI for a note file.
-
-    Args:
-        file (File): The note file to set the URI for.
-        dest_uri (Union[str, Callable[[str], str]]): The destination URI or a function to generate it.
+class CacheManager:
+    """Cache manager
     """
-    file.dest_uri = dest_uri if isinstance(dest_uri, str) else dest_uri(file.dest_uri)
+    
+    def __init__(self, logger: Logger):
+        self.logger = logger
+        self._last_notes_hash: Optional[str] = None
+        self._last_content_hash: Optional[str] = None
+    
+    def should_update_notes(self, notes: List[NoteInfo]) -> bool:
+        """Check if notes list needs to be updated
+        """
+        current_hash = self._calculate_notes_hash(notes)
+        if self._last_notes_hash != current_hash:
+            self._last_notes_hash = current_hash
+            return True
+        return False
+    
+    def should_update_content(self, content: str) -> bool:
+        """Check if file content needs to be updated
+        """
+        content_hash = hashlib.md5(content.encode()).hexdigest()
+        if self._last_content_hash != content_hash:
+            self._last_content_hash = content_hash
+            return True
+        return False
+    
+    def _calculate_notes_hash(self, notes: List[NoteInfo]) -> str:
+        """Calculate notes list hash
+        """
+        notes_info = []
+        for note in notes:
+            notes_info.append(f"{note.file_path.name}:{note.modified_time}:{note.file_size}")
+        return hashlib.md5('|'.join(notes_info).encode()).hexdigest()
 
-    # Helper function to delete an attribute if it exists
-    def delattr_if_exists(obj, attr: str) -> None:
-        if hasattr(obj, attr):
-            delattr(obj, attr)
 
-    # Delete the 'url' and 'abs_dest_path' attribute if it exists
-    delattr_if_exists(file, 'url')
-    delattr_if_exists(file, 'abs_dest_path')
-
-def transform_notes_links(markdown: str, page: Page, config: MkDocsConfig, note_link_name_map: dict, note_link_path_map: dict) -> str:
-    """Transform note links in the markdown content.
-
-    Args:
-        markdown (str): The markdown content to transform
-        page (Page): The page being processed
-        config (MkDocsConfig): The MkDocs configuration
-        note_link_name_map (dict): Dictionary mapping note names to File objects
-        note_link_path_map (dict): Dictionary mapping note paths to NoteLinkedMap objects
-
-    Returns:
-        str: The transformed markdown content with wiki links converted to markdown links
+class IndexUpdater:
+    """Index file updater
     """
-    link_list = note_link_path_map.get(page.file.src_uri)
+    
+    def __init__(self, config: PluginConfig, logger: Logger):
+        self.config = config
+        self.logger = logger
+    
+    def update_index(self, notes: List[NoteInfo]) -> bool:
+        """Update index file
+        """
+        if not self.config.index_file.exists():
+            self.logger.error(f"Index file does not exist: {self.config.index_file}")
+            return False
+        
+        try:
+            # Read existing content
+            content = self.config.index_file.read_text(encoding='utf-8')
+            
+            # Generate new notes list HTML
+            new_section = self._generate_html_list(notes)
+            
+            # Replace content
+            updated_content = self._replace_section(content, new_section)
+            if updated_content is None:
+                return False
+            
+            # Write to file
+            self.config.index_file.write_text(updated_content, encoding='utf-8')
+            self.logger.info(f"Updated index file with {len(notes) - 1} notes")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to update index file: {e}")
+            return False
+    
+    def _generate_html_list(self, notes: List[NoteInfo]) -> str:
+        """Generate HTML list
+        """
+        items = []
+        for note in notes:
+            items.append(
+                f'<li><div style="display:flex; justify-content:space-between; align-items:center;">'
+                f'<a href="{note.relative_url}">{note.title}</a>'
+                f'<span style="font-size:0.8em;">{note.modified_date}</span>'
+                '</div></li>'
+            )
+        
+        return '<ul>\n' + '\n'.join(items) + '\n</ul>'
+    
+    def _replace_section(self, content: str, new_section: str) -> Optional[str]:
+        """Replace content between specified markers
+        """
+        start_idx = content.find(self.config.start_marker)
+        end_idx = content.find(self.config.end_marker)
+        
+        if start_idx == -1 or end_idx == -1:
+            self.logger.error(
+                f"Markers not found. Please add {self.config.start_marker} "
+                f"and {self.config.end_marker} to the index file."
+            )
+            return None
+        
+        # Ensure end marker is after start marker
+        if end_idx <= start_idx:
+            self.logger.error("End marker found before start marker")
+            return None
+        
+        start_pos = start_idx + len(self.config.start_marker)
+        end_pos = end_idx
+        
+        return (
+            content[:start_pos] + 
+            '\n' + new_section + '\n' + 
+            content[end_pos:]
+        )
 
-    if link_list is not None:
-        assert link_list.node == page.file
-        link_list.clear_links()
 
-    def record_link(target_file: File):
-        if link_list is None or target_file.src_uri in link_list.links:
-            return
-
-        from mkdocs_note.core.file_manager import FileLinkedNode
-        node = FileLinkedNode(page.file)
-        link_list.links[target_file.src_uri] = node
-        node.insert(note_link_path_map[target_file.src_uri].inverse_links)
-
-    def repl(m: re.Match[str]):
-        is_media = m.group(1) is not None
-
-        # [[name#heading|alias]]
-        # In tables, use '\\|' instead of '|', so remove '\\'
-        m2 = re.match(r'^(.+?)(#(.*?))?(\|(.*))?$', m.group(2).replace('\\', ''), flags=re.U)
-        name = m2.group(1).strip()
-        heading = m2.group(3)
-        alias = m2.group(5)
-
-        # Automatically add .md extension to documents
-        if not is_media and (name + '.md') in note_link_name_map:
-            name += '.md'
-
-        if heading:
-            heading = heading.strip()
-        if alias:
-            alias = alias.strip()
-
-        if name.count('/') == 0 and name in note_link_name_map:
-            # name is a filename
-            md_link = note_link_name_map[name].src_uri
-        else:
-            # name is a file path, expand to absolute path
-            abs_path = posixpath.normpath(posixpath.join(posixpath.dirname(page.file.src_uri), name))
-
-            if abs_path in note_link_path_map:
-                md_link = note_link_path_map[abs_path].node.src_uri
+class RecentNotesUpdater:
+    """Recent notes updater main class
+    """
+    
+    def __init__(self, config: Optional[PluginConfig] = None):
+        self.config = config or PluginConfig()
+        self.logger = Logger()
+        
+        # Initialize components
+        self.file_scanner = FileScanner(self.config, self.logger)
+        self.note_processor = NoteProcessor(self.config, self.logger)
+        self.cache_manager = CacheManager(self.logger)
+        self.index_updater = IndexUpdater(self.config, self.logger)
+    
+    def update(self) -> bool:
+        """Execute update operation
+        """
+        self.logger.info("Starting recent notes update...")
+        
+        try:
+            # Scan note files
+            note_files = self.file_scanner.scan_notes()
+            if not note_files:
+                self.logger.warning("No note files found")
+                return False
+            
+            # Process note files
+            notes = []
+            for file_path in note_files:
+                note_info = self.note_processor.process_note(file_path)
+                if note_info:
+                    notes.append(note_info)
+            
+            if not notes:
+                self.logger.warning("No valid notes found")
+                return False
+            
+            # Check cache
+            if not self.cache_manager.should_update_notes(notes):
+                self.logger.info("Notes unchanged, skipping update")
+                return True
+            
+            # Sort by modified time
+            notes.sort(key=lambda n: n.modified_time, reverse=True)
+            recent_notes = notes[:self.config.max_notes]
+            
+            # Update index file
+            success = self.index_updater.update_index(recent_notes)
+            if success:
+                self.logger.info(f"Successfully updated recent notes ({len(recent_notes) - 1} notes)")
             else:
-                md_link = abs_path
-
-        # Record reverse links
-        if not is_media:
-            if md_link in note_link_path_map:
-                record_link(note_link_path_map[md_link].node)
-            else:
-                logger.warning('Failed to resolve link \'%s\' in \'%s\'', md_link, page.file.src_uri)
-
-        # Convert to relative path so MkDocs will warn if link is not found
-        md_link = get_relative_url(md_link, page.file.src_uri)
-        title = posixpath.splitext(posixpath.basename(name))[0]  # Title without extension
-
-        if heading:
-            # Generate heading ID based on toc configuration
-            # https://python-markdown.github.io/extensions/toc/
-            toc_config = config.mdx_configs['toc']
-            heading_id = toc_config['slugify'](heading, toc_config.get('separator', '-'))
-            md_link += f'#{heading_id}'
-
-        if alias:
-            display_name = alias
-        elif heading:
-            display_name = f'{title} > {heading}'
-        else:
-            display_name = title
-
-        return ('!' if is_media else '') + f'[{display_name}]({md_link})'
-
-    # Use lazy matching to avoid merging multiple link contents
-    return re.sub(r'(!)?\[\[(.*?)\]\]', repl, markdown, flags=re.M|re.U)
-
-def insert_recent_notes(markdown: str, note_list: Dict[str, File]) -> str:
-    """Insert recent notes into the notes root index.
-
-    Args:
-        markdown (str): The markdown content to insert recent notes into.
-        note_list (Dict[str, File]): Dictionary of note files.
-
-    Returns:
-        str: The markdown content with recent notes inserted.
-    """
-    content = ''
-    for f in list(note_list.values())[:10]:
-        title = posixpath.splitext(posixpath.basename(f.src_uri))[0]
-        date = f.note_date.strftime('%Y-%m-%d')
-        content += f'- <div class="recent-notes"><a href="{f.url}">{title}</a><small>{date}</small></div>\n'
-    return markdown.replace('<!-- RECENT NOTES -->', content)
+                self.logger.error("Failed to update index file")
+            
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Unexpected error during update: {e}")
+            return False

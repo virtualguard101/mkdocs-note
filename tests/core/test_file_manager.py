@@ -1,128 +1,227 @@
 import unittest
 import sys
 import os
-from unittest.mock import Mock, patch
+from pathlib import Path
+from unittest.mock import Mock, patch, MagicMock
 
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
-from mkdocs.structure.files import File
-from mkdocs_note.core.file_manager import FileLinkedNode, process_attachment
+from mkdocs_note.core.file_manager import FileScanner
+from mkdocs_note.config import PluginConfig
+from mkdocs_note.logger import Logger
 
-class TestFileLinkedNode(unittest.TestCase):
+
+class TestFileScanner(unittest.TestCase):
+    """Test cases for FileScanner class."""
 
     def setUp(self):
-        # Create mock files for use in tests
-        self.file1 = File('page1.md', 'docs', 'site', False)
-        self.file2 = File('page2.md', 'docs', 'site', False)
-        self.file3 = File('page3.md', 'docs', 'site', False)
-        
-        # Create nodes
-        self.node1 = FileLinkedNode(self.file1)
-        self.node2 = FileLinkedNode(self.file2)
-        self.node3 = FileLinkedNode(self.file3)
+        """Set up test fixtures."""
+        self.config = PluginConfig()
+        self.logger = Logger()
+        self.file_scanner = FileScanner(self.config, self.logger)
 
     def test_initialization(self):
-        self.assertIs(self.node1.file, self.file1)
-        self.assertIsNone(self.node1.prev)
-        self.assertIsNone(self.node1.next)
+        """Test FileScanner initialization."""
+        self.assertIs(self.file_scanner.config, self.config)
+        self.assertIs(self.file_scanner.logger, self.logger)
 
-    def test_insert_single_node(self):
-        # Insert node2 after node1
-        self.node2.insert(self.node1)
+    @patch('pathlib.Path.exists')
+    def test_scan_notes_directory_not_exists(self, mock_exists):
+        """Test scan_notes when directory doesn't exist."""
+        mock_exists.return_value = False
         
-        self.assertIs(self.node1.next, self.node2)
-        self.assertIs(self.node2.prev, self.node1)
-        self.assertIsNone(self.node1.prev)
-        self.assertIsNone(self.node2.next)
+        result = self.file_scanner.scan_notes()
+        
+        self.assertEqual(result, [])
+        mock_exists.assert_called_once()
 
-    def test_insert_middle_node(self):
-        # Initial list: node1 <-> node2
-        self.node2.insert(self.node1)
+    @patch('pathlib.Path.rglob')
+    @patch('pathlib.Path.exists')
+    def test_scan_notes_success(self, mock_exists, mock_rglob):
+        """Test successful note scanning."""
+        mock_exists.return_value = True
         
-        # Insert node3 between node1 and node2
-        self.node3.insert(self.node1)
+        # Create mock file paths with proper mocking
+        mock_files = []
         
-        self.assertIs(self.node1.next, self.node3)
-        self.assertIs(self.node3.prev, self.node1)
-        self.assertIs(self.node3.next, self.node2)
-        self.assertIs(self.node2.prev, self.node3)
+        # Create mock for note1.md
+        mock_file1 = Mock()
+        mock_file1.is_file.return_value = True
+        mock_file1.name = 'note1.md'
+        mock_file1.suffix = '.md'
+        mock_file1.parts = ('notes', 'note1.md')
+        mock_files.append(mock_file1)
+        
+        # Create mock for note2.ipynb
+        mock_file2 = Mock()
+        mock_file2.is_file.return_value = True
+        mock_file2.name = 'note2.ipynb'
+        mock_file2.suffix = '.ipynb'
+        mock_file2.parts = ('notes', 'note2.ipynb')
+        mock_files.append(mock_file2)
+        
+        # Create mock for subdir/note3.md
+        mock_file3 = Mock()
+        mock_file3.is_file.return_value = True
+        mock_file3.name = 'note3.md'
+        mock_file3.suffix = '.md'
+        mock_file3.parts = ('notes', 'subdir', 'note3.md')
+        mock_files.append(mock_file3)
+        
+        # Create mock for index.md (should be excluded)
+        mock_file4 = Mock()
+        mock_file4.is_file.return_value = True
+        mock_file4.name = 'index.md'
+        mock_file4.suffix = '.md'
+        mock_file4.parts = ('notes', 'index.md')
+        mock_files.append(mock_file4)
+        
+        # Create mock for README.md (should be excluded)
+        mock_file5 = Mock()
+        mock_file5.is_file.return_value = True
+        mock_file5.name = 'README.md'
+        mock_file5.suffix = '.md'
+        mock_file5.parts = ('notes', 'README.md')
+        mock_files.append(mock_file5)
+        
+        # Create mock for __pycache__/temp.py (should be excluded)
+        mock_file6 = Mock()
+        mock_file6.is_file.return_value = True
+        mock_file6.name = 'temp.py'
+        mock_file6.suffix = '.py'
+        mock_file6.parts = ('notes', '__pycache__', 'temp.py')
+        mock_files.append(mock_file6)
+        
+        mock_rglob.return_value = mock_files
+        
+        result = self.file_scanner.scan_notes()
+        
+        # Should return valid note files (excluding index.md, README.md, and __pycache__)
+        self.assertEqual(len(result), 3)
+        # Check that the returned files are the valid ones
+        result_names = [f.name for f in result]
+        self.assertIn('note1.md', result_names)
+        self.assertIn('note2.ipynb', result_names)
+        self.assertIn('note3.md', result_names)
 
-    def test_remove_middle_node(self):
-        # Initial list: node1 <-> node3 <-> node2
-        self.node2.insert(self.node1)
-        self.node3.insert(self.node1)
+    @patch('pathlib.Path.rglob')
+    @patch('pathlib.Path.exists')
+    def test_scan_notes_permission_error(self, mock_exists, mock_rglob):
+        """Test scan_notes with permission error."""
+        mock_exists.return_value = True
+        mock_rglob.side_effect = PermissionError("Permission denied")
         
-        # Remove node3
-        self.node3.remove()
+        result = self.file_scanner.scan_notes()
         
-        self.assertIs(self.node1.next, self.node2)
-        self.assertIs(self.node2.prev, self.node1)
-        self.assertIsNone(self.node3.prev)
-        self.assertIsNone(self.node3.next)
+        self.assertEqual(result, [])
 
-    def test_remove_first_node(self):
-        # Initial list: node1 <-> node2 -> node3
-        self.node2.insert(self.node1)
-        self.node3.insert(self.node2)
+    def test_is_valid_note_file_markdown(self):
+        """Test _is_valid_note_file with markdown file."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.md'
+        mock_file.name = 'note.md'
+        mock_file.parts = ('notes', 'note.md')
+        
+        result = self.file_scanner._is_valid_note_file(mock_file)
+        
+        self.assertTrue(result)
 
-        # Remove node1
-        self.node1.remove()
+    def test_is_valid_note_file_notebook(self):
+        """Test _is_valid_note_file with Jupyter notebook."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.ipynb'
+        mock_file.name = 'note.ipynb'
+        mock_file.parts = ('notes', 'note.ipynb')
+        
+        result = self.file_scanner._is_valid_note_file(mock_file)
+        
+        self.assertTrue(result)
 
-        self.assertIs(self.node2.prev, None)
-        self.assertIs(self.node3.prev, self.node2)
-        self.assertIs(self.node2.next, self.node3)
+    def test_is_valid_note_file_not_file(self):
+        """Test _is_valid_note_file with directory."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = False
+        
+        result = self.file_scanner._is_valid_note_file(mock_file)
+        
+        self.assertFalse(result)
 
-    def test_remove_last_node(self):
-        # Initial list: node1 <-> node2 -> node3
-        self.node2.insert(self.node1)
-        self.node3.insert(self.node2)
+    def test_is_valid_note_file_unsupported_extension(self):
+        """Test _is_valid_note_file with unsupported extension."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.txt'
+        mock_file.name = 'note.txt'
+        mock_file.parts = ('notes', 'note.txt')
+        
+        result = self.file_scanner._is_valid_note_file(mock_file)
+        
+        self.assertFalse(result)
 
-        # Remove node3
-        self.node3.remove()
+    def test_is_valid_note_file_excluded_pattern(self):
+        """Test _is_valid_note_file with excluded pattern."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.md'
+        mock_file.name = 'index.md'  # Should be excluded
+        mock_file.parts = ('notes', 'index.md')
         
-        self.assertIs(self.node2.next, None)
-        self.assertIs(self.node1.next, self.node2)
-        self.assertIs(self.node2.prev, self.node1)
+        result = self.file_scanner._is_valid_note_file(mock_file)
+        
+        self.assertFalse(result)
 
-class TestProcessAttachment(unittest.TestCase):
+    def test_is_valid_note_file_excluded_directory(self):
+        """Test _is_valid_note_file in excluded directory."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.md'
+        mock_file.name = 'note.md'
+        mock_file.parts = ('notes', '__pycache__', 'note.md')  # In excluded directory
+        
+        result = self.file_scanner._is_valid_note_file(mock_file)
+        
+        self.assertFalse(result)
 
-    @patch('mkdocs_note.core.note_manager.set_note_uri')
-    def test_process_attachment(self, mock_set_note_uri):
-        # Create a mock file. It doesn't need many attributes because we are mocking set_note_uri
-        mock_file = File('image.png', 'docs', 'site', use_directory_urls=False)
+    def test_is_valid_note_file_case_insensitive_extension(self):
+        """Test _is_valid_note_file with uppercase extension."""
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.MD'  # Uppercase
+        mock_file.name = 'note.MD'
+        mock_file.parts = ('notes', 'note.MD')
         
-        # Create a mock config object for PluginConfig
-        mock_config = Mock()
-        mock_config.attachment_path = 'assets/attachments'
+        result = self.file_scanner._is_valid_note_file(mock_file)
         
-        # Call the function to be tested
-        process_attachment(mock_file, mock_config)
+        self.assertTrue(result)
 
-        # Assert that set_note_uri was called correctly
-        self.assertTrue(mock_set_note_uri.called)
+    def test_config_integration(self):
+        """Test that FileScanner uses config values correctly."""
+        # Test with custom config
+        custom_config = PluginConfig()
+        custom_config.supported_extensions = {'.txt', '.py'}
+        custom_config.exclude_patterns = {'test.txt'}
+        custom_config.exclude_dirs = {'temp'}
         
-        # Get the arguments passed to the mock
-        args, kwargs = mock_set_note_uri.call_args
+        custom_scanner = FileScanner(custom_config, self.logger)
         
-        # Check the file argument
-        self.assertIs(args[0], mock_file)
-        self.assertEqual(len(args), 2)
+        # Test with .txt file (should be valid with custom config)
+        mock_file = Mock()
+        mock_file.is_file.return_value = True
+        mock_file.suffix = '.txt'
+        mock_file.name = 'note.txt'
+        mock_file.parts = ('notes', 'note.txt')
         
-        # Get the transform function
-        transform_func = args[1]
-        self.assertTrue(callable(transform_func))
+        result = custom_scanner._is_valid_note_file(mock_file)
+        self.assertTrue(result)
         
-        # Test the transform function's behavior
-        uri_with_path = 'some/prefix/assets/attachments/image.png'
-        expected_transformed_uri = 'assets/attachments/image.png'
-        self.assertEqual(transform_func(uri_with_path), expected_transformed_uri)
-        
-        uri_without_path = 'another/path/image.png'
-        self.assertEqual(transform_func(uri_without_path), uri_without_path)
-        
-        uri_with_value_error = 'no_path_here.png'
-        self.assertEqual(transform_func(uri_with_value_error), uri_with_value_error)
+        # Test with excluded pattern
+        mock_file.name = 'test.txt'
+        result = custom_scanner._is_valid_note_file(mock_file)
+        self.assertFalse(result)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,15 +2,15 @@
 
 <!-- [![PyPI version](https://badge.fury.io/py/mkdocs-note.svg)](https://badge.fury.io/py/mkdocs-note) -->
 
-`MkDocs-Note` is a plugin for `MkDocs` that transforms your documentation site into a powerful personal knowledge base with bi-directional linking, similar to Obsidian or Roam Research.
+`MkDocs-Note` is a plugin for `MkDocs` that automatically manages notes in your documentation site. It's designed to work seamlessly with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme to create a unified note-taking and documentation experience.
 
 ## Features
 
-- **Bi-directional Linking**: Automatically create and display backlinks for your notes.
-- **Note Management**: Easily create new notes from templates using command line tools.
-- **Recent Notes**: Display a list of recent notes on your homepage.
-- **Attachment Management**: Handles attachments within your notes directory.
-- **Flexible Configuration**: Highly customizable to fit your workflow.
+- **Recent Notes Display**: Automatically displays a list of recent notes on your notes index page
+- **Multi-format Support**: Supports both Markdown (.md) and Jupyter Notebook (.ipynb) files
+- **Smart Filtering**: Excludes index files and other specified patterns from the recent notes list
+- **Flexible Configuration**: Highly customizable note directory, file patterns, and display options
+- **Automatic Updates**: Notes list updates automatically when you build your documentation
 
 ## Installation
 
@@ -31,47 +31,53 @@ Then, add the plugin to your `mkdocs.yml`:
 
 ```yaml
 plugins:
-  - mkdocs-note
+  - mkdocs-note:
+      enabled: true
+      notes_dir: "docs/notes"
+      index_file: "docs/notes/index.md"
+      max_notes: 10
+      start_marker: "<!-- recent_notes_start -->"
+      end_marker: "<!-- recent_notes_end -->"
 ```
 
 ## Usage
 
-### Creating Notes
+### Setting Up Your Notes Directory
 
-You can create a new note using the following command:
+1. Create a notes directory in your documentation (e.g., `docs/notes/`)
+2. Create an `index.md` file in your notes directory
+3. Add the marker comments to your index file:
 
-```bash
-mkdocs note new "My New Note"
+```markdown
+# My Notes
+
+<!-- recent_notes_start -->
+<!-- recent_notes_end -->
 ```
 
-### Linking Notes
+### Configuration Options
 
-Use `[[wiki-style]]` links to connect your notes. The plugin will automatically convert these into valid Markdown links and generate backlinks.
+The plugin supports the following configuration options in your `mkdocs.yml`:
 
-`[[My Target Note]]` will be converted to a link to `My Target Note.md`.
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | `true` | Enable or disable the plugin |
+| `notes_dir` | Path | `"docs/notes"` | Directory containing your notes |
+| `index_file` | Path | `"docs/notes/index.md"` | Index file where recent notes will be displayed |
+| `max_notes` | int | `10` | Maximum number of recent notes to display |
+| `start_marker` | str | `"<!-- recent_notes_start -->"` | Start marker for notes insertion |
+| `end_marker` | str | `"<!-- recent_notes_end -->"` | End marker for notes insertion |
+| `supported_extensions` | Set[str] | `{".md", ".ipynb"}` | File extensions to include as notes |
+| `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | File patterns to exclude |
+| `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | Directories to exclude |
 
-### Backlinks
+### How It Works
 
-Backlinks are automatically added to the bottom of each note, showing you which other notes link to the current one.
-
-## Configuration
-
-You can customize the plugin's behavior in your `mkdocs.yml`:
-
-```yaml
-plugins:
-  - note:
-      # Whether the plugin is enabled
-      enabled: true
-      # The root path for your notes
-      notes_root_path: "docs/notes"
-      # Template for new notes
-      notes_template: "templates/default.md"
-      # Path for attachments
-      attachment_path: "docs/notes/assets"
-      # Paths to exclude from note processing
-      path_blacklist: "docs/notes/draft"
-```
+1. The plugin scans your configured notes directory for supported file types
+2. It extracts metadata (title, modification date) from each note file
+3. Notes are sorted by modification time (most recent first)
+4. The specified number of recent notes is inserted into your index page between the marker comments
+5. The process runs automatically every time you build your documentation
 
 ## Contributing
 

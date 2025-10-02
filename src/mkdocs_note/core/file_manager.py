@@ -1,54 +1,52 @@
-from mkdocs.structure.files import File, Files
+from mkdocs_note.logger import Logger
+from mkdocs_note.config import PluginConfig
+from pathlib import Path
+from typing import List
 
-from mkdocs_note.parsers.config_parser import PluginConfig
-
-class FileLinkedNode(object):
-    """File linked list node class.
-
-    Attributes:
-        file: The file associated with this node.
-        prev: The previous node in the linked list.
-        next: The next node in the linked list.
-    """
-    def __init__(self, file: File):
-        self.file = file
-        self.prev: 'FileLinkedNode' | None = None
-        self.next: 'FileLinkedNode' | None = None
-
-    def insert(self, node: 'FileLinkedNode'):
+class FileScanner:
+    """File scanner"""
+    
+    def __init__(self, config: PluginConfig, logger: Logger):
+        self.config = config
+        self.logger = logger
+    
+    def scan_notes(self) -> List[Path]:
+        """Scan notes directory, return all supported note files
         """
-        Insert the current node after the given node.
-        """
-        self.prev = node
-        self.next = node.next
-        if node.next:
-            node.next.prev = self
-        node.next = self
-
-    def remove(self):
-        """
-        Remove the current node from the linked list.
-        """
-        if self.prev:
-            self.prev.next = self.next
-        if self.next:
-            self.next.prev = self.prev
-        self.prev = None
-        self.next = None
-
-def process_attachment(file: File, config: PluginConfig):
-    """Process the attachment for the given file.
-
-    Args:
-        file (File): The file to process.
-        config (PluginConfig): The plugin configuration.
-    """
-    from mkdocs_note.core.note_manager import set_note_uri
-    def transform(uri: str) -> str:
-        attachment_path = config.attachment_path
+        if not self.config.notes_dir.exists():
+            self.logger.warning(f"Notes directory does not exist: {self.config.notes_dir}")
+            return []
+        
+        notes = []
+        
         try:
-            return uri[uri.index(attachment_path):]
-        except ValueError:
-            return uri
-
-    set_note_uri(file, transform)
+            for file_path in self.config.notes_dir.rglob('*'):
+                if self._is_valid_note_file(file_path):
+                    notes.append(file_path)
+        except PermissionError as e:
+            self.logger.error(f"Permission denied while scanning {self.config.notes_dir}: {e}")
+            return []
+        
+        self.logger.info(f"Found {len(notes)} note files")
+        return notes
+    
+    def _is_valid_note_file(self, file_path: Path) -> bool:
+        """Check if file is a valid note file
+        """
+        if not file_path.is_file():
+            return False
+        
+        # Check extension
+        if file_path.suffix.lower() not in self.config.supported_extensions:
+            return False
+        
+        # Check exclude patterns
+        if file_path.name in self.config.exclude_patterns:
+            return False
+        
+        # Check exclude directories
+        for part in file_path.parts:
+            if part in self.config.exclude_dirs:
+                return False
+        
+        return True

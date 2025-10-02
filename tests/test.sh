@@ -2,7 +2,6 @@
 
 # Get the directory where the script is located
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-TEST_DIR="$SCRIPT_DIR"
 SRC_DIR=$(realpath "$SCRIPT_DIR/../src")
 
 export PYTHONPATH="$SRC_DIR"
@@ -26,6 +25,13 @@ run_tests() {
     if [ -z "$1" ]; then
         # Run all tests and generate a coverage report
         echo "Running all tests with coverage..."
+        echo "Test files:"
+        echo "  - test_config.py (PluginConfig tests)"
+        echo "  - test_logger.py (Logger tests)"
+        echo "  - core/test_file_manager.py (FileScanner tests)"
+        echo "  - core/test_note_manager.py (NoteProcessor, CacheManager, IndexUpdater, RecentNotesUpdater tests)"
+        echo "  - test_plugin.py (MkdocsNotePlugin tests)"
+        echo ""
         uv run pytest --cov=src/mkdocs_note --cov-report=term-missing tests/
     else
         # Run specific tests and generate a coverage report
@@ -34,9 +40,57 @@ run_tests() {
     fi
 }
 
-# Check for a specific test file argument
-if [ "$#" -gt 0 ]; then
-    run_tests "$@"
-else
-    run_tests
-fi
+run_unit_tests() {
+    echo "Running unit tests only..."
+    uv run pytest tests/test_config.py tests/test_logger.py tests/core/ tests/test_plugin.py -v
+}
+
+run_integration_tests() {
+    echo "Running integration tests..."
+    # Add integration tests here when available
+    echo "No integration tests available yet."
+}
+
+show_help() {
+    echo "Usage: $0 [OPTIONS] [TEST_FILES...]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help          Show this help message"
+    echo "  -u, --unit          Run unit tests only"
+    echo "  -i, --integration   Run integration tests only"
+    echo "  -c, --coverage      Run tests with coverage report (default)"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  # Run all tests with coverage"
+    echo "  $0 -u               # Run unit tests only"
+    echo "  $0 test_config.py   # Run specific test file"
+    echo "  $0 -c tests/core/   # Run core tests with coverage"
+}
+
+# Parse command line arguments
+case "$1" in
+    -h|--help)
+        show_help
+        exit 0
+        ;;
+    -u|--unit)
+        run_unit_tests
+        exit 0
+        ;;
+    -i|--integration)
+        run_integration_tests
+        exit 0
+        ;;
+    -c|--coverage)
+        shift
+        run_tests "$@"
+        ;;
+    *)
+        # Check for a specific test file argument
+        if [ "$#" -gt 0 ]; then
+            run_tests "$@"
+        else
+            run_tests
+        fi
+        ;;
+esac
