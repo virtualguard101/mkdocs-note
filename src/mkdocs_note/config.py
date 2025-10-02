@@ -4,7 +4,7 @@ from mkdocs.config import Config
 from mkdocs.config import base, config_options as config_opt
 
 class PluginConfig(Config):
-    """配置类，集中管理所有配置参数
+    """Configuration class, managing all configuration parameters.
     """
     enabled = config_opt.Type(bool, default=True)
     """Whether the plugin is enabled.

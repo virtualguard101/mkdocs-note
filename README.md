@@ -7,9 +7,13 @@
 ## Features
 
 - **Recent Notes Display**: Automatically displays a list of recent notes on your notes index page
+
 - **Multi-format Support**: Supports both Markdown (.md) and Jupyter Notebook (.ipynb) files
+
 - **Smart Filtering**: Excludes index files and other specified patterns from the recent notes list
+
 - **Flexible Configuration**: Highly customizable note directory, file patterns, and display options
+
 - **Automatic Updates**: Notes list updates automatically when you build your documentation
 
 ## Installation
@@ -21,7 +25,7 @@ uv venv
 uv pip insatll mkdocs-note
 ```
 
-Or install the plugin using `pip`:
+Or using `pip`:
 
 ```bash
 pip install mkdocs-note

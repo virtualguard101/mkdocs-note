@@ -28,12 +28,20 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
     
     @property
     def plugin_enabled(self) -> bool:
-        """Check if the plugin is enabled."""
+        """Check if the plugin is enabled.
+        """
         return self.config.enabled
     
     @event_priority(100)
     def on_config(self, config: MkDocsConfig) -> MkDocsConfig | None:
-        """Handle the configuration for the plugin."""
+        """Handle the configuration for the plugin.
+
+        Args:
+            config (MkDocsConfig): The MkDocs configuration
+
+        Returns:
+            MkDocsConfig | None: The updated MkDocs configuration
+        """
         if not self.plugin_enabled:
             self.logger.debug("MkDocs-Note plugin is disabled.")
             return config
@@ -64,8 +72,17 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
     
     @event_priority(100)
     def on_files(self, files: Files, config: MkDocsConfig) -> Files | None:
-        """Process files and collect recent notes."""
+        """Process files and collect recent notes.
+
+        Args:
+            files (Files): The files to check
+            config (MkDocsConfig): The MkDocs configuration
+
+        Returns:
+            Files | None: The updated files
+        """
         if not self.plugin_enabled:
+            self.logger.debug("MkDocs-Note plugin is disabled.")
             return files
         
         self.logger.info("Processing files for recent notes...")
@@ -100,8 +117,19 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         return files
     
     def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files) -> str | None:
-        """Insert recent notes into the index page."""
+        """Insert recent notes into the index page.
+
+        Args:
+            markdown (str): The markdown content to insert recent notes into
+            page (Page): The page to check
+            config (MkDocsConfig): The MkDocs configuration
+            files (Files): The files to check
+
+        Returns:
+            str | None: The updated markdown content
+        """
         if not self.plugin_enabled:
+            self.logger.debug("MkDocs-Note plugin is disabled.")
             return markdown
         
         self.logger.debug(f"Processing page: {page.file.src_path}")
@@ -114,7 +142,14 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         return markdown
     
     def _is_notes_index_page(self, page: Page) -> bool:
-        """Check if the page is the notes index page."""
+        """Check if the page is the notes index page.
+
+        Args:
+            page (Page): The page to check
+
+        Returns:
+            bool: True if the page is the notes index page, False otherwise
+        """
         try:
             # Check if the page path matches the configured index file
             page_src_path = page.file.src_path
@@ -143,7 +178,14 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             return False
     
     def _insert_recent_notes(self, markdown: str) -> str:
-        """Insert recent notes list into markdown content."""
+        """Insert recent notes list into markdown content.
+
+        Args:
+            markdown (str): The markdown content to insert recent notes into
+
+        Returns:
+            str: The updated markdown content
+        """
         if not self._recent_notes:
             return markdown
         
@@ -182,7 +224,11 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         return updated_markdown
     
     def _generate_notes_html(self) -> str:
-        """Generate HTML list for recent notes."""
+        """Generate HTML list for recent notes.
+
+        Returns:
+            str: The HTML list for recent notes
+        """
         items = []
         for note in self._recent_notes:
             items.append(

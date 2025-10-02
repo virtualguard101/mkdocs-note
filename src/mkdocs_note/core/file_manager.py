@@ -33,6 +33,12 @@ class FileScanner:
     
     def _is_valid_note_file(self, file_path: Path) -> bool:
         """Check if file is a valid note file
+
+        Args:
+            file_path (Path): The path of the file to check
+
+        Returns:
+            bool: True if the file is a valid note file, False otherwise
         """
         if not file_path.is_file():
             return False

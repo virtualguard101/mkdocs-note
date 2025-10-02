@@ -31,6 +31,12 @@ class NoteProcessor:
     
     def process_note(self, file_path: Path) -> Optional[NoteInfo]:
         """Process a single note file, extract information
+
+        Args:
+            file_path (Path): The path of the file to process
+
+        Returns:
+            Optional[NoteInfo]: The note information if successful, None otherwise
         """
         try:
             # Get basic information
@@ -62,6 +68,12 @@ class NoteProcessor:
     
     def _extract_title(self, file_path: Path) -> Optional[str]:
         """Extract title from file
+
+        Args:
+            file_path (Path): The path of the file to extract title from
+
+        Returns:
+            Optional[str]: The title if successful, None otherwise
         """
         if file_path.suffix == '.ipynb':
             return self._extract_title_from_notebook(file_path)
@@ -70,6 +82,12 @@ class NoteProcessor:
     
     def _extract_title_from_notebook(self, file_path: Path) -> Optional[str]:
         """Extract title from Jupyter Notebook
+
+        Args:
+            file_path (Path): The path of the file to extract title from
+
+        Returns:
+            Optional[str]: The title if successful, None otherwise
         """
         try:
             with file_path.open('r', encoding='utf-8') as f:
@@ -96,6 +114,12 @@ class NoteProcessor:
     
     def _extract_title_from_markdown(self, file_path: Path) -> Optional[str]:
         """Extract title from Markdown file
+
+        Args:
+            file_path (Path): The path of the file to extract title from
+
+        Returns:
+            Optional[str]: The title if successful, None otherwise
         """
         try:
             with file_path.open('r', encoding='utf-8') as f:
@@ -110,6 +134,12 @@ class NoteProcessor:
     
     def _generate_relative_url(self, file_path: Path) -> str:
         """Generate MkDocs format relative URL
+
+        Args:
+            file_path (Path): The path of the file to generate relative URL from
+
+        Returns:
+            str: The relative URL
         """
         index_file = Path(self.config.index_file)
         relpath = file_path.relative_to(index_file.parent)
@@ -133,6 +163,12 @@ class CacheManager:
     
     def should_update_notes(self, notes: List[NoteInfo]) -> bool:
         """Check if notes list needs to be updated
+
+        Args:
+            notes (List[NoteInfo]): The list of notes to check
+
+        Returns:
+            bool: True if the notes list needs to be updated, False otherwise
         """
         current_hash = self._calculate_notes_hash(notes)
         if self._last_notes_hash != current_hash:
@@ -142,6 +178,12 @@ class CacheManager:
     
     def should_update_content(self, content: str) -> bool:
         """Check if file content needs to be updated
+
+        Args:
+            content (str): The content to check
+
+        Returns:
+            bool: True if the file content needs to be updated, False otherwise
         """
         content_hash = hashlib.md5(content.encode()).hexdigest()
         if self._last_content_hash != content_hash:
@@ -151,6 +193,12 @@ class CacheManager:
     
     def _calculate_notes_hash(self, notes: List[NoteInfo]) -> str:
         """Calculate notes list hash
+
+        Args:
+            notes (List[NoteInfo]): The list of notes to calculate hash from
+
+        Returns:
+            str: The hash of the notes list
         """
         notes_info = []
         for note in notes:
@@ -168,6 +216,12 @@ class IndexUpdater:
     
     def update_index(self, notes: List[NoteInfo]) -> bool:
         """Update index file
+
+        Args:
+            notes (List[NoteInfo]): The list of notes to update index file
+
+        Returns:
+            bool: True if the index file is updated successfully, False otherwise
         """
         index_file = Path(self.config.index_file)
         if not index_file.exists():
@@ -197,6 +251,12 @@ class IndexUpdater:
     
     def _generate_html_list(self, notes: List[NoteInfo]) -> str:
         """Generate HTML list
+
+        Args:
+            notes (List[NoteInfo]): The list of notes to generate HTML list from
+
+        Returns:
+            str: The HTML list
         """
         items = []
         for note in notes:
@@ -211,6 +271,13 @@ class IndexUpdater:
     
     def _replace_section(self, content: str, new_section: str) -> Optional[str]:
         """Replace content between specified markers
+
+        Args:
+            content (str): The content to replace
+            new_section (str): The new section to replace
+
+        Returns:
+            Optional[str]: The replaced content if successful, None otherwise
         """
         start_idx = content.find(self.config.start_marker)
         end_idx = content.find(self.config.end_marker)
@@ -253,6 +320,9 @@ class RecentNotesUpdater:
     
     def update(self) -> bool:
         """Execute update operation
+
+        Returns:
+            bool: True if the recent notes update is successful, False otherwise
         """
         self.logger.info("Starting recent notes update...")
         
