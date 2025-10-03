@@ -17,4 +17,4 @@ logs/
 site/
 
 # Secret files
-publish.sh
+test_publish.sh
