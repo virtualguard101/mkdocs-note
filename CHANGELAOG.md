@@ -65,10 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added comprehensive documentation for sorting behavior and deployment considerations
 
-- Added PyPI CI
-
-- Added smoke test script
-
 ### Changed
 
 - Modified note processing logic to prioritize Git commit timestamps over file system timestamps
@@ -76,3 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced sorting reliability across different deployment platforms (Vercel, Netlify, GitHub Pages)
 
 - Updated README with detailed explanation of sorting behavior and configuration options
+
+## [Unreleased]
+
+### Added
+
+- Added PyPI CI
+
+- Added smoke test script
