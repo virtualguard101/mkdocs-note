@@ -57,3 +57,8 @@ class PluginConfig(Config):
     cache_size = config_opt.Type(int, default=256)
     """The size of the cache.
     """
+    
+    use_git_timestamps = config_opt.Type(bool, default=True)
+    """Whether to use Git commit timestamps for sorting instead of file system timestamps.
+    This is recommended for consistent sorting across different deployment environments.
+    """

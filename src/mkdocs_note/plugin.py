@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from typing import List
 from pathlib import Path
+from datetime import datetime
 from mkdocs.structure.files import File, Files
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import BasePlugin, event_priority
