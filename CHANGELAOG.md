@@ -40,3 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues
 - Added configuration format warnings in README documentation
 - Documented Jupyter DeprecationWarning explanation (not a plugin error)
+
+## 1.0.1 - 2025-10-03
+
+### Fixed
+
+- fix the configuration validation issue in #2
