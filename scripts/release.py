@@ -2,6 +2,9 @@ import subprocess
 
 def get_latest_tag() -> str:
     tag = input("Enter the latest tag: ")
+    if tag == "":
+        print("Tag cannot be empty")
+        exit(1)
     return tag
 
 def release() -> None:
@@ -9,8 +12,10 @@ def release() -> None:
     subprocess.run(["git", "checkout", "main"])
     # Pull the latest changes
     subprocess.run(["git", "pull", "origin", "main"])
+
     # Create a new tag
-    subprocess.run(["git", "tag", "-a", get_latest_tag(), "-m", "Release " + get_latest_tag()])
+    tag = get_latest_tag()
+    subprocess.run(["git", "tag", "-a", tag, "-m", "Release " + tag])
     # Push the tag
     subprocess.run(["git", "push", "--tags"])
 
