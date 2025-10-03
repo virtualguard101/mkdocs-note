@@ -76,14 +76,29 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | `supported_extensions` | Set[str] | `{".md", ".ipynb"}` | File extensions to include as notes |
 | `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | File patterns to exclude |
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | Directories to exclude |
+| `use_git_timestamps` | bool | `true` | Use Git commit timestamps for sorting instead of file system timestamps |
 
 ### How It Works
 
 1. The plugin scans your configured notes directory for supported file types
 2. It extracts metadata (title, modification date) from each note file
 3. Notes are sorted by modification time (most recent first)
+   - By default, uses Git commit timestamps for consistent sorting across deployment environments
+   - Falls back to file system timestamps if Git is not available
 4. The specified number of recent notes is inserted into your index page between the marker comments
 5. The process runs automatically every time you build your documentation
+
+### Sorting Behavior
+
+The plugin uses Git commit timestamps by default (`use_git_timestamps: true`) to ensure consistent sorting across different deployment environments. This is especially important when deploying to platforms like Vercel, Netlify, or GitHub Pages, where file system timestamps may be reset during the build process.
+
+If Git is not available or you prefer to use file system timestamps, you can disable this feature:
+
+```yaml
+plugins:
+  - mkdocs-note:
+      use_git_timestamps: false
+```
 
 ## Contributing
 

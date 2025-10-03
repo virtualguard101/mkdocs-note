@@ -38,5 +38,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues
+
 - Added configuration format warnings in README documentation
+
 - Documented Jupyter DeprecationWarning explanation (not a plugin error)
+
+## 1.0.1 - 2025-10-03
+
+### Fixed
+
+- fix the configuration validation issue in #2
+
+## 1.0.2 - 2025-10-03
+
+### Fixed
+
+- Fixed sorting inconsistency between local development and remote deployment environments
+
+- Resolved issue where notes were sorted alphabetically instead of by modification time on deployed sites
+
+### Added
+
+- Added `use_git_timestamps` configuration option (default: `true`) to use Git commit timestamps for consistent sorting
+
+- Implemented automatic fallback to file system timestamps when Git is not available
+
+- Added comprehensive documentation for sorting behavior and deployment considerations
+
+### Changed
+
+- Modified note processing logic to prioritize Git commit timestamps over file system timestamps
+
+- Enhanced sorting reliability across different deployment platforms (Vercel, Netlify, GitHub Pages)
+
+- Updated README with detailed explanation of sorting behavior and configuration options

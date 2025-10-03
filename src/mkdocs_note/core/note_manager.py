@@ -1,5 +1,6 @@
 import json
 import hashlib
+import subprocess
 from typing import List, Optional
 
 from dataclasses import dataclass
@@ -50,8 +51,23 @@ class NoteProcessor:
             # Generate relative URL
             relative_url = self._generate_relative_url(file_path)
             
-            # Get modified time
-            modified_date = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            # Get modification time - prefer Git commit time for consistent sorting
+            if self.config.use_git_timestamps:
+                git_time = self._get_git_commit_time(file_path)
+                if git_time:
+                    modified_time = git_time
+                    modified_date = datetime.fromtimestamp(git_time).strftime('%Y-%m-%d %H:%M:%S')
+                    self.logger.debug(f"Using Git commit time for {file_path.name}: {modified_date}")
+                else:
+                    # Fallback to file system time
+                    modified_time = stat.st_mtime
+                    modified_date = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    self.logger.debug(f"Git time unavailable, using file system time for {file_path.name}: {modified_date}")
+            else:
+                # Use file system time
+                modified_time = stat.st_mtime
+                modified_date = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                self.logger.debug(f"Using file system time for {file_path.name}: {modified_date}")
             
             return NoteInfo(
                 file_path=file_path,
@@ -59,7 +75,7 @@ class NoteProcessor:
                 relative_url=relative_url,
                 modified_date=modified_date,
                 file_size=stat.st_size,
-                modified_time=stat.st_mtime
+                modified_time=modified_time
             )
             
         except Exception as e:
@@ -150,6 +166,51 @@ class NoteProcessor:
             relurl = relurl.replace('index/', '')
         
         return relurl
+    
+    def _get_git_commit_time(self, file_path: Path) -> Optional[float]:
+        """Get the last commit time for a file from Git
+        
+        Args:
+            file_path (Path): The path of the file to get commit time for
+            
+        Returns:
+            Optional[float]: The Unix timestamp of the last commit, None if not available
+        """
+        try:
+            # Get the relative path from the project root
+            project_root = Path(self.config.project_root)
+            try:
+                relative_path = file_path.relative_to(project_root)
+            except ValueError:
+                # File is not under project root, try to get relative path from current working directory
+                relative_path = file_path
+            
+            # Run git log command to get the last commit time
+            cmd = [
+                'git', 'log', '-1', '--format=%ct', '--', str(relative_path)
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=5  # 5 second timeout
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                timestamp = float(result.stdout.strip())
+                return timestamp
+            else:
+                self.logger.debug(f"Git log failed for {relative_path}: {result.stderr}")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            self.logger.debug(f"Git log timeout for {file_path}")
+            return None
+        except Exception as e:
+            self.logger.debug(f"Error getting Git commit time for {file_path}: {e}")
+            return None
 
 
 class CacheManager:

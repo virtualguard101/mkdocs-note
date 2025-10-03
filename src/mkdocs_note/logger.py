@@ -24,7 +24,8 @@ class Logger:
             )
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
-            self.logger.setLevel(logging.DEBUG)
+            # self.logger.setLevel(logging.DEBUG)
+            self.logger.setLevel(logging.INFO)
     
     def debug(self, msg: str):
         self.logger.debug(msg)
