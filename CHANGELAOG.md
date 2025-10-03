@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated README with detailed explanation of sorting behavior and configuration options
 
-## [Unreleased]
+## 1.0.3 - 2025-10-04
 
 ### Added
 
