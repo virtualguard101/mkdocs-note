@@ -31,7 +31,7 @@ class PluginConfig(Config):
     """
     
     max_notes = config_opt.Type(int, default=11)
-    """The maximum number of recent notes.
+    """The maximum number of recent notes, include the index page.
     """
     
     git_date_format = config_opt.Type(str, default='%a %b %d %H:%M:%S %Y %z')
@@ -61,4 +61,8 @@ class PluginConfig(Config):
     use_git_timestamps = config_opt.Type(bool, default=True)
     """Whether to use Git commit timestamps for sorting instead of file system timestamps.
     This is recommended for consistent sorting across different deployment environments.
+    """
+
+    assets_dir = config_opt.Dir(exists=False, default='docs/notes/assets')
+    """The directory of the assets.
     """

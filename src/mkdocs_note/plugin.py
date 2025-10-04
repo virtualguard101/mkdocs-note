@@ -222,7 +222,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             markdown[end_pos:]
         )
         
-        self.logger.info(f"Inserted {len(self._recent_notes)} recent notes into index page")
+        self.logger.info(f"Inserted {len(self._recent_notes) - 1} recent notes into index page")
         return updated_markdown
     
     def _generate_notes_html(self) -> str:

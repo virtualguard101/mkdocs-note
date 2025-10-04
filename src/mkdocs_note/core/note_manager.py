@@ -10,6 +10,7 @@ from pathlib import Path
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.file_manager import FileScanner
+from mkdocs_note.core.assets_manager import AssetsInfo
 
 @dataclass
 class NoteInfo:
@@ -21,6 +22,7 @@ class NoteInfo:
     modified_date: str
     file_size: int
     modified_time: float
+    assets_list: List[AssetsInfo]
 
 class NoteProcessor:
     """Note processor
@@ -75,13 +77,15 @@ class NoteProcessor:
                 relative_url=relative_url,
                 modified_date=modified_date,
                 file_size=stat.st_size,
-                modified_time=modified_time
+                modified_time=modified_time,
+                assets_list=self._extract_assets(file_path)
             )
             
         except Exception as e:
             self.logger.error(f"Failed to process note {file_path}: {e}")
             return None
-    
+
+   
     def _extract_title(self, file_path: Path) -> Optional[str]:
         """Extract title from file
 
@@ -147,6 +151,18 @@ class NoteProcessor:
             self.logger.warning(f"Failed to extract title from markdown {file_path}: {e}")
         
         return file_path.stem
+
+    def _extract_assets(self, file_path: Path) -> List[AssetsInfo]:
+        """Extract assets from each note file
+
+        Args:
+            file_path (Path): The path of the file to extract assets from
+
+        Returns:
+            List[AssetsInfo]: The list of assets information
+        """
+        pass
+        # [ ] : implement assets extraction logic
     
     def _generate_relative_url(self, file_path: Path) -> str:
         """Generate MkDocs format relative URL
