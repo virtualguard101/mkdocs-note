@@ -16,9 +16,14 @@ mkdocs_note/
 ├── plugin.py                # MkDocs 插件主入口点
 ├── config.py                # MkDocs 配置管理
 ├── logger.py                # 日志工具
+├── cli.py                   # 命令行接口
 └── core/                    # 核心业务逻辑
     ├── file_manager.py      # 文件扫描和验证
-    └── note_manager.py      # 笔记处理和管理
+    ├── note_manager.py      # 笔记处理和管理
+    ├── note_creator.py      # 使用模板创建笔记
+    ├── note_initializer.py  # 目录结构初始化
+    ├── assets_manager.py    # 资产管理（新增）
+    └── data_models.py       # 数据模型和结构
 ```
 
 ### 核心组件
@@ -31,11 +36,15 @@ mkdocs_note/
 
 - **关键方法**:
 
-  - `on_config()`: 配置 MkDocs 设置（TOC、slugify 函数）
+  - `on_config()`: 配置 MkDocs 设置（TOC、slugify 函数、资产处理器）
 
   - `on_files()`: 扫描和处理笔记文件
 
-  - `on_page_markdown()`: 将最近笔记插入索引页面
+  - `on_page_markdown()`: 将最近笔记插入索引页面并处理资产路径
+
+  - `_is_note_page()`: 识别需要处理资产的笔记页面
+
+  - `_process_page_assets()`: 将相对资产路径转换为正确的引用
 
 #### 2. 配置管理 (`config.py`)
 
@@ -56,6 +65,10 @@ mkdocs_note/
   - `exclude_patterns`: 要从处理中排除的文件
 
   - `exclude_dirs`: 扫描时要跳过的目录
+
+  - `assets_dir`: 存储笔记资产的目录
+
+  - `notes_template`: 新笔记的模板文件
 
 #### 3. 文件管理 (`core/file_manager.py`)
 
@@ -85,7 +98,86 @@ mkdocs_note/
 
 - **`RecentNotesUpdater`**: 主协调器类
 
-#### 5. 日志记录 (`logger.py`)
+#### 5. 资产管理 (`core/assets_manager.py`) **新增**
+
+资产管理系统使用树状结构来组织笔记资产：
+
+- **`AssetsCatalogTree`**: 使用层次化路径结构管理资产
+  
+  - 防止不同目录中同名笔记之间的冲突
+  
+  - 为第一级子目录使用 `.assets` 后缀（例如 `dsa.assets/`、`language.assets/`）
+  
+  - 将笔记相对路径映射到资产目录
+
+- **`AssetsManager`**: 协调资产目录操作
+  
+  - 为笔记生成资产目录
+  
+  - 更新资产信息
+
+- **`AssetsProcessor`**: 处理 markdown 文件中的资产引用
+  
+  - 检测 markdown 内容中的图片引用
+  
+  - 根据笔记位置将相对路径转换为正确的资产路径
+  
+  - 根据笔记深度计算正确的 `../` 前缀
+
+- **`get_note_relative_path()`**: 路径计算工具函数
+  
+  - 计算笔记相对于笔记目录的相对路径
+  
+  - 为第一级子目录添加 `.assets` 后缀
+  
+  - 处理边界情况（根级笔记、深度嵌套的笔记）
+
+**资产结构示例**：
+```
+notes/
+├── dsa/
+│   ├── anal/
+│   │   └── iter.md          → assets/dsa.assets/anal/iter/
+│   └── ds/
+│       └── intro.md         → assets/dsa.assets/ds/intro/
+├── language/
+│   ├── python/
+│   │   └── intro.md         → assets/language.assets/python/intro/
+│   └── cpp/
+│       └── intro.md         → assets/language.assets/cpp/intro/
+└── quickstart.md            → assets/quickstart/
+```
+
+**路径转换**：
+- 位于 `notes/dsa/anal/iter.md` 的笔记中有 `![](img.png)`
+- 转换为 `![](../../assets/dsa.assets/anal/iter/img.png)`
+- MkDocs 相对于笔记文件正确解析路径
+
+#### 6. 笔记创建 (`core/note_creator.py`)
+
+`NoteCreator` 类处理创建具有适当资产结构的新笔记：
+
+- 从模板创建笔记文件，支持变量替换
+
+- 自动创建相应的资产目录
+
+- 验证目录结构合规性
+
+- 支持自定义模板
+
+#### 7. 目录初始化 (`core/note_initializer.py`)
+
+`NoteInitializer` 类管理目录结构：
+
+- 使用适当的结构初始化笔记目录
+
+- 验证资产树合规性
+
+- 修复不合规的结构
+
+- 创建必要的目录和索引文件
+
+#### 8. 日志记录 (`logger.py`)
 
 `Logger` 类提供彩色控制台日志记录：
 
@@ -111,6 +203,10 @@ mkdocs_note/
 
    - 插件启用/禁用检查
 
+   - 存储 `docs_dir` 以进行路径解析
+
+   - 初始化 `AssetsProcessor` 实例
+
    - MkDocs TOC 配置设置
 
    - Slugify 函数配置（pymdownx 或回退）
@@ -127,26 +223,60 @@ mkdocs_note/
 
 4. **页面渲染阶段** (`on_page_markdown`)
 
+   - 检查当前页面是否为笔记页面
+   
+   - 如果是笔记页面：处理 markdown 内容中的资产路径
+     
+     - 识别图片引用
+     
+     - 计算笔记相对于笔记目录的相对路径
+     
+     - 将相对资产引用转换为正确的路径
+     
+     - 为第一级目录添加 `.assets` 后缀
+     
+     - 根据笔记深度计算正确的 `../` 前缀
+   
    - 检查当前页面是否为笔记索引页面
 
-   - 在标记之间插入最近笔记 HTML
+   - 如果是索引页面：在标记之间插入最近笔记 HTML
 
    - 返回修改后的 markdown 内容
 
 ### 数据流
 
-项目目前只有一个功能，即**将最近笔记插入到笔记本目录的索引页面**。作为用户想要管理的笔记数据流示例，如下所示：
+插件提供两个主要功能，具有不同的数据流：
+
+#### 功能1：最近笔记显示
 
 ```
 笔记目录
-    ↓ (FileScanner)
+    ↓ (NoteScanner)
 有效笔记文件
     ↓ (NoteProcessor)
-NoteInfo 对象
+NoteInfo 对象（含 assets_list）
     ↓ (按修改时间排序)
 最近笔记列表
     ↓ (HTML 生成)
 索引页面内容
+```
+
+#### 功能2：资产路径管理
+
+```
+笔记 Markdown 文件
+    ↓ (页面渲染)
+检测图片引用：![alt](image.png)
+    ↓ (get_note_relative_path)
+计算笔记的相对路径："dsa/anal/iter"
+    ↓ (为第一级添加 .assets 后缀)
+带 .assets 的路径："dsa.assets/anal/iter"
+    ↓ (计算深度和 ../ 前缀)
+确定相对路径："../../assets/dsa.assets/anal/iter/image.png"
+    ↓ (update_markdown_content)
+更新后的 Markdown：![alt](../../assets/dsa.assets/anal/iter/image.png)
+    ↓ (MkDocs 构建)
+正确解析的资产路径
 ```
 
 ### 关键设计模式
@@ -174,6 +304,44 @@ NoteInfo 对象
 4. **缓存策略**: 在 `CacheManager` 中实现自定义缓存
 
 5. **过滤逻辑**: 在 `FileScanner` 中自定义文件过滤
+
+6. **资产路径计算**: 扩展 `AssetsProcessor` 以支持自定义路径方案
+
+7. **CLI 命令**: 在 `cli.py` 中添加新命令
+
+### 资产管理设计
+
+资产管理系统遵循以下关键原则：
+
+1. **树状结构**：资产镜像笔记目录层次结构
+   
+   - 防止不同目录中笔记之间的命名冲突
+   
+   - 示例：`dsa/anal/intro.md` 和 `language/python/intro.md` 可以共存
+
+2. **第一级分类**：使用 `.assets` 后缀以提高清晰度
+   
+   - `dsa/` → `assets/dsa.assets/`
+   
+   - `language/` → `assets/language.assets/`
+   
+   - 使资产类别易于识别
+
+3. **相对路径转换**：路径相对于笔记文件位置
+   
+   - 根据笔记在目录结构中的深度计算
+   
+   - 确保 MkDocs 可以正确解析资产引用
+   
+   - 示例：深度 2 级 → `../../assets/category.assets/path/`
+
+4. **自动处理**：Markdown 图片引用自动转换
+   
+   - 插件在构建期间处理所有笔记页面
+   
+   - 原始 markdown 文件保持不变
+   
+   - 转换在 MkDocs 构建期间在内存中进行
 
 ### 测试策略
 
