@@ -27,6 +27,11 @@ class TestNoteCreator(unittest.TestCase):
         self.temp_dir = Path(tempfile.mkdtemp())
         self.config.notes_dir = str(self.temp_dir)
         
+        # Set assets_dir to be relative to temp_dir
+        assets_dir = self.temp_dir / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        self.config.assets_dir = str(assets_dir)
+        
         # Create template directory and file for tests
         template_dir = self.temp_dir / "template"
         template_dir.mkdir(parents=True, exist_ok=True)
@@ -59,7 +64,10 @@ class TestNoteCreator(unittest.TestCase):
         
         self.assertEqual(result, 0)
         self.assertTrue(note_path.exists())
-        self.assertTrue((self.temp_dir / "assets" / "new-note").exists())
+        
+        # Check asset directory is created (should be at config.assets_dir / "new-note")
+        expected_asset_dir = Path(self.config.assets_dir) / "new-note"
+        self.assertTrue(expected_asset_dir.exists())
         
         # Check content
         content = note_path.read_text()
@@ -120,6 +128,32 @@ class TestNoteCreator(unittest.TestCase):
         content = note_path.read_text()
         self.assertIn("# Custom Note", content)
         self.assertIn("Custom template content for custom-note", content)
+    
+    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    def test_create_new_note_nested(self, mock_initializer):
+        """Test note creation in nested subdirectory."""
+        # Mock the initializer to return compliant structure
+        mock_init = Mock()
+        mock_init.validate_asset_tree_compliance.return_value = (True, [])
+        self.creator.initializer = mock_init
+        
+        # Create nested directory
+        subdir = self.temp_dir / "dsa" / "anal"
+        subdir.mkdir(parents=True, exist_ok=True)
+        note_path = subdir / "iter.md"
+        
+        result = self.creator.create_new_note(note_path)
+        
+        self.assertEqual(result, 0)
+        self.assertTrue(note_path.exists())
+        
+        # Check asset directory is created with .assets suffix on first level
+        expected_asset_dir = Path(self.config.assets_dir) / "dsa.assets" / "anal" / "iter"
+        self.assertTrue(expected_asset_dir.exists())
+        
+        # Check content
+        content = note_path.read_text()
+        self.assertIn("iter", content.lower())  # Title should be processed
 
     def test_generate_note_content_default_template_from_config(self):
         """Test note content generation with template from config."""
@@ -169,11 +203,27 @@ class TestNoteCreator(unittest.TestCase):
 
     def test_get_asset_directory(self):
         """Test asset directory path generation."""
-        note_path = Path("/notes/my-note.md")
+        # Test with root-level note
+        note_path = self.temp_dir / "my-note.md"
+        note_path.touch()
         
         asset_dir = self.creator._get_asset_directory(note_path)
         
-        expected = Path("/notes/assets/my-note")
+        expected = Path(self.config.assets_dir) / "my-note"
+        self.assertEqual(asset_dir, expected)
+    
+    def test_get_asset_directory_nested(self):
+        """Test asset directory path generation for nested notes."""
+        # Test with nested note (should have .assets suffix on first level)
+        subdir = self.temp_dir / "dsa" / "anal"
+        subdir.mkdir(parents=True, exist_ok=True)
+        note_path = subdir / "intro.md"
+        note_path.touch()
+        
+        asset_dir = self.creator._get_asset_directory(note_path)
+        
+        # First level should have .assets suffix
+        expected = Path(self.config.assets_dir) / "dsa.assets" / "anal" / "intro"
         self.assertEqual(asset_dir, expected)
 
     @patch('mkdocs_note.core.note_creator.NoteInitializer')

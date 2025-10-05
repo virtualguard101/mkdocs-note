@@ -5,83 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.0.1 - 2025-09-05
 
-### Added
-
-- The project was initialized 
-
-- The initial framework is based on https://github.com/stalomeow/note/blob/5fa56a9fdfa4c9b6511c5dc0c3d3620ae0aa04c3/scripts/obsidian.py
-
-- However, the framework and features are too redundant to continue development and maintenance independently for me.
-
-## 1.0.0 - 2025-10-02
-
-### Removed
-
-- All of before
+## [Unreleased]
 
 ### Changed
 
-- Refactored the underlying file management and note management logic.
+- **[BREAKING CHANGE]** Improved assets manager to use tree-based path structure instead of linear table
 
-- Refactored the calling logic and data flow of note management.
+  - Assets are now organized by note's relative path from notes directory, preventing conflicts between notes with same name in different subdirectories
 
-- Now only one feature which can insert recent notes at index page of notebook directory has been implemented.
+  - First-level subdirectories in assets tree now have `.assets` suffix for better identification (e.g., `assets/dsa.assets/anal/intro/` for note `dsa/anal/intro.md`)
 
-- All things are to be restored, step by step!
+  - Updated `AssetsCatalogTree` to support hierarchical path management
 
-### Fixed
+  - Updated `AssetsProcessor` to calculate asset paths based on note's relative location
 
-- Documented common configuration issues, especially YAML indentation errors that cause "Invalid config options" errors
+  - Updated `NoteCreator` to create asset directories using the new path structure
 
-### Added
-
-- Added comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues
-
-- Added configuration format warnings in README documentation
-
-- Documented Jupyter DeprecationWarning explanation (not a plugin error)
-
-## 1.0.1 - 2025-10-03
+  - Improved asset path conversion in plugin to use correct relative paths from note file location
 
 ### Fixed
 
-- fix the configuration validation issue in #2
+- Fixed asset directory conflicts when notes have the same name but exist in different paths (#10)
 
-## 1.0.2 - 2025-10-03
+- Fixed asset link replacement issues in note files - plugin now correctly converts relative image references to proper paths during MkDocs build (#10)
 
-### Fixed
+- Fixed path resolution in plugin to properly handle `docs_dir` and calculate correct relative paths for assets
 
-- Fixed sorting inconsistency between local development and remote deployment environments
-
-- Resolved issue where notes were sorted alphabetically instead of by modification time on deployed sites
-
-### Added
-
-- Added `use_git_timestamps` configuration option (default: `true`) to use Git commit timestamps for consistent sorting
-
-- Implemented automatic fallback to file system timestamps when Git is not available
-
-- Added comprehensive documentation for sorting behavior and deployment considerations
-
-### Changed
-
-- Modified note processing logic to prioritize Git commit timestamps over file system timestamps
-
-- Enhanced sorting reliability across different deployment platforms (Vercel, Netlify, GitHub Pages)
-
-- Updated README with detailed explanation of sorting behavior and configuration options
-
-## 1.0.3 - 2025-10-04
-
-### Added
-
-- Added PyPI CI
-
-- Added smoke test script
-
-- Added release script
 
 ## 1.1.0 - 2025-10-05
 
@@ -182,3 +132,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced configuration documentation
 
   - Improved troubleshooting guides
+
+
+## 1.0.3 - 2025-10-04
+
+### Added
+
+- Added PyPI CI
+
+- Added smoke test script
+
+- Added release script
+
+
+## 1.0.2 - 2025-10-03
+
+### Fixed
+
+- Fixed sorting inconsistency between local development and remote deployment environments
+
+- Resolved issue where notes were sorted alphabetically instead of by modification time on deployed sites
+
+### Added
+
+- Added `use_git_timestamps` configuration option (default: `true`) to use Git commit timestamps for consistent sorting
+
+- Implemented automatic fallback to file system timestamps when Git is not available
+
+- Added comprehensive documentation for sorting behavior and deployment considerations
+
+### Changed
+
+- Modified note processing logic to prioritize Git commit timestamps over file system timestamps
+
+- Enhanced sorting reliability across different deployment platforms (Vercel, Netlify, GitHub Pages)
+
+- Updated README with detailed explanation of sorting behavior and configuration options
+
+
+## 1.0.1 - 2025-10-03
+
+### Fixed
+
+- fix the configuration validation issue in #2
+
+
+## 1.0.0 - 2025-10-02
+
+### Removed
+
+- All of before
+
+### Changed
+
+- Refactored the underlying file management and note management logic.
+
+- Refactored the calling logic and data flow of note management.
+
+- Now only one feature which can insert recent notes at index page of notebook directory has been implemented.
+
+- All things are to be restored, step by step!
+
+### Fixed
+
+- Documented common configuration issues, especially YAML indentation errors that cause "Invalid config options" errors
+
+### Added
+
+- Added comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues
+
+- Added configuration format warnings in README documentation
+
+- Documented Jupyter DeprecationWarning explanation (not a plugin error)
+
+
+## 0.0.1 - 2025-09-05
+
+### Added
+
+- The project was initialized 
+
+- The initial framework is based on https://github.com/stalomeow/note/blob/5fa56a9fdfa4c9b6511c5dc0c3d3620ae0aa04c3/scripts/obsidian.py
+
+- However, the framework and features are too redundant to continue development and maintenance independently for me.

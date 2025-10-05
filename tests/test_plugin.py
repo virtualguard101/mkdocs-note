@@ -52,6 +52,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         self.plugin.config.enabled = True
         mock_config = Mock()
         mock_config.mdx_configs = {}
+        mock_config.docs_dir = "docs"  # Add docs_dir for Path resolution
         
         with patch.object(self.plugin.logger, 'info') as mock_info:
             result = self.plugin.on_config(mock_config)
@@ -72,6 +73,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
                 'slugify': lambda x: x
             }
         }
+        mock_config.docs_dir = "docs"  # Add docs_dir for Path resolution
         
         result = self.plugin.on_config(mock_config)
         
@@ -85,6 +87,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         self.plugin.config.enabled = True
         mock_config = Mock()
         mock_config.mdx_configs = {'toc': {}}
+        mock_config.docs_dir = "docs"  # Add docs_dir for Path resolution
         
         with patch('pymdownx.slugs.slugify') as mock_slugify:
             with patch.object(self.plugin.logger, 'debug') as mock_debug:
@@ -99,6 +102,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         self.plugin.config.enabled = True
         mock_config = Mock()
         mock_config.mdx_configs = {'toc': {}}
+        mock_config.docs_dir = "docs"  # Add docs_dir for Path resolution
         
         with patch('pymdownx.slugs.slugify', side_effect=ImportError):
             with patch('markdown.extensions.toc.slugify') as mock_fallback_slugify:
