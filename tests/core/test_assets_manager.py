@@ -457,6 +457,7 @@ class TestAssetsProcessor(unittest.TestCase):
         
         result = self.processor.update_markdown_content(content, note_file)
         
+        # Root level notes don't need ../ prefix
         self.assertIn("![Image](assets/test-note/image.png)", result)
         self.assertIn("![Subdir Image](assets/test-note/images/photo.jpg)", result)
 
@@ -490,8 +491,8 @@ class TestAssetsProcessor(unittest.TestCase):
         content = "# Python Intro\n\n![Diagram](diagram.png)"
         result = self.processor.update_markdown_content(content, note_file)
         
-        # Should use language.assets/python/intro as the path with .assets suffix
-        self.assertIn("![Diagram](assets/language.assets/python/intro/diagram.png)", result)
+        # Should use ../../ to go up two levels, then into assets
+        self.assertIn("![Diagram](../../assets/language.assets/python/intro/diagram.png)", result)
 
 
 if __name__ == '__main__':

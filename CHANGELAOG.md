@@ -22,11 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   - Updated `NoteCreator` to create asset directories using the new path structure
 
+  - Improved asset path conversion in plugin to use correct relative paths from note file location
+
 ### Fixed
 
 - Fixed asset directory conflicts when notes have the same name but exist in different paths (#10)
 
-- Fixed asset link replacement issues in note files caused by path matching problems
+- Fixed asset link replacement issues in note files - plugin now correctly converts relative image references to proper paths during MkDocs build (#10)
+
+- Fixed path resolution in plugin to properly handle `docs_dir` and calculate correct relative paths for assets
 
 
 ## 1.1.0 - 2025-10-05

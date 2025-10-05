@@ -287,30 +287,46 @@ class AssetsProcessor:
             return None
     
     def update_markdown_content(self, content: str, note_file: Path) -> str:
-        """Update markdown content to use full asset paths
+        """Update markdown content to use correct asset paths.
+        
+        This method converts relative asset references to paths that MkDocs
+        can correctly resolve. The paths are relative to the note file's location.
         
         Args:
             content (str): The original markdown content
-            note_file (Path): The note file path
+            note_file (Path): The note file path (absolute or relative to project root)
             
         Returns:
-            str: The updated markdown content with full asset paths
+            str: The updated markdown content with corrected asset paths
         """
         def replace_image_path(match):
             alt_text = match.group(1)
             image_path = match.group(2)
             
-            # Skip external URLs
-            if image_path.startswith(('http://', 'https://', '//')):
+            # Skip external URLs and absolute paths
+            if image_path.startswith(('http://', 'https://', '//', '/')):
                 return match.group(0)
             
             # Get the note's relative path from notes_dir
             notes_dir = Path(self.config.notes_dir)
             note_relative_path = get_note_relative_path(note_file, notes_dir)
             
-            # Convert to full path using the note's relative path
-            new_path = f"assets/{note_relative_path}/{image_path}"
+            # Calculate the depth of the note file (how many levels deep from notes_dir)
+            # This determines how many "../" we need to go up
+            try:
+                note_file_abs = note_file.resolve() if not note_file.is_absolute() else note_file
+                notes_dir_abs = notes_dir.resolve() if not notes_dir.is_absolute() else notes_dir
+                relative_to_notes = note_file_abs.relative_to(notes_dir_abs)
+                depth = len(relative_to_notes.parent.parts)
+            except (ValueError, AttributeError):
+                # Fallback: count slashes in relative path
+                depth = note_relative_path.replace('.assets', '').count('/')
             
-            return f"![{alt_text}]({new_path})"
+            # Build the relative path from note file to assets directory
+            # Go up to notes_dir, then into assets directory
+            up_levels = '../' * depth if depth > 0 else ''
+            assets_path = f"{up_levels}assets/{note_relative_path}/{image_path}"
+            
+            return f"![{alt_text}]({assets_path})"
         
         return self.image_pattern.sub(replace_image_path, content)
