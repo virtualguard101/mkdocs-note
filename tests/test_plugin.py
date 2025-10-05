@@ -357,28 +357,16 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         self.assertIn('2024-01-14 09:15:00', result)
 
     def test_get_command(self):
-        """Test get_command method returns click command group."""
-        result = self.plugin.get_command()
-        
-        self.assertIsInstance(result, click.Group)
-        self.assertEqual(result.name, 'note')
+        """Test get_command method is no longer available (moved to standalone CLI)."""
+        # The get_command method has been removed from the plugin
+        # CLI functionality is now available through standalone mkdocs-note command
+        self.assertFalse(hasattr(self.plugin, 'get_command'))
 
-    @patch('mkdocs_note.plugin.NoteInitializer')
-    @patch('mkdocs_note.plugin.NoteCreator')
-    @patch('click.group')
-    def test_get_command_initialization(self, mock_click_group, mock_creator_class, mock_initializer_class):
-        """Test command initialization with proper components."""
-        mock_group = Mock()
-        mock_click_group.return_value = mock_group
-        
-        result = self.plugin.get_command()
-        
-        # Verify initializer and creator are instantiated
-        mock_initializer_class.assert_called_once_with(self.plugin.config, self.plugin.logger)
-        mock_creator_class.assert_called_once_with(self.plugin.config, self.plugin.logger)
-        
-        # Verify click group is created
-        mock_click_group.assert_called_once()
+    def test_get_command_initialization(self):
+        """Test get_command initialization is no longer available (moved to standalone CLI)."""
+        # The get_command method has been removed from the plugin
+        # CLI functionality is now available through standalone mkdocs-note command
+        self.assertFalse(hasattr(self.plugin, 'get_command'))
 
     def test_is_note_page(self):
         """Test _is_note_page method."""

@@ -32,6 +32,7 @@ test = [
 ]
 
 [project.scripts]
+mkdocs-note = "mkdocs_note.cli:cli"
 
 [project.entry-points."mkdocs.plugins"]
 mkdocs-note = "mkdocs_note.plugin:MkdocsNotePlugin"

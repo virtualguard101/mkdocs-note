@@ -62,12 +62,12 @@ plugins:
 
 1. Initialize the notes directory structure:
 ```bash
-mkdocs note init
+mkdocs-note init
 ```
 
 2. Create a new note:
 ```bash
-mkdocs note new docs/notes/my-new-note.md
+mkdocs-note new docs/notes/my-new-note.md
 ```
 
 #### Option 2: Manual Setup
@@ -91,7 +91,7 @@ The plugin provides several CLI commands for note management:
 
 #### Initialize Notes Directory
 ```bash
-mkdocs note init [--path PATH]
+mkdocs-note init [--path PATH]
 ```
 - Creates the notes directory structure
 
@@ -103,7 +103,7 @@ mkdocs note init [--path PATH]
 
 #### Create New Note
 ```bash
-mkdocs note new FILE_PATH [--template TEMPLATE_PATH]
+mkdocs-note new FILE_PATH [--template TEMPLATE_PATH]
 ```
 - Creates a new note file with template content
 
@@ -113,7 +113,7 @@ mkdocs note new FILE_PATH [--template TEMPLATE_PATH]
 
 #### Validate Structure
 ```bash
-mkdocs note validate [--path PATH]
+mkdocs-note validate [--path PATH]
 ```
 - Checks if the asset tree structure complies with the plugin's design
 
@@ -121,7 +121,7 @@ mkdocs note validate [--path PATH]
 
 #### Template Management
 ```bash
-mkdocs note template [--check] [--create]
+mkdocs-note template [--check] [--create]
 ```
 - Check if the configured template file exists
 
@@ -176,7 +176,7 @@ Note: {{note_name}}
 You can use custom templates when creating notes:
 
 ```bash
-mkdocs note new docs/notes/my-note.md --template path/to/custom-template.md
+mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 ```
 
 ### Asset Management

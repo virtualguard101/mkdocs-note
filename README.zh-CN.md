@@ -61,12 +61,12 @@ plugins:
 
 1. 初始化笔记目录结构：
 ```bash
-mkdocs note init
+mkdocs-note init
 ```
 
 2. 创建新笔记：
 ```bash
-mkdocs note new docs/notes/my-new-note.md
+mkdocs-note new docs/notes/my-new-note.md
 ```
 
 #### 方式二：手动设置
@@ -90,7 +90,7 @@ mkdocs note new docs/notes/my-new-note.md
 
 #### 初始化笔记目录
 ```bash
-mkdocs note init [--path PATH]
+mkdocs-note init [--path PATH]
 ```
 - 创建笔记目录结构
 
@@ -102,7 +102,7 @@ mkdocs note init [--path PATH]
 
 #### 创建新笔记
 ```bash
-mkdocs note new FILE_PATH [--template TEMPLATE_PATH]
+mkdocs-note new FILE_PATH [--template TEMPLATE_PATH]
 ```
 - 使用模板内容创建新笔记文件
 
@@ -112,7 +112,7 @@ mkdocs note new FILE_PATH [--template TEMPLATE_PATH]
 
 #### 验证结构
 ```bash
-mkdocs note validate [--path PATH]
+mkdocs-note validate [--path PATH]
 ```
 - 检查资产树结构是否符合插件设计规范
 
@@ -120,7 +120,7 @@ mkdocs note validate [--path PATH]
 
 #### 模板管理
 ```bash
-mkdocs note template [--check] [--create]
+mkdocs-note template [--check] [--create]
 ```
 - 检查配置的模板文件是否存在
 
@@ -175,7 +175,7 @@ Note: {{note_name}}
 创建笔记时可以使用自定义模板：
 
 ```bash
-mkdocs note new docs/notes/my-note.md --template path/to/custom-template.md
+mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 ```
 
 ### 资产管理
