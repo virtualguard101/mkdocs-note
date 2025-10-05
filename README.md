@@ -4,7 +4,10 @@
   <a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a>
 </div>
 
-Plugin Usage Demo: [Notebook | virtualguard101's Wiki](https://wiki.virtualguard101.com/notes/){target="_blank"}
+<div align="center">
+   <p>Plugin Usage Demo: <a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
+</div>
+
 
 `MkDocs-Note` is a plugin for `MkDocs` that automatically manages notes in your documentation site. It's designed to work seamlessly with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme to create a unified note-taking and documentation experience.
 
