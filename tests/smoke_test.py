@@ -33,8 +33,13 @@ def test_core_modules():
     modules_to_test = [
         ('mkdocs_note.config', 'PluginConfig'),
         ('mkdocs_note.logger', 'Logger'),
-        ('mkdocs_note.core.file_manager', 'FileScanner'),
+        ('mkdocs_note.core.file_manager', 'NoteScanner'),
+        ('mkdocs_note.core.file_manager', 'AssetScanner'),
+        ('mkdocs_note.core.data_models', 'NoteInfo'),
         ('mkdocs_note.core.note_manager', 'NoteProcessor'),
+        ('mkdocs_note.core.note_creator', 'NoteCreator'),
+        ('mkdocs_note.core.note_initializer', 'NoteInitializer'),
+        ('mkdocs_note.core.assets_manager', 'AssetsProcessor'),
         ('mkdocs_note.plugin', 'MkdocsNotePlugin'),
     ]
     
@@ -79,18 +84,26 @@ def test_basic_functionality():
         print(f"❌ Logger functionality failed: {e}")
         all_passed = False
     
-    # Test FileScanner
+    # Test NoteScanner
     try:
-        from mkdocs_note.core.file_manager import FileScanner
+        from mkdocs_note.core.file_manager import NoteScanner
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
         config = PluginConfig()
         logger = Logger()
-        scanner = FileScanner(config, logger)
-        print("✅ FileScanner basic functionality works")
+        scanner = NoteScanner(config, logger)
+        print("✅ NoteScanner basic functionality works")
     except Exception as e:
-        print(f"❌ FileScanner functionality failed: {e}")
+        print(f"❌ NoteScanner functionality failed: {e}")
+        all_passed = False
+    
+    # Test data models
+    try:
+        from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+        print("✅ Data models basic functionality works")
+    except Exception as e:
+        print(f"❌ Data models functionality failed: {e}")
         all_passed = False
     
     # Test NoteProcessor
@@ -118,6 +131,48 @@ def test_basic_functionality():
         print("✅ MkdocsNotePlugin basic functionality works")
     except Exception as e:
         print(f"❌ MkdocsNotePlugin functionality failed: {e}")
+        all_passed = False
+    
+    # Test NoteCreator
+    try:
+        from mkdocs_note.core.note_creator import NoteCreator
+        from mkdocs_note.config import PluginConfig
+        from mkdocs_note.logger import Logger
+        
+        config = PluginConfig()
+        logger = Logger()
+        creator = NoteCreator(config, logger)
+        print("✅ NoteCreator basic functionality works")
+    except Exception as e:
+        print(f"❌ NoteCreator functionality failed: {e}")
+        all_passed = False
+    
+    # Test NoteInitializer
+    try:
+        from mkdocs_note.core.note_initializer import NoteInitializer
+        from mkdocs_note.config import PluginConfig
+        from mkdocs_note.logger import Logger
+        
+        config = PluginConfig()
+        logger = Logger()
+        initializer = NoteInitializer(config, logger)
+        print("✅ NoteInitializer basic functionality works")
+    except Exception as e:
+        print(f"❌ NoteInitializer functionality failed: {e}")
+        all_passed = False
+    
+    # Test AssetsProcessor
+    try:
+        from mkdocs_note.core.assets_manager import AssetsProcessor
+        from mkdocs_note.config import PluginConfig
+        from mkdocs_note.logger import Logger
+        
+        config = PluginConfig()
+        logger = Logger()
+        processor = AssetsProcessor(config, logger)
+        print("✅ AssetsProcessor basic functionality works")
+    except Exception as e:
+        print(f"❌ AssetsProcessor functionality failed: {e}")
         all_passed = False
     
     return all_passed

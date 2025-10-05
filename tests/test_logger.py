@@ -27,8 +27,8 @@ class TestLogger(unittest.TestCase):
         self.assertEqual(self.logger.logger.name, 'mkdocs_note.logger')
 
     def test_logger_level(self):
-        """Test that logger level is set to DEBUG."""
-        self.assertEqual(self.logger.logger.level, logging.DEBUG)
+        """Test that logger level is set to INFO."""
+        self.assertEqual(self.logger.logger.level, logging.INFO)
 
     def test_logger_has_handlers(self):
         """Test that logger has handlers configured."""

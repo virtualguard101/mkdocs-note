@@ -66,3 +66,7 @@ class PluginConfig(Config):
     assets_dir = config_opt.Dir(exists=False, default='docs/notes/assets')
     """The directory of the assets.
     """
+
+    notes_template = config_opt.Type(str, default='docs/notes/template/default.md')
+    """The template of the notes.
+    """

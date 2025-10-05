@@ -3,26 +3,14 @@ import hashlib
 import subprocess
 from typing import List, Optional
 
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import FileScanner
-from mkdocs_note.core.assets_manager import AssetsInfo
-
-@dataclass
-class NoteInfo:
-    """Note information data class
-    """
-    file_path: Path
-    title: str
-    relative_url: str
-    modified_date: str
-    file_size: int
-    modified_time: float
-    assets_list: List[AssetsInfo]
+from mkdocs_note.core.file_manager import NoteScanner
+from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+from mkdocs_note.core.assets_manager import AssetsProcessor
 
 class NoteProcessor:
     """Note processor
@@ -31,6 +19,7 @@ class NoteProcessor:
     def __init__(self, config: PluginConfig, logger: Logger):
         self.config = config
         self.logger = logger
+        self.assets_processor = AssetsProcessor(config, logger)
     
     def process_note(self, file_path: Path) -> Optional[NoteInfo]:
         """Process a single note file, extract information
@@ -161,8 +150,18 @@ class NoteProcessor:
         Returns:
             List[AssetsInfo]: The list of assets information
         """
-        pass
-        # [ ] : implement assets extraction logic
+        # Create a temporary NoteInfo object for assets processing
+        temp_note_info = NoteInfo(
+            file_path=file_path,
+            title="",  # Will be filled later
+            relative_url="",
+            modified_date="",
+            file_size=0,
+            modified_time=0.0,
+            assets_list=[]
+        )
+        
+        return self.assets_processor.process_assets(temp_note_info)
     
     def _generate_relative_url(self, file_path: Path) -> str:
         """Generate MkDocs format relative URL
@@ -390,7 +389,7 @@ class RecentNotesUpdater:
         self.logger = Logger()
         
         # Initialize components
-        self.file_scanner = FileScanner(self.config, self.logger)
+        self.file_scanner = NoteScanner(self.config, self.logger)
         self.note_processor = NoteProcessor(self.config, self.logger)
         self.cache_manager = CacheManager(self.logger)
         self.index_updater = IndexUpdater(self.config, self.logger)

@@ -3,7 +3,7 @@ from mkdocs_note.config import PluginConfig
 from pathlib import Path
 from typing import List
 
-class FileScanner:
+class NoteScanner:
     """File scanner"""
     
     def __init__(self, config: PluginConfig, logger: Logger):

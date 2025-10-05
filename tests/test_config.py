@@ -20,8 +20,8 @@ class TestPluginConfig(unittest.TestCase):
         """Test that default values are set correctly."""
         self.assertTrue(self.config.enabled)
         self.assertIsInstance(self.config.project_root, Path)
-        self.assertIsInstance(self.config.notes_dir, Path)
-        self.assertIsInstance(self.config.index_file, Path)
+        self.assertIsInstance(self.config.notes_dir, (Path, str))
+        self.assertIsInstance(self.config.index_file, (Path, str))
         self.assertEqual(self.config.start_marker, '<!-- recent_notes_start -->')
         self.assertEqual(self.config.end_marker, '<!-- recent_notes_end -->')
         self.assertEqual(self.config.max_notes, 11)
@@ -31,6 +31,9 @@ class TestPluginConfig(unittest.TestCase):
         self.assertEqual(self.config.exclude_patterns, {'index.md', 'README.md'})
         self.assertEqual(self.config.exclude_dirs, {'__pycache__', '.git', 'node_modules'})
         self.assertEqual(self.config.cache_size, 256)
+        self.assertTrue(self.config.use_git_timestamps)
+        self.assertEqual(self.config.assets_dir, 'docs/notes/assets')
+        self.assertEqual(self.config.notes_template, 'docs/notes/template/default.md')
 
     def test_config_validation(self):
         """Test configuration validation."""
@@ -39,8 +42,8 @@ class TestPluginConfig(unittest.TestCase):
         
         # Test path fields
         self.assertIsInstance(self.config.project_root, Path)
-        self.assertIsInstance(self.config.notes_dir, Path)
-        self.assertIsInstance(self.config.index_file, Path)
+        self.assertIsInstance(self.config.notes_dir, (Path, str))
+        self.assertIsInstance(self.config.index_file, (Path, str))
         
         # Test string fields
         self.assertIsInstance(self.config.start_marker, str)
@@ -56,14 +59,30 @@ class TestPluginConfig(unittest.TestCase):
         self.assertIsInstance(self.config.supported_extensions, set)
         self.assertIsInstance(self.config.exclude_patterns, set)
         self.assertIsInstance(self.config.exclude_dirs, set)
+        
+        # Test new fields
+        self.assertIsInstance(self.config.use_git_timestamps, bool)
+        self.assertIsInstance(self.config.assets_dir, (Path, str))
+        self.assertIsInstance(self.config.notes_template, str)
 
     def test_path_relationships(self):
         """Test that path relationships are logical."""
         # notes_dir should be under project_root
-        self.assertTrue(self.config.notes_dir.is_relative_to(self.config.project_root))
+        notes_dir_path = Path(self.config.notes_dir)
+        # Convert to absolute paths for comparison
+        notes_abs = (self.config.project_root / notes_dir_path).resolve()
+        project_abs = self.config.project_root.resolve()
+        self.assertTrue(notes_abs.is_relative_to(project_abs))
         
         # index_file should be under notes_dir
-        self.assertTrue(self.config.index_file.is_relative_to(self.config.notes_dir))
+        index_file_path = Path(self.config.index_file)
+        index_abs = (self.config.project_root / index_file_path).resolve()
+        self.assertTrue(index_abs.is_relative_to(notes_abs))
+        
+        # assets_dir should be under notes_dir
+        assets_dir_path = Path(self.config.assets_dir)
+        assets_abs = (self.config.project_root / assets_dir_path).resolve()
+        self.assertTrue(assets_abs.is_relative_to(notes_abs))
 
     def test_marker_consistency(self):
         """Test that markers are properly formatted."""

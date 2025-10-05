@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 import subprocess
-from typing import List
+import click
+from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
 from mkdocs.structure.files import File, Files
@@ -12,8 +13,12 @@ from mkdocs.structure.pages import Page
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import FileScanner
-from mkdocs_note.core.note_manager import NoteProcessor, NoteInfo
+from mkdocs_note.core.file_manager import NoteScanner, AssetScanner
+from mkdocs_note.core.note_manager import NoteProcessor
+from mkdocs_note.core.data_models import NoteInfo
+from mkdocs_note.core.assets_manager import AssetsProcessor
+from mkdocs_note.core.note_initializer import NoteInitializer
+from mkdocs_note.core.note_creator import NoteCreator
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):
@@ -27,6 +32,188 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         super().__init__()
         self.logger = Logger()
         self._recent_notes: List[NoteInfo] = []
+        self._assets_processor = None
+
+    def get_command(self) -> click.Group:
+        """Get the command group for managing notes.
+        
+        Returns:
+            click.Group: The click command group for note management
+        """
+        # Initialize the backend components
+        initializer = NoteInitializer(self.config, self.logger)
+        creator = NoteCreator(self.config, self.logger)
+        
+        @click.group()
+        def note():
+            """Manage notes and their asset structure.
+            
+            This command group provides tools for initializing note directories
+            and creating new notes with proper asset management.
+            """
+            pass
+
+        @note.command("init")
+        @click.option(
+            "--path", 
+            type=click.Path(exists=False, file_okay=False, dir_okay=True),
+            help="Path to the notes directory to initialize (defaults to config.notes_dir)"
+        )
+        def init_note(path: Optional[str] = None):
+            """Initialize the note directory with proper asset tree structure.
+            
+            This command will:
+            - Create the notes directory if it doesn't exist
+            - Analyze existing asset structures
+            - Fix non-compliant asset trees to match the plugin's design
+            - Create an index file with proper markers
+            """
+            notes_dir = Path(path) if path else Path(self.config.notes_dir)
+            
+            self.logger.info(f"Initializing note directory: {notes_dir}")
+            
+            result = initializer.initialize_note_directory(notes_dir)
+            
+            if result == 0:
+                self.logger.info(f"Successfully initialized the note directory at {notes_dir}")
+                click.echo(f"✅ Note directory initialized successfully at {notes_dir}")
+                
+                # Check template file status
+                template_path = Path(self.config.notes_template)
+                if template_path.exists():
+                    click.echo(f"📄 Template file found: {template_path}")
+                else:
+                    click.echo(f"⚠️  Template file not found: {template_path}")
+                    click.echo("💡 Please create the template file or update the 'notes_template' configuration")
+            else:
+                self.logger.error(f"Failed to initialize the note directory at {notes_dir}")
+                click.echo(f"❌ Failed to initialize the note directory at {notes_dir}")
+                raise click.Abort()
+
+        @note.command("new")
+        @click.argument("file_path", type=click.Path())
+        @click.option(
+            "--template",
+            type=click.Path(exists=True, file_okay=True, dir_okay=False),
+            help="Path to a custom template file"
+        )
+        def new_note(file_path: str, template: Optional[str] = None):
+            """Create a new note file with proper asset structure.
+            
+            This command will:
+            - Validate that the asset tree structure is compliant
+            - Create the note file with template content
+            - Create the corresponding asset directory
+            - Set up proper asset management structure
+            
+            FILE_PATH: Path where the new note file should be created
+            """
+            note_path = Path(file_path)
+            template_path = Path(template) if template else None
+            
+            # Validate before creating
+            is_valid, error_msg = creator.validate_note_creation(note_path)
+            if not is_valid:
+                self.logger.error(f"Cannot create note: {error_msg}")
+                click.echo(f"❌ Cannot create note: {error_msg}")
+                click.echo("💡 Try running 'mkdocs note init' first to initialize the directory structure")
+                raise click.Abort()
+            
+            self.logger.info(f"Creating new note: {note_path}")
+            
+            result = creator.create_new_note(note_path, template_path)
+            
+            if result == 0:
+                self.logger.info(f"Successfully created a new note at {note_path}")
+                click.echo(f"✅ Successfully created note: {note_path}")
+                click.echo(f"📁 Asset directory created: {creator._get_asset_directory(note_path)}")
+            else:
+                self.logger.error(f"Failed to create a new note at {note_path}")
+                click.echo(f"❌ Failed to create note at {note_path}")
+                raise click.Abort()
+        
+        @note.command("validate")
+        @click.option(
+            "--path", 
+            type=click.Path(exists=True, file_okay=False, dir_okay=True),
+            help="Path to the notes directory to validate (defaults to config.notes_dir)"
+        )
+        def validate_notes(path: Optional[str] = None):
+            """Validate the asset tree structure compliance.
+            
+            This command checks if the current asset tree structure
+            complies with the plugin's design requirements.
+            """
+            notes_dir = Path(path) if path else Path(self.config.notes_dir)
+            
+            self.logger.info(f"Validating asset tree structure: {notes_dir}")
+            
+            is_compliant, error_messages = initializer.validate_asset_tree_compliance(notes_dir)
+            
+            if is_compliant:
+                self.logger.info("Asset tree structure is compliant")
+                click.echo("✅ Asset tree structure is compliant with plugin design")
+            else:
+                self.logger.warning("Asset tree structure is not compliant")
+                click.echo("❌ Asset tree structure is not compliant:")
+                for error in error_messages:
+                    click.echo(f"  • {error}")
+                click.echo("💡 Run 'mkdocs note init' to fix the structure")
+        
+        @note.command("template")
+        @click.option(
+            "--check", 
+            is_flag=True,
+            help="Check if the configured template file exists"
+        )
+        @click.option(
+            "--create", 
+            is_flag=True,
+            help="Create the template file if it doesn't exist"
+        )
+        def template_command(check: bool = False, create: bool = False):
+            """Manage the note template file.
+            
+            This command helps you check and create the template file
+            configured in your mkdocs.yml.
+            """
+            template_path = Path(self.config.notes_template)
+            
+            if check or not (check or create):
+                # Default behavior: check template status
+                if template_path.exists():
+                    click.echo(f"✅ Template file exists: {template_path}")
+                    try:
+                        content = template_path.read_text(encoding='utf-8')
+                        click.echo(f"📄 Template size: {len(content)} characters")
+                        if "{{title}}" in content and "{{date}}" in content:
+                            click.echo("✅ Template contains required variables ({{title}}, {{date}})")
+                        else:
+                            click.echo("⚠️  Template may be missing required variables ({{title}}, {{date}})")
+                    except Exception as e:
+                        click.echo(f"❌ Error reading template file: {e}")
+                else:
+                    click.echo(f"❌ Template file not found: {template_path}")
+                    click.echo("💡 Use 'mkdocs note template --create' to create it")
+            
+            if create:
+                # Create template file
+                if template_path.exists():
+                    click.echo(f"⚠️  Template file already exists: {template_path}")
+                    if not click.confirm("Do you want to overwrite it?"):
+                        return
+                
+                # Ensure parent directory exists
+                template_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                try:
+                    template_path.write_text("", encoding='utf-8')
+                    click.echo(f"✅ Template file created: {template_path}")
+                except Exception as e:
+                    click.echo(f"❌ Failed to create template file: {e}")
+                    raise click.Abort()
+        
+        return note
     
     @property
     def plugin_enabled(self) -> bool:
@@ -69,6 +256,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
                 toc_config['slugify'] = slugify
                 self.logger.debug("Using markdown.extensions.toc.slugify as fallback")
 
+        # Initialize assets processor
+        self._assets_processor = AssetsProcessor(self.config, self.logger)
+        
         self.logger.info("MkDocs-Note plugin initialized successfully.")
         return config
     
@@ -91,7 +281,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         
         try:
             # Use FileScanner to scan note files
-            file_scanner = FileScanner(self.config, self.logger)
+            file_scanner = NoteScanner(self.config, self.logger)
             note_files = file_scanner.scan_notes()
             
             if not note_files:
@@ -119,10 +309,10 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         return files
     
     def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files) -> str | None:
-        """Insert recent notes into the index page.
+        """Process page markdown content.
 
         Args:
-            markdown (str): The markdown content to insert recent notes into
+            markdown (str): The markdown content to process
             page (Page): The page to check
             config (MkDocsConfig): The MkDocs configuration
             files (Files): The files to check
@@ -135,6 +325,10 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             return markdown
         
         self.logger.debug(f"Processing page: {page.file.src_path}")
+        
+        # Process assets for note pages
+        if self._is_note_page(page):
+            markdown = self._process_page_assets(markdown, page)
         
         # Check if it is the index page of the notes directory
         if self._is_notes_index_page(page):
@@ -241,4 +435,57 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             )
         
         return '<ul>\n' + '\n'.join(items) + '\n</ul>'
+    
+    def _is_note_page(self, page: Page) -> bool:
+        """Check if the page is a note page.
+
+        Args:
+            page (Page): The page to check
+
+        Returns:
+            bool: True if the page is a note page, False otherwise
+        """
+        try:
+            page_src_path = page.file.src_path
+            
+            # Check if the page is in the notes directory
+            notes_dir = str(self.config.notes_dir)
+            if notes_dir.startswith('docs/'):
+                notes_relative = notes_dir[5:]  # Remove 'docs/' prefix
+            else:
+                notes_relative = notes_dir
+            
+            # Check if the page path starts with the notes directory
+            is_note_page = page_src_path.startswith(notes_relative) and not page_src_path.endswith('index.md')
+            
+            self.logger.debug(f"Note page check: '{page_src_path}' starts with '{notes_relative}' = {is_note_page}")
+            return is_note_page
+        except Exception as e:
+            self.logger.error(f"Error in note page check: {e}")
+            return False
+    
+    def _process_page_assets(self, markdown: str, page: Page) -> str:
+        """Process assets for a note page.
+
+        Args:
+            markdown (str): The markdown content to process
+            page (Page): The page to process
+
+        Returns:
+            str: The updated markdown content with processed asset paths
+        """
+        try:
+            # Convert page path to Path object
+            page_path = Path(page.file.src_path)
+            
+            # Process assets in the markdown content
+            updated_markdown = self._assets_processor.update_markdown_content(markdown, page_path)
+            
+            if updated_markdown != markdown:
+                self.logger.debug(f"Processed assets for page: {page.file.src_path}")
+            
+            return updated_markdown
+        except Exception as e:
+            self.logger.error(f"Error processing assets for page {page.file.src_path}: {e}")
+            return markdown
 

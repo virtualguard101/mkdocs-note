@@ -28,8 +28,11 @@ run_tests() {
         echo "Test files:"
         echo "  - test_config.py (PluginConfig tests)"
         echo "  - test_logger.py (Logger tests)"
-        echo "  - core/test_file_manager.py (FileScanner tests)"
+        echo "  - core/test_file_manager.py (NoteScanner, AssetScanner tests)"
         echo "  - core/test_note_manager.py (NoteProcessor, CacheManager, IndexUpdater, RecentNotesUpdater tests)"
+        echo "  - core/test_note_creator.py (NoteCreator tests)"
+        echo "  - core/test_note_initializer.py (NoteInitializer tests)"
+        echo "  - core/test_assets_manager.py (AssetsProcessor, AssetsManager tests)"
         echo "  - test_plugin.py (MkdocsNotePlugin tests)"
         echo ""
         uv run pytest --cov=src/mkdocs_note --cov-report=term-missing tests/
@@ -45,6 +48,11 @@ run_unit_tests() {
     uv run pytest tests/test_config.py tests/test_logger.py tests/core/ tests/test_plugin.py -v
 }
 
+run_smoke_tests() {
+    echo "Running smoke tests..."
+    uv run python tests/smoke_test.py
+}
+
 run_integration_tests() {
     echo "Running integration tests..."
     # Add integration tests here when available
@@ -57,12 +65,14 @@ show_help() {
     echo "Options:"
     echo "  -h, --help          Show this help message"
     echo "  -u, --unit          Run unit tests only"
+    echo "  -s, --smoke         Run smoke tests only"
     echo "  -i, --integration   Run integration tests only"
     echo "  -c, --coverage      Run tests with coverage report (default)"
     echo ""
     echo "Examples:"
     echo "  $0                  # Run all tests with coverage"
     echo "  $0 -u               # Run unit tests only"
+    echo "  $0 -s               # Run smoke tests only"
     echo "  $0 test_config.py   # Run specific test file"
     echo "  $0 -c tests/core/   # Run core tests with coverage"
 }
@@ -75,6 +85,10 @@ case "$1" in
         ;;
     -u|--unit)
         run_unit_tests
+        exit 0
+        ;;
+    -s|--smoke)
+        run_smoke_tests
         exit 0
         ;;
     -i|--integration)

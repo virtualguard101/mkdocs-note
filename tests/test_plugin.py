@@ -9,7 +9,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 from mkdocs_note.plugin import MkdocsNotePlugin
 from mkdocs_note.config import PluginConfig
-from mkdocs_note.core.note_manager import NoteInfo
+from mkdocs_note.core.data_models import NoteInfo
+import click
 
 
 class TestMkdocsNotePlugin(unittest.TestCase):
@@ -121,7 +122,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         self.assertEqual(result, mock_files)
 
     @patch('mkdocs_note.plugin.Logger')
-    @patch('mkdocs_note.plugin.FileScanner')
+    @patch('mkdocs_note.plugin.NoteScanner')
     @patch('mkdocs_note.plugin.NoteProcessor')
     def test_on_files_success(self, mock_processor_class, mock_scanner_class, mock_logger):
         """Test successful on_files processing."""
@@ -154,7 +155,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         mock_info.assert_called()
 
     @patch('mkdocs_note.plugin.Logger')
-    @patch('mkdocs_note.plugin.FileScanner')
+    @patch('mkdocs_note.plugin.NoteScanner')
     def test_on_files_no_notes(self, mock_scanner_class, mock_logger):
         """Test on_files when no notes found."""
         self.plugin.config.enabled = True
@@ -173,7 +174,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         mock_warning.assert_called_once()
 
     @patch('mkdocs_note.plugin.Logger')
-    @patch('mkdocs_note.plugin.FileScanner')
+    @patch('mkdocs_note.plugin.NoteScanner')
     def test_on_files_exception(self, mock_scanner_class, mock_logger):
         """Test on_files with exception."""
         self.plugin.config.enabled = True
@@ -244,9 +245,9 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         """Test _is_notes_index_page when page matches index file."""
         page = Mock()
         page.file = Mock()
-        page.file.src_path = "/project/docs/notes/index.md"
+        page.file.src_path = "notes/index.md"  # Relative path
         
-        self.plugin.config.index_file = Path("/project/docs/notes/index.md")
+        self.plugin.config.index_file = "docs/notes/index.md"
         
         result = self.plugin._is_notes_index_page(page)
         
@@ -354,6 +355,105 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         self.assertIn('note2/', result)
         self.assertIn('2024-01-15 10:30:00', result)
         self.assertIn('2024-01-14 09:15:00', result)
+
+    def test_get_command(self):
+        """Test get_command method returns click command group."""
+        result = self.plugin.get_command()
+        
+        self.assertIsInstance(result, click.Group)
+        self.assertEqual(result.name, 'note')
+
+    @patch('mkdocs_note.plugin.NoteInitializer')
+    @patch('mkdocs_note.plugin.NoteCreator')
+    @patch('click.group')
+    def test_get_command_initialization(self, mock_click_group, mock_creator_class, mock_initializer_class):
+        """Test command initialization with proper components."""
+        mock_group = Mock()
+        mock_click_group.return_value = mock_group
+        
+        result = self.plugin.get_command()
+        
+        # Verify initializer and creator are instantiated
+        mock_initializer_class.assert_called_once_with(self.plugin.config, self.plugin.logger)
+        mock_creator_class.assert_called_once_with(self.plugin.config, self.plugin.logger)
+        
+        # Verify click group is created
+        mock_click_group.assert_called_once()
+
+    def test_is_note_page(self):
+        """Test _is_note_page method."""
+        page = Mock()
+        page.file = Mock()
+        page.file.src_path = "notes/test-note.md"
+        
+        self.plugin.config.notes_dir = "docs/notes"
+        
+        result = self.plugin._is_note_page(page)
+        
+        self.assertTrue(result)
+
+    def test_is_note_page_not_note(self):
+        """Test _is_note_page method for non-note page."""
+        page = Mock()
+        page.file = Mock()
+        page.file.src_path = "docs/index.md"
+        
+        self.plugin.config.notes_dir = "docs/notes"
+        
+        result = self.plugin._is_note_page(page)
+        
+        self.assertFalse(result)
+
+    def test_is_note_page_index_file(self):
+        """Test _is_note_page method for index file."""
+        page = Mock()
+        page.file = Mock()
+        page.file.src_path = "notes/index.md"
+        
+        self.plugin.config.notes_dir = "docs/notes"
+        
+        result = self.plugin._is_note_page(page)
+        
+        self.assertFalse(result)
+
+    @patch('mkdocs_note.plugin.AssetsProcessor')
+    def test_process_page_assets(self, mock_assets_processor_class):
+        """Test _process_page_assets method."""
+        mock_processor = Mock()
+        mock_processor.update_markdown_content.return_value = "Updated content"
+        mock_assets_processor_class.return_value = mock_processor
+        self.plugin._assets_processor = mock_processor
+        
+        page = Mock()
+        page.file = Mock()
+        page.file.src_path = "notes/test-note.md"
+        
+        markdown = "Original content ![image](image.png)"
+        
+        result = self.plugin._process_page_assets(markdown, page)
+        
+        self.assertEqual(result, "Updated content")
+        mock_processor.update_markdown_content.assert_called_once()
+
+    @patch('mkdocs_note.plugin.AssetsProcessor')
+    def test_process_page_assets_exception(self, mock_assets_processor_class):
+        """Test _process_page_assets method with exception."""
+        mock_processor = Mock()
+        mock_processor.update_markdown_content.side_effect = Exception("Test error")
+        mock_assets_processor_class.return_value = mock_processor
+        self.plugin._assets_processor = mock_processor
+        
+        page = Mock()
+        page.file = Mock()
+        page.file.src_path = "notes/test-note.md"
+        
+        markdown = "Original content"
+        
+        with patch.object(self.plugin.logger, 'error') as mock_error:
+            result = self.plugin._process_page_assets(markdown, page)
+        
+        self.assertEqual(result, markdown)  # Should return original content
+        mock_error.assert_called_once()
 
 
 if __name__ == '__main__':
