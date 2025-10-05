@@ -10,6 +10,7 @@ from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.file_manager import NoteScanner
 from mkdocs_note.core.data_models import AssetTreeInfo
+from mkdocs_note.core.assets_manager import get_note_relative_path
 
 
 class NoteInitializer:
@@ -98,8 +99,12 @@ class NoteInitializer:
         assets_dir = notes_dir / "assets"
         
         for note_file in note_files:
-            note_name = note_file.stem
-            note_asset_dir = assets_dir / note_name
+            # Use get_note_relative_path to calculate the tree-based path
+            note_relative_path = get_note_relative_path(note_file, notes_dir)
+            note_asset_dir = assets_dir / note_relative_path
+            
+            # For display purposes, use the full relative path as note name
+            note_name = note_relative_path
             
             # Expected structure (based on our design)
             expected_structure = [note_asset_dir]
@@ -133,7 +138,11 @@ class NoteInitializer:
         return analysis_results
     
     def _check_compliance(self, asset_dir: Path, expected_structure: List[Path]) -> bool:
-        """Check if asset directory complies with our design.
+        """Check if asset directory complies with our tree-based design.
+        
+        The tree-based design allows asset directories at any depth under assets/,
+        mirroring the notes directory structure. The first-level subdirectories
+        should have '.assets' suffix for better identification.
         
         Args:
             asset_dir (Path): The asset directory to check
@@ -146,10 +155,29 @@ class NoteInitializer:
         if not asset_dir.exists() or not asset_dir.is_dir():
             return False
         
-        # Check if it's directly under assets/ (not nested)
-        # The asset_dir should be exactly one level under assets/
-        parent = asset_dir.parent
-        if parent.name != 'assets':
+        # Check if asset_dir is under an 'assets' directory
+        # Walk up the path to find 'assets' directory
+        current = asset_dir
+        found_assets = False
+        while current.parent != current:  # Stop at root
+            if current.parent.name == 'assets':
+                found_assets = True
+                break
+            current = current.parent
+        
+        if not found_assets:
+            return False
+        
+        # Additional check: if asset_dir is a first-level subdirectory under assets/
+        # and it has multiple path components, it should have '.assets' suffix
+        relative_to_assets = asset_dir.relative_to(current.parent)
+        parts = relative_to_assets.parts
+        
+        # If there are multiple levels (e.g., 'dsa.assets/anal/iter')
+        # the first level should have '.assets' suffix
+        if len(parts) > 1 and not parts[0].endswith('.assets'):
+            # This is a multi-level path but first level doesn't have .assets suffix
+            # This might be an old flat structure
             return False
         
         return True

@@ -5,8 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.2 - 2025-10-06
 
-## [Unreleased]
+### Fixed
+
+- Fixed `mkdocs-note init` command to correctly use tree-based asset directory structure
+  
+  - Previously, the init command was creating asset directories in a flat structure (e.g., `assets/note-name/`) instead of mirroring the notes directory hierarchy
+  
+  - Now uses `get_note_relative_path()` function consistently across all components to ensure proper tree-based structure
+  
+  - Updated `_check_compliance()` method to correctly validate tree-based structures with `.assets` suffix on first-level subdirectories
+  
+  - This ensures that `mkdocs-note init` and `mkdocs-note new` create consistent directory structures
+
+
+## 1.1.1 - 2025-10-06
 
 ### Changed
 
