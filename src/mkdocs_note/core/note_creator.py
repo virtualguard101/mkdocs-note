@@ -120,7 +120,7 @@ class NoteCreator:
         asset_dir = self._get_asset_directory(note_file_path)
         asset_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create empty README file in the asset directory
+        ## Create empty README file in the asset directory
         # readme_file = asset_dir / "README.md"
         # if not readme_file.exists():
         #     readme_file.write_text("", encoding='utf-8')
@@ -128,16 +128,30 @@ class NoteCreator:
     def _get_asset_directory(self, note_file_path: Path) -> Path:
         """Get the asset directory path for a note file.
         
+        This method calculates the asset directory using the note's relative path
+        from the notes directory, ensuring that notes in different subdirectories
+        with the same name don't conflict.
+        
         Args:
             note_file_path (Path): The path of the note file
             
         Returns:
             Path: The asset directory path
+            
+        Examples:
+            For note: docs/notes/python/intro.md
+            Returns: docs/notes/assets/python/intro/
+            
+            For note: docs/notes/javascript/intro.md
+            Returns: docs/notes/assets/javascript/intro/
         """
-        notes_dir = note_file_path.parent
-        note_name = note_file_path.stem
-        assets_dir = notes_dir / "assets"
-        return assets_dir / note_name
+        from mkdocs_note.core.assets_manager import get_note_relative_path
+        
+        notes_dir = Path(self.config.notes_dir)
+        note_relative_path = get_note_relative_path(note_file_path, notes_dir)
+        
+        assets_dir = Path(self.config.assets_dir)
+        return assets_dir / note_relative_path
     
     def validate_note_creation(self, file_path: Path) -> Tuple[bool, str]:
         """Validate if a note can be created at the given path.
