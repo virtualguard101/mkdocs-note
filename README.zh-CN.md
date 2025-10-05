@@ -1,5 +1,8 @@
 # MkDocs-Note
 
+<div align="center">
+   <p>插件使用示例：<a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
+</div>
 
 `MkDocs-Note` 是一个为 `MkDocs` 设计的插件，可以自动管理文档站点中的笔记。它专为与 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 主题无缝协作而设计，以创建统一的笔记记录和文档体验。
 

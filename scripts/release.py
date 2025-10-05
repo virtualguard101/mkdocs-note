@@ -15,7 +15,7 @@ def release() -> None:
 
     # Create a new tag
     tag = get_latest_tag()
-    subprocess.run(["git", "tag", "-a", tag, "-m", "Release " + tag])
+    subprocess.run(["git", "tag", "-a", tag])
     # Push the tag
     subprocess.run(["git", "push", "--tags"])
 
