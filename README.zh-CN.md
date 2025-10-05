@@ -52,6 +52,8 @@ plugins:
       max_notes: 10
       start_marker: "<!-- recent_notes_start -->"
       end_marker: "<!-- recent_notes_end -->"
+      assets_dir: "docs/notes/assets"
+      notes_template: "docs/notes/template/default.md"
 ```
 
 > **⚠️ 重要**: 注意缩进格式！请使用**空格**（而非破折号 `-`）来缩进插件选项。配置必须是字典格式，而非列表格式。常见配置问题请参考[故障排除指南](TROUBLESHOOTING.md)。
@@ -145,8 +147,8 @@ mkdocs-note template [--check] [--create]
 | `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | 要排除的文件模式 |
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | 要排除的目录 |
 | `use_git_timestamps` | bool | `true` | 使用 Git 提交时间戳进行排序，而不是文件系统时间戳 |
-| `assets_dir` | Path | `"docs/notes/assets"` | 存储笔记资产的目录 |
-| `notes_template` | Path | `"docs/notes/template/default.md"` | 新笔记的模板文件 |
+| `assets_dir` | Path | `"docs/notes/assets"` | 存储笔记资产的目录。使用树状结构，第一级子目录带有 `.assets` 后缀 |
+| `notes_template` | Path | `"docs/notes/template/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
 
 ### 模板系统
@@ -183,15 +185,57 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 ### 资产管理
 
-插件自动管理每个笔记的资产：
+插件使用**树状结构**自动管理每个笔记的资产：
 
-- 每个笔记都有对应的资产目录：`docs/notes/assets/note-name/`
+#### 树状资产组织
 
-- 构建时自动链接和处理资产
+- **层次化结构**：资产镜像您的笔记目录结构，防止不同目录中同名笔记之间的冲突
 
-- 支持图片引用和其他媒体文件
+- **第一级分类**：第一级子目录具有 `.assets` 后缀以便更好地识别
+  
+  - `notes/dsa/` → `assets/dsa.assets/`
 
-- 确保所有笔记的资产组织一致性
+  - `notes/language/` → `assets/language.assets/`
+
+  - `notes/ml/` → `assets/ml.assets/`
+
+- **路径映射示例**：
+  
+  ```
+  notes/dsa/anal/iter.md           → assets/dsa.assets/anal/iter/
+
+  notes/language/python/intro.md  → assets/language.assets/python/intro/
+
+  notes/language/cpp/intro.md     → assets/language.assets/cpp/intro/
+
+  notes/quickstart.md              → assets/quickstart/
+  ```
+
+#### 自动路径转换
+
+- **笔记中的相对引用**：只需像平常一样编写图片引用：
+  
+  ```markdown
+  ![递归树](recursion_tree.png)
+  ```
+
+- **自动转换**：插件在构建期间自动转换路径：
+  
+  - 对于 `notes/dsa/anal/iter.md` → `../../assets/dsa.assets/anal/iter/recursion_tree.png`
+
+  - 对于 `notes/quickstart.md` → `assets/quickstart/recursion_tree.png`
+
+- **无需手动路径管理**：原始 markdown 文件保持简洁清晰
+
+#### 优势
+
+- ✅ **无命名冲突**：不同目录中的同名笔记不会冲突
+
+- ✅ **清晰组织**：`.assets` 后缀使资产类别易于识别
+
+- ✅ **自动处理**：图片路径在构建期间自动转换
+
+- ✅ **MkDocs 兼容**：生成的路径与 MkDocs 无缝协作
 
 ### 工作原理
 
@@ -207,9 +251,51 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 4. 将指定数量的最近笔记插入到索引页面的标记注释之间
 
-5. 自动处理和更新资产路径以确保正确链接
+5. 对于每个笔记页面，插件处理资产引用：
+   
+   - 检测 markdown 内容中的图片引用
+   
+   - 计算笔记在目录树中的位置
+   
+   - 将相对资产路径转换为带有正确 `../` 前缀的正确引用
+   
+   - 为第一级目录添加 `.assets` 后缀以进行组织
 
 6. 每次构建文档时都会自动运行此过程
+
+### 资产管理最佳实践
+
+1. **目录结构**：在子目录中组织您的笔记以更好地分类
+   
+   ```
+   docs/notes/
+   ├── dsa/           # 数据结构与算法
+   ├── language/      # 编程语言
+   ├── ml/            # 机器学习
+   └── tools/         # 开发工具
+   ```
+
+2. **资产放置**：将资产放置在相应的资产目录中
+   
+   ```
+   docs/notes/assets/
+   ├── dsa.assets/
+   │   └── anal/
+   │       └── iter/
+   │           ├── recursion_tree.png
+   │           └── diagram.png
+   ```
+
+3. **简单引用**：在笔记中编写简单的相对引用
+   
+   ```markdown
+   ![我的图片](my-image.png)
+   ![图表](diagrams/flow.png)
+   ```
+
+4. **自动转换**：让插件在构建期间处理路径转换
+
+> **注意**：如果您正在从旧版本迁移，可能需要重新组织您的资产目录以匹配新的树状结构（第一级目录带有 `.assets` 后缀）。
 
 ## 贡献
 

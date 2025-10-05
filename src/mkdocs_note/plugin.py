@@ -30,6 +30,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         self.logger = Logger()
         self._recent_notes: List[NoteInfo] = []
         self._assets_processor = None
+        self._docs_dir = None
 
     
     @property
@@ -73,6 +74,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
                 toc_config['slugify'] = slugify
                 self.logger.debug("Using markdown.extensions.toc.slugify as fallback")
 
+        # Store docs_dir for path resolution
+        self._docs_dir = Path(config.docs_dir)
+        
         # Initialize assets processor
         self._assets_processor = AssetsProcessor(self.config, self.logger)
         
@@ -118,7 +122,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             notes.sort(key=lambda n: n.modified_time, reverse=True)
             self._recent_notes = notes[:self.config.max_notes]
             
-            self.logger.info(f"Found {len(self._recent_notes)} recent notes")
+            self.logger.info(f"Found {len(self._recent_notes)} recent notes, include index page.")
             
         except Exception as e:
             self.logger.error(f"Error processing notes: {e}")
@@ -265,12 +269,22 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         try:
             page_src_path = page.file.src_path
             
-            # Check if the page is in the notes directory
-            notes_dir = str(self.config.notes_dir)
-            if notes_dir.startswith('docs/'):
-                notes_relative = notes_dir[5:]  # Remove 'docs/' prefix
+            # Get notes directory relative to docs_dir
+            notes_dir = Path(self.config.notes_dir)
+            if self._docs_dir and notes_dir.is_absolute():
+                # Convert absolute notes_dir to relative path from docs_dir
+                try:
+                    notes_relative = str(notes_dir.relative_to(self._docs_dir))
+                except ValueError:
+                    # notes_dir is not under docs_dir, extract the relative part
+                    notes_relative = notes_dir.name
             else:
-                notes_relative = notes_dir
+                # notes_dir is already relative
+                notes_dir_str = str(notes_dir)
+                if notes_dir_str.startswith('docs/'):
+                    notes_relative = notes_dir_str[5:]  # Remove 'docs/' prefix
+                else:
+                    notes_relative = notes_dir_str
             
             # Check if the page path starts with the notes directory
             is_note_page = page_src_path.startswith(notes_relative) and not page_src_path.endswith('index.md')
@@ -292,14 +306,23 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             str: The updated markdown content with processed asset paths
         """
         try:
-            # Convert page path to Path object
-            page_path = Path(page.file.src_path)
+            # Get absolute path of the note file
+            # page.file.src_path is relative to docs_dir
+            if self._docs_dir:
+                page_abs_path = self._docs_dir / page.file.src_path
+            else:
+                # Fallback to using src_path as is
+                page_abs_path = Path(page.file.src_path)
+            
+            self.logger.debug(f"Processing assets for: {page_abs_path}")
             
             # Process assets in the markdown content
-            updated_markdown = self._assets_processor.update_markdown_content(markdown, page_path)
+            updated_markdown = self._assets_processor.update_markdown_content(markdown, page_abs_path)
             
             if updated_markdown != markdown:
-                self.logger.debug(f"Processed assets for page: {page.file.src_path}")
+                self.logger.debug(f"Updated asset paths for page: {page.file.src_path}")
+            else:
+                self.logger.debug(f"No asset paths to update for page: {page.file.src_path}")
             
             return updated_markdown
         except Exception as e:

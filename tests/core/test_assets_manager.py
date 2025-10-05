@@ -13,10 +13,77 @@ from mkdocs_note.core.assets_manager import (
     AssetsCatalogTree,
     AssetsManager,
     AssetsProcessor,
+    get_note_relative_path,
 )
 from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
+
+
+class TestGetNoteRelativePath(unittest.TestCase):
+    """Test cases for get_note_relative_path function."""
+
+    def test_root_level_note(self):
+        """Test note at root level (no subdirectory)."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            notes_dir = Path(temp_dir)
+            note_file = notes_dir / "test.md"
+            note_file.touch()
+            
+            result = get_note_relative_path(note_file, notes_dir)
+            self.assertEqual(result, "test")
+    
+    def test_single_level_note(self):
+        """Test note in single-level subdirectory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            notes_dir = Path(temp_dir)
+            subdir = notes_dir / "dsa"
+            subdir.mkdir()
+            note_file = subdir / "intro.md"
+            note_file.touch()
+            
+            result = get_note_relative_path(note_file, notes_dir)
+            # First level should have .assets suffix
+            self.assertEqual(result, "dsa.assets/intro")
+    
+    def test_multi_level_note(self):
+        """Test note in multi-level subdirectories."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            notes_dir = Path(temp_dir)
+            subdir = notes_dir / "dsa" / "anal"
+            subdir.mkdir(parents=True)
+            note_file = subdir / "iter_and_recu.md"
+            note_file.touch()
+            
+            result = get_note_relative_path(note_file, notes_dir)
+            # Only first level should have .assets suffix
+            self.assertEqual(result, "dsa.assets/anal/iter_and_recu")
+    
+    def test_deep_nested_note(self):
+        """Test note in deeply nested subdirectories."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            notes_dir = Path(temp_dir)
+            subdir = notes_dir / "language" / "cpp" / "fundamental"
+            subdir.mkdir(parents=True)
+            note_file = subdir / "11-smart_pointer.md"
+            note_file.touch()
+            
+            result = get_note_relative_path(note_file, notes_dir)
+            # Only first level should have .assets suffix
+            self.assertEqual(result, "language.assets/cpp/fundamental/11-smart_pointer")
+    
+    def test_without_assets_suffix(self):
+        """Test with use_assets_suffix=False."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            notes_dir = Path(temp_dir)
+            subdir = notes_dir / "dsa"
+            subdir.mkdir()
+            note_file = subdir / "intro.md"
+            note_file.touch()
+            
+            result = get_note_relative_path(note_file, notes_dir, use_assets_suffix=False)
+            # Should not have .assets suffix
+            self.assertEqual(result, "dsa/intro")
 
 
 class TestAssetsInfo(unittest.TestCase):
@@ -46,16 +113,18 @@ class TestAssetsCatalogTree(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.root_path = Path('/test/assets')
-        self.catalog = AssetsCatalogTree(self.root_path)
+        self.notes_dir = Path('/test/notes')
+        self.catalog = AssetsCatalogTree(self.root_path, self.notes_dir)
 
     def test_initialization(self):
         """Test AssetsCatalogTree initialization."""
         self.assertEqual(self.catalog._root, self.root_path)
+        self.assertEqual(self.catalog._notes_dir, self.notes_dir)
         self.assertIsInstance(self.catalog._catalog, dict)
 
     def test_add_node(self):
         """Test adding assets for a note."""
-        note_name = "test-note"
+        note_relative_path = "test-note"
         assets_list = [
             AssetsInfo(
                 file_path=Path('/test/image1.png'),
@@ -73,20 +142,39 @@ class TestAssetsCatalogTree(unittest.TestCase):
             )
         ]
         
-        self.catalog.add_node(note_name, assets_list)
+        self.catalog.add_node(note_relative_path, assets_list)
         
         self.assertEqual(len(self.catalog._catalog), 1)
-        self.assertIn(note_name, self.catalog._catalog)
-        self.assertEqual(self.catalog._catalog[note_name], assets_list)
+        self.assertIn(note_relative_path, self.catalog._catalog)
+        self.assertEqual(self.catalog._catalog[note_relative_path], assets_list)
+
+    def test_add_node_with_subdirectories(self):
+        """Test adding assets for notes in subdirectories."""
+        # Two notes with same name in different directories (with .assets suffix)
+        python_note = "language.assets/python/intro"
+        javascript_note = "language.assets/javascript/intro"
+        
+        python_assets = [Mock()]
+        javascript_assets = [Mock()]
+        
+        self.catalog.add_node(python_note, python_assets)
+        self.catalog.add_node(javascript_note, javascript_assets)
+        
+        # Both should exist without conflict
+        self.assertEqual(len(self.catalog._catalog), 2)
+        self.assertIn(python_note, self.catalog._catalog)
+        self.assertIn(javascript_note, self.catalog._catalog)
+        self.assertEqual(self.catalog.get_assets(python_note), python_assets)
+        self.assertEqual(self.catalog.get_assets(javascript_note), javascript_assets)
 
     def test_get_assets(self):
         """Test getting assets for a specific note."""
-        note_name = "test-note"
+        note_relative_path = "test-note"
         assets_list = [Mock()]
         
-        self.catalog.add_node(note_name, assets_list)
+        self.catalog.add_node(note_relative_path, assets_list)
         
-        result = self.catalog.get_assets(note_name)
+        result = self.catalog.get_assets(note_relative_path)
         self.assertEqual(result, assets_list)
 
     def test_get_assets_nonexistent(self):
@@ -109,6 +197,36 @@ class TestAssetsCatalogTree(unittest.TestCase):
         self.assertIn("note2", result)
         self.assertEqual(result["note1"], assets1)
         self.assertEqual(result["note2"], assets2)
+    
+    def test_get_asset_dir_for_note(self):
+        """Test getting asset directory for a note."""
+        # Create a real temporary directory for this test
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_notes = Path(temp_dir) / "notes"
+            temp_assets = Path(temp_dir) / "assets"
+            temp_notes.mkdir()
+            temp_assets.mkdir()
+            
+            catalog = AssetsCatalogTree(temp_assets, temp_notes)
+            
+            # Test with nested note (should have .assets suffix in first level)
+            note_file = temp_notes / "dsa" / "anal" / "intro.md"
+            note_file.parent.mkdir(parents=True, exist_ok=True)
+            note_file.touch()
+            
+            result = catalog.get_asset_dir_for_note(note_file)
+            expected = temp_assets / "dsa.assets" / "anal" / "intro"
+            
+            self.assertEqual(result, expected)
+            
+            # Test with root-level note (no .assets suffix)
+            root_note = temp_notes / "test.md"
+            root_note.touch()
+            
+            result_root = catalog.get_asset_dir_for_note(root_note)
+            expected_root = temp_assets / "test"
+            
+            self.assertEqual(result_root, expected_root)
 
 
 class TestAssetsManager(unittest.TestCase):
@@ -262,7 +380,13 @@ class TestAssetsProcessor(unittest.TestCase):
 
     def test_process_image_reference_simple(self):
         """Test processing simple image reference."""
+        # Setup: create a note file in the temp directory
         note_file = self.temp_dir / "test-note.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
+        
         image_path = "image.png"
         
         result = self.processor._process_image_reference(image_path, note_file, 0)
@@ -274,7 +398,13 @@ class TestAssetsProcessor(unittest.TestCase):
 
     def test_process_image_reference_with_subdir(self):
         """Test processing image reference with subdirectory."""
+        # Setup: create a note file in the temp directory
         note_file = self.temp_dir / "test-note.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
+        
         image_path = "images/photo.jpg"
         
         result = self.processor._process_image_reference(image_path, note_file, 0)
@@ -282,11 +412,35 @@ class TestAssetsProcessor(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.file_name, 'images/photo.jpg')
         self.assertEqual(result.relative_path, 'assets/test-note/images/photo.jpg')
+    
+    def test_process_image_reference_nested_notes(self):
+        """Test processing image reference for notes in subdirectories."""
+        # Create a note in a subdirectory
+        subdir = self.temp_dir / "dsa" / "anal"
+        subdir.mkdir(parents=True)
+        note_file = subdir / "intro.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
+        
+        image_path = "diagram.png"
+        
+        result = self.processor._process_image_reference(image_path, note_file, 0)
+        
+        self.assertIsNotNone(result)
+        self.assertEqual(result.file_name, 'diagram.png')
+        # Should use dsa.assets/anal/intro as the path with .assets suffix
+        self.assertEqual(result.relative_path, 'assets/dsa.assets/anal/intro/diagram.png')
 
     def test_update_markdown_content_no_images(self):
         """Test updating markdown content with no images."""
         content = "# Test Note\n\nNo images here."
         note_file = self.temp_dir / "test-note.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
         
         result = self.processor.update_markdown_content(content, note_file)
         
@@ -296,9 +450,14 @@ class TestAssetsProcessor(unittest.TestCase):
         """Test updating markdown content with images."""
         content = "# Test Note\n\n![Image](image.png)\n\n![Subdir Image](images/photo.jpg)"
         note_file = self.temp_dir / "test-note.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
         
         result = self.processor.update_markdown_content(content, note_file)
         
+        # Root level notes don't need ../ prefix
         self.assertIn("![Image](assets/test-note/image.png)", result)
         self.assertIn("![Subdir Image](assets/test-note/images/photo.jpg)", result)
 
@@ -306,6 +465,10 @@ class TestAssetsProcessor(unittest.TestCase):
         """Test updating markdown content with external URLs."""
         content = "# Test Note\n\n![External](https://example.com/image.png)\n\n![Local](local.png)"
         note_file = self.temp_dir / "test-note.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
         
         result = self.processor.update_markdown_content(content, note_file)
         
@@ -313,6 +476,23 @@ class TestAssetsProcessor(unittest.TestCase):
         self.assertIn("![External](https://example.com/image.png)", result)
         # Local image should be updated
         self.assertIn("![Local](assets/test-note/local.png)", result)
+    
+    def test_update_markdown_content_nested_notes(self):
+        """Test updating markdown content for notes in subdirectories."""
+        # Create a note in a subdirectory
+        subdir = self.temp_dir / "language" / "python"
+        subdir.mkdir(parents=True)
+        note_file = subdir / "intro.md"
+        note_file.touch()
+        
+        # Update config to use temp_dir as notes_dir
+        self.config.notes_dir = str(self.temp_dir)
+        
+        content = "# Python Intro\n\n![Diagram](diagram.png)"
+        result = self.processor.update_markdown_content(content, note_file)
+        
+        # Should use ../../ to go up two levels, then into assets
+        self.assertIn("![Diagram](../../assets/language.assets/python/intro/diagram.png)", result)
 
 
 if __name__ == '__main__':

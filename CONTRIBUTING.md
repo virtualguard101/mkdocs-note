@@ -16,9 +16,14 @@ mkdocs_note/
 ├── plugin.py                # Main MkDocs plugin entry point
 ├── config.py                # MkDocs configuration management
 ├── logger.py                # Logging utilities
+├── cli.py                   # Command-line interface
 └── core/                    # Core business logic
     ├── file_manager.py      # File scanning and validation
-    └── note_manager.py      # Note processing and management
+    ├── note_manager.py      # Note processing and management
+    ├── note_creator.py      # Note creation with templates
+    ├── note_initializer.py  # Directory structure initialization
+    ├── assets_manager.py    # Assets management (NEW)
+    └── data_models.py       # Data models and structures
 ```
 
 ### Core Components
@@ -31,11 +36,15 @@ The `MkdocsNotePlugin` class is the main entry point that integrates with MkDocs
 
 - **Key Methods**:
 
-  - `on_config()`: Configures MkDocs settings (TOC, slugify functions)
+  - `on_config()`: Configures MkDocs settings (TOC, slugify functions, assets processor)
 
   - `on_files()`: Scans and processes note files
 
-  - `on_page_markdown()`: Inserts recent notes into index pages
+  - `on_page_markdown()`: Inserts recent notes into index pages and processes asset paths
+
+  - `_is_note_page()`: Identifies note pages for asset processing
+
+  - `_process_page_assets()`: Converts relative asset paths to correct references
 
 #### 2. Configuration Management (`config.py`)
 
@@ -56,6 +65,10 @@ The `PluginConfig` class manages all plugin settings:
   - `exclude_patterns`: Files to exclude from processing
 
   - `exclude_dirs`: Directories to skip during scanning
+
+  - `assets_dir`: Directory for storing note assets
+
+  - `notes_template`: Template file for new notes
 
 #### 3. File Management (`core/file_manager.py`)
 
@@ -85,7 +98,86 @@ Multiple classes handle note processing and management:
 
 - **`RecentNotesUpdater`**: Main orchestrator class
 
-#### 5. Logging (`logger.py`)
+#### 5. Assets Management (`core/assets_manager.py`) **NEW**
+
+The assets management system uses a tree-based structure to organize note assets:
+
+- **`AssetsCatalogTree`**: Manages assets using hierarchical path structure
+  
+  - Prevents conflicts between notes with the same name in different directories
+  
+  - Uses `.assets` suffix for first-level subdirectories (e.g., `dsa.assets/`, `language.assets/`)
+  
+  - Maps note relative paths to asset directories
+
+- **`AssetsManager`**: Coordinates asset catalog operations
+  
+  - Generates asset catalogs for notes
+  
+  - Updates asset information
+
+- **`AssetsProcessor`**: Processes asset references in markdown files
+  
+  - Detects image references in markdown content
+  
+  - Converts relative paths to correct asset paths based on note location
+  
+  - Calculates proper `../` prefixes based on note depth
+
+- **`get_note_relative_path()`**: Utility function for path calculation
+  
+  - Computes note's relative path from notes directory
+  
+  - Adds `.assets` suffix to first-level subdirectories
+  
+  - Handles edge cases (root-level notes, deeply nested notes)
+
+**Asset Structure Example**:
+```
+notes/
+├── dsa/
+│   ├── anal/
+│   │   └── iter.md          → assets/dsa.assets/anal/iter/
+│   └── ds/
+│       └── intro.md         → assets/dsa.assets/ds/intro/
+├── language/
+│   ├── python/
+│   │   └── intro.md         → assets/language.assets/python/intro/
+│   └── cpp/
+│       └── intro.md         → assets/language.assets/cpp/intro/
+└── quickstart.md            → assets/quickstart/
+```
+
+**Path Conversion**:
+- Note at `notes/dsa/anal/iter.md` with `![](img.png)`
+- Converted to `![](../../assets/dsa.assets/anal/iter/img.png)`
+- MkDocs resolves the path correctly relative to the note file
+
+#### 6. Note Creation (`core/note_creator.py`)
+
+The `NoteCreator` class handles creating new notes with proper asset structure:
+
+- Creates note files from templates with variable substitution
+
+- Automatically creates corresponding asset directories
+
+- Validates directory structure compliance
+
+- Supports custom templates
+
+#### 7. Directory Initialization (`core/note_initializer.py`)
+
+The `NoteInitializer` class manages directory structure:
+
+- Initializes notes directory with proper structure
+
+- Validates asset tree compliance
+
+- Fixes non-compliant structures
+
+- Creates necessary directories and index files
+
+#### 8. Logging (`logger.py`)
 
 The `Logger` class provides colored console logging:
 
@@ -111,6 +203,10 @@ The plugin execution follows this sequence:
 
    - Plugin enabled/disabled check
 
+   - Store `docs_dir` for path resolution
+
+   - Initialize `AssetsProcessor` instance
+
    - MkDocs TOC configuration setup
    
    - Slugify function configuration (pymdownx or fallback)
@@ -127,26 +223,60 @@ The plugin execution follows this sequence:
 
 4. **Page Rendering Phase** (`on_page_markdown`)
 
+   - Check if current page is a note page
+   
+   - If it's a note page: Process asset paths in markdown content
+     
+     - Identify image references
+     
+     - Calculate note's relative path from notes directory
+     
+     - Convert relative asset references to correct paths
+     
+     - Add `.assets` suffix to first-level directories
+     
+     - Calculate proper `../` prefixes based on note depth
+   
    - Check if current page is the notes index page
 
-   - Insert recent notes HTML between markers
+   - If it's the index page: Insert recent notes HTML between markers
 
    - Return modified markdown content
 
 ### Data Flow
 
-The projects is now only with one feature which is **insert recent notes into the index page of notebook directory**. As an example of how the data flow of the notes users want to manage passing is shown as blow:
+The plugin provides two main features with distinct data flows:
+
+#### Feature 1: Recent Notes Display
 
 ```
 Notes Directory
-    ↓ (FileScanner)
+    ↓ (NoteScanner)
 Valid Note Files
     ↓ (NoteProcessor)
-NoteInfo Objects
+NoteInfo Objects (with assets_list)
     ↓ (Sort by modified_time)
 Recent Notes List
     ↓ (HTML Generation)
 Index Page Content
+```
+
+#### Feature 2: Assets Path Management
+
+```
+Note Markdown File
+    ↓ (Page Rendering)
+Detect Image References: ![alt](image.png)
+    ↓ (get_note_relative_path)
+Calculate Note's Relative Path: "dsa/anal/iter"
+    ↓ (Add .assets suffix to first level)
+Path with .assets: "dsa.assets/anal/iter"
+    ↓ (Calculate depth and ../prefixes)
+Determine Relative Path: "../../assets/dsa.assets/anal/iter/image.png"
+    ↓ (update_markdown_content)
+Updated Markdown: ![alt](../../assets/dsa.assets/anal/iter/image.png)
+    ↓ (MkDocs Build)
+Correctly Resolved Asset Path
 ```
 
 ### Key Design Patterns
@@ -174,6 +304,44 @@ The architecture supports several extension points:
 4. **Caching Strategy**: Implement custom caching in `CacheManager`
 
 5. **Filtering Logic**: Customize file filtering in `FileScanner`
+
+6. **Asset Path Calculation**: Extend `AssetsProcessor` for custom path schemes
+
+7. **CLI Commands**: Add new commands in `cli.py`
+
+### Asset Management Design
+
+The asset management system follows these key principles:
+
+1. **Tree-Based Structure**: Assets mirror the notes directory hierarchy
+   
+   - Prevents naming conflicts between notes in different directories
+   
+   - Example: `dsa/anal/intro.md` and `language/python/intro.md` can coexist
+
+2. **First-Level Categorization**: Use `.assets` suffix for clarity
+   
+   - `dsa/` → `assets/dsa.assets/`
+   
+   - `language/` → `assets/language.assets/`
+   
+   - Makes asset categories easily identifiable
+
+3. **Relative Path Conversion**: Paths are relative to note file location
+   
+   - Calculated based on note depth in directory structure
+   
+   - Ensures MkDocs can correctly resolve asset references
+   
+   - Example: 2 levels deep → `../../assets/category.assets/path/`
+
+4. **Automatic Processing**: Markdown image references are automatically converted
+   
+   - Plugin processes all note pages during build
+   
+   - Original markdown files remain unchanged
+   
+   - Conversion happens in-memory during MkDocs build
 
 ### Testing Strategy
 
