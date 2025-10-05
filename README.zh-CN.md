@@ -1,6 +1,8 @@
 # MkDocs-Note
 
-<!-- [![PyPI version](https://badge.fury.io/py/mkdocs-note.svg)](https://badge.fury.io/py/mkdocs-note) -->
+<div align="center">
+   <p>插件使用示例：<a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
+</div>
 
 `MkDocs-Note` 是一个为 `MkDocs` 设计的插件，可以自动管理文档站点中的笔记。它专为与 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 主题无缝协作而设计，以创建统一的笔记记录和文档体验。
 
@@ -15,6 +17,14 @@
 - **灵活配置**: 高度可定制的笔记目录、文件模式和显示选项
 
 - **自动更新**: 构建文档时笔记列表会自动更新
+
+- **命令行接口**: 内置的笔记管理 CLI 命令（`mkdocs note init`、`mkdocs note new` 等）
+
+- **资产管理**: 为每个笔记自动创建和管理资产目录
+
+- **模板系统**: 支持变量替换的可配置笔记模板
+
+- **结构验证**: 确保符合规范的资产树结构，保持组织一致性
 
 ## 安装
 
@@ -50,8 +60,24 @@ plugins:
 
 ### 设置笔记目录
 
+#### 方式一：使用命令行界面（推荐）
+
+1. 初始化笔记目录结构：
+```bash
+mkdocs-note init
+```
+
+2. 创建新笔记：
+```bash
+mkdocs-note new docs/notes/my-new-note.md
+```
+
+#### 方式二：手动设置
+
 1. 在文档中创建笔记目录（例如，`docs/notes/`）
+
 2. 在笔记目录中创建 `index.md` 文件
+
 3. 在索引文件中添加标记注释：
 
 ```markdown
@@ -60,6 +86,48 @@ plugins:
 <!-- recent_notes_start -->
 <!-- recent_notes_end -->
 ```
+
+### 命令行界面
+
+插件提供了多个用于笔记管理的 CLI 命令：
+
+#### 初始化笔记目录
+```bash
+mkdocs-note init [--path PATH]
+```
+- 创建笔记目录结构
+
+- 分析现有资产结构
+
+- 修复不符合规范的资产树
+
+- 创建带有正确标记的索引文件
+
+#### 创建新笔记
+```bash
+mkdocs-note new FILE_PATH [--template TEMPLATE_PATH]
+```
+- 使用模板内容创建新笔记文件
+
+- 创建对应的资产目录
+
+- 验证资产树结构合规性
+
+#### 验证结构
+```bash
+mkdocs-note validate [--path PATH]
+```
+- 检查资产树结构是否符合插件设计规范
+
+- 报告任何结构问题
+
+#### 模板管理
+```bash
+mkdocs-note template [--check] [--create]
+```
+- 检查配置的模板文件是否存在
+
+- 如果不存在则创建模板文件
 
 ### 配置选项
 
@@ -70,20 +138,78 @@ plugins:
 | `enabled` | bool | `true` | 启用或禁用插件 |
 | `notes_dir` | Path | `"docs/notes"` | 包含笔记的目录 |
 | `index_file` | Path | `"docs/notes/index.md"` | 显示最近笔记的索引文件 |
-| `max_notes` | int | `10` | 显示的最大笔记数量 |
+| `max_notes` | int | `11` | 显示的最大笔记数量（包含索引页面，但显示时不包含索引页面本身） |
 | `start_marker` | str | `"<!-- recent_notes_start -->"` | 笔记插入的开始标记 |
 | `end_marker` | str | `"<!-- recent_notes_end -->"` | 笔记插入的结束标记 |
 | `supported_extensions` | Set[str] | `{".md", ".ipynb"}` | 作为笔记包含的文件扩展名 |
 | `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | 要排除的文件模式 |
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | 要排除的目录 |
+| `use_git_timestamps` | bool | `true` | 使用 Git 提交时间戳进行排序，而不是文件系统时间戳 |
+| `assets_dir` | Path | `"docs/notes/assets"` | 存储笔记资产的目录 |
+| `notes_template` | Path | `"docs/notes/template/default.md"` | 新笔记的模板文件 |
+| `cache_size` | int | `256` | 性能优化的缓存大小 |
+
+### 模板系统
+
+插件支持灵活的新笔记模板系统：
+
+#### 模板变量
+
+- `{{title}}`: 笔记标题（从文件名派生，格式化）
+
+- `{{date}}`: 当前日期和时间
+
+- `{{note_name}}`: 原始笔记文件名
+
+#### 默认模板
+
+默认模板（`docs/notes/template/default.md`）包含：
+
+```markdown
+# {{title}}
+
+Created on {{date}}
+
+Note: {{note_name}}
+```
+
+#### 自定义模板
+
+创建笔记时可以使用自定义模板：
+
+```bash
+mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
+```
+
+### 资产管理
+
+插件自动管理每个笔记的资产：
+
+- 每个笔记都有对应的资产目录：`docs/notes/assets/note-name/`
+
+- 构建时自动链接和处理资产
+
+- 支持图片引用和其他媒体文件
+
+- 确保所有笔记的资产组织一致性
 
 ### 工作原理
 
 1. 插件扫描配置的笔记目录以查找支持的文件类型
+
 2. 从每个笔记文件中提取元数据（标题、修改日期）
+
 3. 按修改时间对笔记进行排序（最新的在前）
+
+   - 默认使用 Git 提交时间戳，确保在不同部署环境中的一致排序
+
+   - 如果 Git 不可用，则回退到文件系统时间戳
+
 4. 将指定数量的最近笔记插入到索引页面的标记注释之间
-5. 每次构建文档时都会自动运行此过程
+
+5. 自动处理和更新资产路径以确保正确链接
+
+6. 每次构建文档时都会自动运行此过程
 
 ## 贡献
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
 from mkdocs.structure.files import File, Files
@@ -12,8 +12,10 @@ from mkdocs.structure.pages import Page
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import FileScanner
-from mkdocs_note.core.note_manager import NoteProcessor, NoteInfo
+from mkdocs_note.core.file_manager import NoteScanner, AssetScanner
+from mkdocs_note.core.note_manager import NoteProcessor
+from mkdocs_note.core.data_models import NoteInfo
+from mkdocs_note.core.assets_manager import AssetsProcessor
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):
@@ -27,6 +29,8 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         super().__init__()
         self.logger = Logger()
         self._recent_notes: List[NoteInfo] = []
+        self._assets_processor = None
+
     
     @property
     def plugin_enabled(self) -> bool:
@@ -69,6 +73,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
                 toc_config['slugify'] = slugify
                 self.logger.debug("Using markdown.extensions.toc.slugify as fallback")
 
+        # Initialize assets processor
+        self._assets_processor = AssetsProcessor(self.config, self.logger)
+        
         self.logger.info("MkDocs-Note plugin initialized successfully.")
         return config
     
@@ -91,7 +98,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         
         try:
             # Use FileScanner to scan note files
-            file_scanner = FileScanner(self.config, self.logger)
+            file_scanner = NoteScanner(self.config, self.logger)
             note_files = file_scanner.scan_notes()
             
             if not note_files:
@@ -119,10 +126,10 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         return files
     
     def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files) -> str | None:
-        """Insert recent notes into the index page.
+        """Process page markdown content.
 
         Args:
-            markdown (str): The markdown content to insert recent notes into
+            markdown (str): The markdown content to process
             page (Page): The page to check
             config (MkDocsConfig): The MkDocs configuration
             files (Files): The files to check
@@ -135,6 +142,10 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             return markdown
         
         self.logger.debug(f"Processing page: {page.file.src_path}")
+        
+        # Process assets for note pages
+        if self._is_note_page(page):
+            markdown = self._process_page_assets(markdown, page)
         
         # Check if it is the index page of the notes directory
         if self._is_notes_index_page(page):
@@ -222,7 +233,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             markdown[end_pos:]
         )
         
-        self.logger.info(f"Inserted {len(self._recent_notes)} recent notes into index page")
+        self.logger.info(f"Inserted {len(self._recent_notes) - 1} recent notes into index page")
         return updated_markdown
     
     def _generate_notes_html(self) -> str:
@@ -241,4 +252,57 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             )
         
         return '<ul>\n' + '\n'.join(items) + '\n</ul>'
+    
+    def _is_note_page(self, page: Page) -> bool:
+        """Check if the page is a note page.
+
+        Args:
+            page (Page): The page to check
+
+        Returns:
+            bool: True if the page is a note page, False otherwise
+        """
+        try:
+            page_src_path = page.file.src_path
+            
+            # Check if the page is in the notes directory
+            notes_dir = str(self.config.notes_dir)
+            if notes_dir.startswith('docs/'):
+                notes_relative = notes_dir[5:]  # Remove 'docs/' prefix
+            else:
+                notes_relative = notes_dir
+            
+            # Check if the page path starts with the notes directory
+            is_note_page = page_src_path.startswith(notes_relative) and not page_src_path.endswith('index.md')
+            
+            self.logger.debug(f"Note page check: '{page_src_path}' starts with '{notes_relative}' = {is_note_page}")
+            return is_note_page
+        except Exception as e:
+            self.logger.error(f"Error in note page check: {e}")
+            return False
+    
+    def _process_page_assets(self, markdown: str, page: Page) -> str:
+        """Process assets for a note page.
+
+        Args:
+            markdown (str): The markdown content to process
+            page (Page): The page to process
+
+        Returns:
+            str: The updated markdown content with processed asset paths
+        """
+        try:
+            # Convert page path to Path object
+            page_path = Path(page.file.src_path)
+            
+            # Process assets in the markdown content
+            updated_markdown = self._assets_processor.update_markdown_content(markdown, page_path)
+            
+            if updated_markdown != markdown:
+                self.logger.debug(f"Processed assets for page: {page.file.src_path}")
+            
+            return updated_markdown
+        except Exception as e:
+            self.logger.error(f"Error processing assets for page {page.file.src_path}: {e}")
+            return markdown
 

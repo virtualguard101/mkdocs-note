@@ -3,7 +3,7 @@ from mkdocs_note.config import PluginConfig
 from pathlib import Path
 from typing import List
 
-class FileScanner:
+class NoteScanner:
     """File scanner"""
     
     def __init__(self, config: PluginConfig, logger: Logger):
@@ -55,5 +55,50 @@ class FileScanner:
         for part in file_path.parts:
             if part in self.config.exclude_dirs:
                 return False
+        
+        return True
+
+class AssetScanner:
+    """Asset scanner"""
+    
+    def __init__(self, config: PluginConfig, logger: Logger):
+        self.config = config
+        self.logger = logger
+    
+    def scan_assets(self) -> List[Path]:
+        """Scan assets directory, return all assets files
+
+        Returns:
+            List[Path]: The list of valid asset files
+        """
+        assets_dir = Path(self.config.assets_dir)
+        if not assets_dir.exists():
+            self.logger.warning(f"Assets directory does not exist: {assets_dir}")
+            return []
+        
+        assets = []
+        
+        try:
+            for file_path in assets_dir.rglob('*'):
+                if self._is_valid_asset_file(file_path):
+                    assets.append(file_path)
+        except PermissionError as e:
+            self.logger.error(f"Permission denied while scanning {assets_dir}: {e}")
+            return []
+        
+        self.logger.info(f"Found {len(assets)} asset files")
+        return assets
+    
+    def _is_valid_asset_file(self, file_path: Path) -> bool:
+        """Check if file is a valid asset file
+
+        Args:
+            file_path (Path): The path of the file to check
+
+        Returns:
+            bool: True if the file is a valid asset file, False otherwise
+        """
+        if not file_path.is_file():
+            return False
         
         return True

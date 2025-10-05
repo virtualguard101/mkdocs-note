@@ -10,13 +10,13 @@ from datetime import datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
 from mkdocs_note.core.note_manager import (
-    NoteInfo,
     NoteProcessor,
     CacheManager,
     IndexUpdater,
     RecentNotesUpdater,
 )
-from mkdocs_note.core.file_manager import FileScanner
+from mkdocs_note.core.data_models import NoteInfo
+from mkdocs_note.core.file_manager import NoteScanner
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 
@@ -32,7 +32,8 @@ class TestNoteInfo(unittest.TestCase):
             relative_url='test/note/',
             modified_date='2024-01-15 10:30:00',
             file_size=1024,
-            modified_time=1705311000.0
+            modified_time=1705311000.0,
+            assets_list=[]
         )
         
         self.assertEqual(note_info.file_path, file_path)
@@ -367,7 +368,7 @@ class TestRecentNotesUpdater(unittest.TestCase):
         """Test RecentNotesUpdater initialization."""
         self.assertIs(self.updater.config, self.config)
         self.assertIsInstance(self.updater.logger, Logger)
-        self.assertIsInstance(self.updater.file_scanner, FileScanner)
+        self.assertIsInstance(self.updater.file_scanner, NoteScanner)
         self.assertIsInstance(self.updater.note_processor, NoteProcessor)
         self.assertIsInstance(self.updater.cache_manager, CacheManager)
         self.assertIsInstance(self.updater.index_updater, IndexUpdater)
@@ -377,7 +378,7 @@ class TestRecentNotesUpdater(unittest.TestCase):
         updater = RecentNotesUpdater()
         self.assertIsInstance(updater.config, PluginConfig)
 
-    @patch('mkdocs_note.core.note_manager.FileScanner.scan_notes')
+    @patch('mkdocs_note.core.note_manager.NoteScanner.scan_notes')
     def test_update_no_files(self, mock_scan):
         """Test update when no files found."""
         mock_scan.return_value = []
@@ -391,7 +392,7 @@ class TestRecentNotesUpdater(unittest.TestCase):
     @patch('mkdocs_note.core.note_manager.IndexUpdater.update_index')
     @patch('mkdocs_note.core.note_manager.CacheManager.should_update_notes')
     @patch('mkdocs_note.core.note_manager.NoteProcessor.process_note')
-    @patch('mkdocs_note.core.note_manager.FileScanner.scan_notes')
+    @patch('mkdocs_note.core.note_manager.NoteScanner.scan_notes')
     def test_update_success(self, mock_scan, mock_process, mock_cache, mock_update):
         """Test successful update."""
         # Mock file paths
@@ -418,7 +419,7 @@ class TestRecentNotesUpdater(unittest.TestCase):
 
     @patch('mkdocs_note.core.note_manager.CacheManager.should_update_notes')
     @patch('mkdocs_note.core.note_manager.NoteProcessor.process_note')
-    @patch('mkdocs_note.core.note_manager.FileScanner.scan_notes')
+    @patch('mkdocs_note.core.note_manager.NoteScanner.scan_notes')
     def test_update_no_changes(self, mock_scan, mock_process, mock_cache):
         """Test update when no changes detected."""
         mock_files = [Path('/test/note1.md')]

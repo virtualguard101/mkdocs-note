@@ -82,3 +82,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added smoke test script
 
 - Added release script
+
+## 1.1.0 - 2025-10-05
+
+### Added
+
+- **Command Line Interface**: Added comprehensive CLI commands for note management
+
+  - `mkdocs note init`: Initialize notes directory with proper asset structure
+
+  - `mkdocs note new`: Create new notes with template support
+
+  - `mkdocs note validate`: Validate asset tree structure compliance
+
+  - `mkdocs note template`: Manage note templates
+
+- **Asset Management System**: Complete asset management infrastructure
+
+  - Automatic asset directory creation for each note
+
+  - Asset tree structure validation and compliance checking
+
+  - Asset path processing and linking during build
+
+  - Support for image references and media files
+
+- **Template System**: Flexible note template system with variable substitution
+
+  - Configurable note templates with `{{title}}`, `{{date}}`, and `{{note_name}}` variables
+
+  - Default template with proper structure
+
+  - Custom template support via CLI
+
+  - Template validation and creation tools
+
+- **Note Initializer**: Comprehensive note directory initialization
+
+  - Asset tree analysis and compliance checking
+
+  - Automatic structure repair for non-compliant directories
+
+  - Index file creation with proper markers
+
+  - Template file management
+
+- **Note Creator**: Advanced note creation with validation
+
+  - Template-based note generation
+
+  - Asset directory creation
+
+  - Structure compliance validation
+
+  - Custom template support
+
+- **Enhanced Configuration**: New configuration options
+
+  - `assets_dir`: Directory for storing note assets
+
+  - `notes_template`: Template file for new notes
+
+  - `cache_size`: Performance optimization cache size
+
+### Changed
+
+- **Asset Integration**: Seamless asset management integration
+
+  - Automatic asset path processing in markdown content
+
+  - Asset directory structure enforcement
+
+  - Improved asset linking and organization
+
+- **Template Processing**: Enhanced template system
+
+  - Variable substitution with proper formatting
+
+  - Fallback template support
+
+  - Template validation and error handling
+
+### Fixed
+
+- **Test Coverage**: Comprehensive test suite improvements
+
+  - Fixed template content generation tests
+
+  - Enhanced test coverage for new components
+
+  - Improved test reliability and accuracy
+
+- **Documentation**: Complete documentation updates
+
+  - Updated README with new features
+
+  - Added CLI usage examples
+
+  - Enhanced configuration documentation
+
+  - Improved troubleshooting guides
