@@ -1,11 +1,17 @@
+<div align="center">
+
 # MkDocs-Note
 
-<div align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a>
-</div>
+**A MkDocs plugin to add note boxes to your documentation.**
 
-<div align="center">
-   <p>Plugin Usage Demo: <a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
+[![PyPI - Version](https://img.shields.io/pypi/v/mkdocs-note)](https://pypi.org/project/mkdocs-note/)
+[![GitHub License](https://img.shields.io/github/license/virtualguard101/mkdocs-note)](https://github.com/virtualguard101/mkdocs-note/blob/main/LICENSE)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/virtualguard101/mkdocs-note/publish.yml)](https://github.com/virtualguard101/mkdocs-note/actions)
+
+<a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a>
+
+<p>Plugin Usage Demo: <a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
+
 </div>
 
 
