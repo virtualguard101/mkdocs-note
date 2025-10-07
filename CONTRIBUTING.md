@@ -1,5 +1,9 @@
 # Contributing to MkDocs-Note
 
+<div align="center">
+  <a href="CONTRIBUTING.md">English</a> | <a href="CONTRIBUTING.zh-CN.md">简体中文</a>
+</div>
+
 First off, thank you for considering contributing to `MkDocs-Note`! It's people like you that make the open-source community such a great place.
 
 ## Project Architecture
