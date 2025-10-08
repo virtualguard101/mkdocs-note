@@ -4,7 +4,7 @@ import os
 import json
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, call, mock_open
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
@@ -200,11 +200,65 @@ class TestNoteProcessor(unittest.TestCase):
         # Create a new processor with mocked config
         mock_config = Mock()
         mock_config.index_file = Path('/project/docs/notes/index.md')
+        mock_config.timestamp_zone = 'UTC+0'
         processor = NoteProcessor(mock_config, self.logger)
         
         result = processor._generate_relative_url(file_path)
         
         self.assertEqual(result, '')
+    
+    def test_parse_timezone_utc(self):
+        """Test timezone parsing for UTC+0."""
+        result = self.processor._parse_timezone('UTC+0')
+        self.assertEqual(result, timezone.utc)
+    
+    def test_parse_timezone_positive(self):
+        """Test timezone parsing for positive offset."""
+        result = self.processor._parse_timezone('UTC+8')
+        expected = timezone(timedelta(hours=8))
+        self.assertEqual(result, expected)
+    
+    def test_parse_timezone_negative(self):
+        """Test timezone parsing for negative offset."""
+        result = self.processor._parse_timezone('UTC-5')
+        expected = timezone(timedelta(hours=-5))
+        self.assertEqual(result, expected)
+    
+    def test_parse_timezone_invalid_format(self):
+        """Test timezone parsing with invalid format."""
+        with patch.object(self.logger, 'warning') as mock_warning:
+            result = self.processor._parse_timezone('Invalid')
+        self.assertEqual(result, timezone.utc)
+        mock_warning.assert_called_once()
+    
+    def test_format_timestamp_utc(self):
+        """Test timestamp formatting with UTC timezone."""
+        # Use a specific timestamp: 2024-01-15 09:30:00 UTC
+        timestamp = 1705311000.0
+        
+        # Create processor with UTC+0
+        mock_config = Mock()
+        mock_config.timestamp_zone = 'UTC+0'
+        mock_config.output_date_format = '%Y-%m-%d %H:%M:%S'
+        processor = NoteProcessor(mock_config, self.logger)
+        
+        result = processor._format_timestamp(timestamp)
+        self.assertEqual(result, '2024-01-15 09:30:00')
+    
+    def test_format_timestamp_with_offset(self):
+        """Test timestamp formatting with timezone offset."""
+        # Use a specific timestamp: 2024-01-15 09:30:00 UTC
+        timestamp = 1705311000.0
+        
+        # Create processor with UTC+8
+        mock_config = Mock()
+        mock_config.timestamp_zone = 'UTC+8'
+        mock_config.output_date_format = '%Y-%m-%d %H:%M:%S'
+        processor = NoteProcessor(mock_config, self.logger)
+        
+        result = processor._format_timestamp(timestamp)
+        # UTC+8 should add 8 hours: 09:30:00 + 8:00 = 17:30:00
+        self.assertEqual(result, '2024-01-15 17:30:00')
 
 
 class TestCacheManager(unittest.TestCase):

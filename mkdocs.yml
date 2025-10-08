@@ -109,11 +109,9 @@ plugins:
       #   - assets/stylesheets/
   - git-revision-date-localized:
       enable_creation_date: true
-  - mkdocstrings
-  - drawio
   - mkdocs-note:
       notes_dir: docs/notes
-
+      timestamp_zone: "UTC+8"
 
 
   # - redirects:

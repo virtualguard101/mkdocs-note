@@ -2,9 +2,10 @@
 Note creator for creating new note files with proper asset structure.
 """
 
+import re
 from pathlib import Path
 from typing import Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
@@ -18,6 +19,31 @@ class NoteCreator:
         self.config = config
         self.logger = logger
         self.initializer = NoteInitializer(config, logger)
+        self._timezone = self._parse_timezone(config.timestamp_zone)
+    
+    def _parse_timezone(self, timezone_str: str) -> timezone:
+        """Parse timezone string to timezone object.
+        
+        Args:
+            timezone_str (str): Timezone string in format 'UTC+X' or 'UTC-X'
+            
+        Returns:
+            timezone: The timezone object
+        """
+        try:
+            # Match pattern like 'UTC+8', 'UTC-5', 'UTC+0'
+            match = re.match(r'UTC([+-])(\d+(?:\.\d+)?)', timezone_str)
+            if match:
+                sign = match.group(1)
+                hours = float(match.group(2))
+                offset_hours = hours if sign == '+' else -hours
+                return timezone(timedelta(hours=offset_hours))
+            else:
+                self.logger.warning(f"Invalid timezone format: {timezone_str}, using UTC+0")
+                return timezone.utc
+        except Exception as e:
+            self.logger.warning(f"Error parsing timezone {timezone_str}: {e}, using UTC+0")
+            return timezone.utc
     
     def create_new_note(self, file_path: Path, template_path: Optional[Path] = None) -> int:
         """Create a new note file with proper asset structure.
@@ -86,7 +112,8 @@ class NoteCreator:
         
         # Replace template variables
         note_name = file_path.stem
-        current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Use configured timezone for timestamp
+        current_date = datetime.now(tz=self._timezone).strftime(self.config.output_date_format)
         
         content = template_content.replace('{{title}}', note_name.replace('-', ' ').replace('_', ' ').title())
         content = content.replace('{{date}}', current_date)
