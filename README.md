@@ -57,12 +57,7 @@ Then, add the plugin to your `mkdocs.yml`:
 ```yaml
 plugins:
   - mkdocs-note:
-      enabled: true
       notes_dir: "docs/notes"
-      index_file: "docs/notes/index.md"
-      max_notes: 10
-      start_marker: "<!-- recent_notes_start -->"
-      end_marker: "<!-- recent_notes_end -->"
 ```
 
 > **⚠️ Important**: Note the indentation! Use **spaces** (not dashes `-`) for plugin options. The configuration must be a dictionary, not a list. See [Troubleshooting Guide](TROUBLESHOOTING.md) for common configuration issues.

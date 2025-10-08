@@ -46,14 +46,7 @@ pip install mkdocs-note
 ```yaml
 plugins:
   - mkdocs-note:
-      enabled: true
       notes_dir: "docs/notes"
-      index_file: "docs/notes/index.md"
-      max_notes: 10
-      start_marker: "<!-- recent_notes_start -->"
-      end_marker: "<!-- recent_notes_end -->"
-      assets_dir: "docs/notes/assets"
-      notes_template: "docs/notes/template/default.md"
 ```
 
 > **⚠️ 重要**: 注意缩进格式！请使用**空格**（而非破折号 `-`）来缩进插件选项。配置必须是字典格式，而非列表格式。常见配置问题请参考[故障排除指南](TROUBLESHOOTING.md)。
