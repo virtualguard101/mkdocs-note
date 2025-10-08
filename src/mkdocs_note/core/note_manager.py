@@ -1,9 +1,10 @@
 import json
 import hashlib
 import subprocess
+import re
 from typing import List, Optional
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
@@ -20,6 +21,43 @@ class NoteProcessor:
         self.config = config
         self.logger = logger
         self.assets_processor = AssetsProcessor(config, logger)
+        self._timezone = self._parse_timezone(config.timestamp_zone)
+    
+    def _parse_timezone(self, timezone_str: str) -> timezone:
+        """Parse timezone string to timezone object.
+        
+        Args:
+            timezone_str (str): Timezone string in format 'UTC+X' or 'UTC-X'
+            
+        Returns:
+            timezone: The timezone object
+        """
+        try:
+            # Match pattern like 'UTC+8', 'UTC-5', 'UTC+0'
+            match = re.match(r'UTC([+-])(\d+(?:\.\d+)?)', timezone_str)
+            if match:
+                sign = match.group(1)
+                hours = float(match.group(2))
+                offset_hours = hours if sign == '+' else -hours
+                return timezone(timedelta(hours=offset_hours))
+            else:
+                self.logger.warning(f"Invalid timezone format: {timezone_str}, using UTC+0")
+                return timezone.utc
+        except Exception as e:
+            self.logger.warning(f"Error parsing timezone {timezone_str}: {e}, using UTC+0")
+            return timezone.utc
+    
+    def _format_timestamp(self, timestamp: float) -> str:
+        """Format timestamp with configured timezone.
+        
+        Args:
+            timestamp (float): Unix timestamp
+            
+        Returns:
+            str: Formatted datetime string
+        """
+        dt = datetime.fromtimestamp(timestamp, tz=self._timezone)
+        return dt.strftime(self.config.output_date_format)
     
     def process_note(self, file_path: Path) -> Optional[NoteInfo]:
         """Process a single note file, extract information
@@ -47,17 +85,17 @@ class NoteProcessor:
                 git_time = self._get_git_commit_time(file_path)
                 if git_time:
                     modified_time = git_time
-                    modified_date = datetime.fromtimestamp(git_time).strftime('%Y-%m-%d %H:%M:%S')
+                    modified_date = self._format_timestamp(git_time)
                     self.logger.debug(f"Using Git commit time for {file_path.name}: {modified_date}")
                 else:
                     # Fallback to file system time
                     modified_time = stat.st_mtime
-                    modified_date = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    modified_date = self._format_timestamp(stat.st_mtime)
                     self.logger.debug(f"Git time unavailable, using file system time for {file_path.name}: {modified_date}")
             else:
                 # Use file system time
                 modified_time = stat.st_mtime
-                modified_date = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                modified_date = self._format_timestamp(stat.st_mtime)
                 self.logger.debug(f"Using file system time for {file_path.name}: {modified_date}")
             
             return NoteInfo(

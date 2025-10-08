@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 import tempfile
 import shutil
+from datetime import timezone, timedelta
 
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
@@ -281,6 +282,30 @@ class TestNoteCreator(unittest.TestCase):
         
         self.assertFalse(is_valid)
         self.assertIn("Unsupported file extension", error_msg)
+    
+    def test_parse_timezone_utc(self):
+        """Test timezone parsing for UTC+0."""
+        result = self.creator._parse_timezone('UTC+0')
+        self.assertEqual(result, timezone.utc)
+    
+    def test_parse_timezone_positive(self):
+        """Test timezone parsing for positive offset."""
+        result = self.creator._parse_timezone('UTC+8')
+        expected = timezone(timedelta(hours=8))
+        self.assertEqual(result, expected)
+    
+    def test_parse_timezone_negative(self):
+        """Test timezone parsing for negative offset."""
+        result = self.creator._parse_timezone('UTC-5')
+        expected = timezone(timedelta(hours=-5))
+        self.assertEqual(result, expected)
+    
+    def test_parse_timezone_invalid_format(self):
+        """Test timezone parsing with invalid format."""
+        with patch.object(self.logger, 'warning') as mock_warning:
+            result = self.creator._parse_timezone('Invalid')
+        self.assertEqual(result, timezone.utc)
+        mock_warning.assert_called_once()
 
 
 if __name__ == '__main__':

@@ -147,6 +147,7 @@ mkdocs-note template [--check] [--create]
 | `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | 要排除的文件模式 |
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | 要排除的目录 |
 | `use_git_timestamps` | bool | `true` | 使用 Git 提交时间戳进行排序，而不是文件系统时间戳 |
+| `timestamp_zone` | str | `"UTC+0"` | 时间戳显示的时区（例如 'UTC+0'、'UTC+8'、'UTC-5'）。确保不同部署环境中的时间戳显示一致 |
 | `assets_dir` | Path | `"docs/notes/assets"` | 存储笔记资产的目录。使用树状结构，第一级子目录带有 `.assets` 后缀 |
 | `notes_template` | Path | `"docs/notes/template/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
@@ -296,6 +297,20 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 4. **自动转换**：让插件在构建期间处理路径转换
 
 > **注意**：如果您正在从旧版本迁移，可能需要重新组织您的资产目录以匹配新的树状结构（第一级目录带有 `.assets` 后缀）。
+
+### 时区配置
+
+为了确保在不同部署环境（例如本地开发与远程 CI/CD）之间显示一致的时间戳，您可以配置时区：
+
+```yaml
+plugins:
+  - mkdocs-note:
+      timestamp_zone: "UTC+8"  # 北京/上海/香港时间
+      # timestamp_zone: "UTC-5"  # 美国东部标准时间
+      # timestamp_zone: "UTC+0"  # UTC（默认值）
+```
+
+这在您的本地环境和远程部署服务器位于不同时区时特别有用。如果没有此配置，`mkdocs serve`（本地）和部署的站点之间可能会显示不同的时间戳。
 
 ## 贡献
 

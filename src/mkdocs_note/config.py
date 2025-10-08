@@ -70,3 +70,8 @@ class PluginConfig(Config):
     notes_template = config_opt.Type(str, default='docs/notes/template/default.md')
     """The template of the notes.
     """
+
+    timestamp_zone = config_opt.Type(str, default='UTC+0')
+    """The timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5').
+    This ensures consistent timestamp display across different deployment environments.
+    """
