@@ -59,7 +59,8 @@ class NoteCreator:
             self.logger.info(f"Creating new note: {file_path}")
             
             # Validate asset tree compliance first
-            notes_dir = file_path.parent
+            # Use configured notes_dir instead of file_path.parent to ensure consistent validation
+            notes_dir = Path(self.config.notes_dir)
             is_compliant, error_messages = self.initializer.validate_asset_tree_compliance(notes_dir)
             
             if not is_compliant:
@@ -194,12 +195,14 @@ class NoteCreator:
             if file_path.exists():
                 return False, f"File already exists: {file_path}"
             
-            # Check if parent directory is a valid notes directory
-            notes_dir = file_path.parent
-            if not notes_dir.exists():
-                return False, f"Parent directory does not exist: {notes_dir}"
+            # Check if parent directory exists
+            parent_dir = file_path.parent
+            if not parent_dir.exists():
+                return False, f"Parent directory does not exist: {parent_dir}"
             
             # Validate asset tree compliance
+            # Use configured notes_dir instead of file_path.parent to ensure consistent validation
+            notes_dir = Path(self.config.notes_dir)
             is_compliant, error_messages = self.initializer.validate_asset_tree_compliance(notes_dir)
             
             if not is_compliant:
