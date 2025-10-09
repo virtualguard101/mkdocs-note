@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.4 - 2025-10-09
+
+### Fixed
+
+- **CLI Note Creation**: Fixed `mkdocs-note new` command validation logic issue (#14)
+  
+  - Previously, the command was using `file_path.parent` as the notes directory for validation, causing incorrect asset tree structure checks
+  
+  - This resulted in `validate` command passing but `new` command failing with "Asset tree structure is not compliant" errors
+  
+  - Now both `create_new_note()` and `validate_note_creation()` methods use the configured `notes_dir` from settings for consistent validation
+  
+  - This ensures that `mkdocs-note validate` and `mkdocs-note new` use the same validation logic
+
+
 ## 1.1.3 - 2025-10-08
 
 ### Added
