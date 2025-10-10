@@ -26,6 +26,317 @@ mkdocs_note/
     └── data_models.py       # 数据模型和结构
 ```
 
+### UML 图
+
+#### 组件依赖图
+
+此图显示不同模块之间的依赖关系：
+
+```mermaid
+graph TB
+    subgraph "MkDocs 插件接口"
+        Plugin[MkdocsNotePlugin]
+    end
+    
+    subgraph "配置层"
+        Config[PluginConfig]
+        Logger[Logger]
+    end
+    
+    subgraph "核心业务逻辑"
+        FileManager[file_manager.py]
+        NoteManager[note_manager.py]
+        AssetsManager[assets_manager.py]
+        NoteCreator[note_creator.py]
+        NoteInitializer[note_initializer.py]
+        DataModels[data_models.py]
+    end
+    
+    subgraph "CLI 接口"
+        CLI[cli.py]
+    end
+    
+    subgraph "外部依赖"
+        MkDocs[MkDocs 框架]
+        Git[Git 系统]
+    end
+    
+    Plugin --> Config
+    Plugin --> Logger
+    Plugin --> FileManager
+    Plugin --> NoteManager
+    Plugin --> AssetsManager
+    Plugin --> MkDocs
+    
+    CLI --> Config
+    CLI --> Logger
+    CLI --> NoteCreator
+    CLI --> NoteInitializer
+    
+    FileManager --> Config
+    FileManager --> Logger
+    
+    NoteManager --> Config
+    NoteManager --> Logger
+    NoteManager --> FileManager
+    NoteManager --> AssetsManager
+    NoteManager --> DataModels
+    NoteManager --> Git
+    
+    AssetsManager --> Config
+    AssetsManager --> Logger
+    AssetsManager --> DataModels
+    
+    NoteCreator --> Config
+    NoteCreator --> Logger
+    NoteCreator --> NoteInitializer
+    
+    NoteInitializer --> Config
+    NoteInitializer --> Logger
+    NoteInitializer --> FileManager
+    NoteInitializer --> AssetsManager
+    NoteInitializer --> DataModels
+    
+    style Plugin fill:#e1f5ff
+    style Config fill:#fff4e1
+    style Logger fill:#fff4e1
+    style MkDocs fill:#f0f0f0
+    style Git fill:#f0f0f0
+```
+
+#### 类图
+
+此图显示主要类及其关系：
+
+```mermaid
+classDiagram
+    class MkdocsNotePlugin {
+        -logger: Logger
+        -_recent_notes: List[NoteInfo]
+        -_assets_processor: AssetsProcessor
+        -_docs_dir: Path
+        +on_config(config) MkDocsConfig
+        +on_files(files, config) Files
+        +on_page_markdown(markdown, page, config, files) str
+        -_is_notes_index_page(page) bool
+        -_is_note_page(page) bool
+        -_insert_recent_notes(markdown) str
+        -_process_page_assets(markdown, page) str
+        -_generate_notes_html() str
+    }
+    
+    class PluginConfig {
+        +enabled: bool
+        +notes_dir: Path
+        +index_file: Path
+        +max_notes: int
+        +supported_extensions: Set[str]
+        +exclude_patterns: Set[str]
+        +exclude_dirs: Set[str]
+        +assets_dir: Path
+        +notes_template: str
+        +use_git_timestamps: bool
+        +timestamp_zone: str
+        +cache_size: int
+    }
+    
+    class Logger {
+        +debug(msg)
+        +info(msg)
+        +warning(msg)
+        +error(msg)
+    }
+    
+    class NoteScanner {
+        -config: PluginConfig
+        -logger: Logger
+        +scan_notes() List[Path]
+        -_is_valid_note_file(file_path) bool
+    }
+    
+    class AssetScanner {
+        -config: PluginConfig
+        -logger: Logger
+        +scan_assets() List[Path]
+        -_is_valid_asset_file(file_path) bool
+    }
+    
+    class NoteProcessor {
+        -config: PluginConfig
+        -logger: Logger
+        -assets_processor: AssetsProcessor
+        -_timezone: timezone
+        +process_note(file_path) NoteInfo
+        -_extract_title(file_path) str
+        -_extract_assets(file_path) List[AssetsInfo]
+        -_generate_relative_url(file_path) str
+        -_get_git_commit_time(file_path) float
+        -_format_timestamp(timestamp) str
+    }
+    
+    class CacheManager {
+        -logger: Logger
+        -_last_notes_hash: str
+        -_last_content_hash: str
+        +should_update_notes(notes) bool
+        +should_update_content(content) bool
+        -_calculate_notes_hash(notes) str
+    }
+    
+    class IndexUpdater {
+        -config: PluginConfig
+        -logger: Logger
+        +update_index(notes) bool
+        -_generate_html_list(notes) str
+        -_replace_section(content, new_section) str
+    }
+    
+    class RecentNotesUpdater {
+        -config: PluginConfig
+        -logger: Logger
+        -file_scanner: NoteScanner
+        -note_processor: NoteProcessor
+        -cache_manager: CacheManager
+        -index_updater: IndexUpdater
+        +update() bool
+    }
+    
+    class AssetsCatalogTree {
+        -_root: Path
+        -_notes_dir: Path
+        -_catalog: Dict[str, List[AssetsInfo]]
+        +add_node(note_relative_path, assets_list)
+        +get_assets(note_relative_path) List[AssetsInfo]
+        +get_all_assets() Dict
+        +get_asset_dir_for_note(note_file) Path
+    }
+    
+    class AssetsManager {
+        -config: PluginConfig
+        -logger: Logger
+        -catalog_tree: AssetsCatalogTree
+        +catalog_generator(assets_list, note_info) str
+        +catalog_updater(catalog) bool
+    }
+    
+    class AssetsProcessor {
+        -config: PluginConfig
+        -logger: Logger
+        -image_pattern: Pattern
+        +process_assets(note_info) List[AssetsInfo]
+        +update_markdown_content(content, note_file) str
+        -_process_image_reference(image_path, note_file, index) AssetsInfo
+    }
+    
+    class NoteCreator {
+        -config: PluginConfig
+        -logger: Logger
+        -initializer: NoteInitializer
+        -_timezone: timezone
+        +create_new_note(file_path, template_path) int
+        +validate_note_creation(file_path) Tuple
+        -_generate_note_content(file_path, template_path) str
+        -_create_asset_directory(note_file_path)
+        -_get_asset_directory(note_file_path) Path
+    }
+    
+    class NoteInitializer {
+        -config: PluginConfig
+        -logger: Logger
+        -file_scanner: NoteScanner
+        +initialize_note_directory(notes_dir) int
+        +validate_asset_tree_compliance(notes_dir) Tuple
+        -_create_basic_structure(notes_dir)
+        -_analyze_asset_tree(notes_dir, note_files) List[AssetTreeInfo]
+        -_fix_asset_tree(notes_dir, non_compliant)
+        -_check_compliance(asset_dir, expected_structure) bool
+    }
+    
+    class NoteInfo {
+        +file_path: Path
+        +title: str
+        +relative_url: str
+        +modified_date: str
+        +file_size: int
+        +modified_time: float
+        +assets_list: List[AssetsInfo]
+    }
+    
+    class AssetsInfo {
+        +file_path: Path
+        +file_name: str
+        +relative_path: str
+        +index_in_list: int
+        +exists: bool
+    }
+    
+    class AssetTreeInfo {
+        +note_name: str
+        +asset_dir: Path
+        +expected_structure: List[Path]
+        +actual_structure: List[Path]
+        +is_compliant: bool
+        +missing_dirs: List[Path]
+        +extra_dirs: List[Path]
+    }
+    
+    %% 关系
+    MkdocsNotePlugin --> PluginConfig
+    MkdocsNotePlugin --> Logger
+    MkdocsNotePlugin --> NoteScanner
+    MkdocsNotePlugin --> NoteProcessor
+    MkdocsNotePlugin --> AssetsProcessor
+    MkdocsNotePlugin --> NoteInfo
+    
+    NoteScanner --> PluginConfig
+    NoteScanner --> Logger
+    
+    AssetScanner --> PluginConfig
+    AssetScanner --> Logger
+    
+    NoteProcessor --> PluginConfig
+    NoteProcessor --> Logger
+    NoteProcessor --> AssetsProcessor
+    NoteProcessor --> NoteInfo
+    NoteProcessor --> AssetsInfo
+    
+    RecentNotesUpdater --> PluginConfig
+    RecentNotesUpdater --> Logger
+    RecentNotesUpdater --> NoteScanner
+    RecentNotesUpdater --> NoteProcessor
+    RecentNotesUpdater --> CacheManager
+    RecentNotesUpdater --> IndexUpdater
+    
+    CacheManager --> Logger
+    CacheManager --> NoteInfo
+    
+    IndexUpdater --> PluginConfig
+    IndexUpdater --> Logger
+    IndexUpdater --> NoteInfo
+    
+    AssetsManager --> PluginConfig
+    AssetsManager --> Logger
+    AssetsManager --> AssetsCatalogTree
+    AssetsManager --> AssetsInfo
+    AssetsManager --> NoteInfo
+    
+    AssetsCatalogTree --> AssetsInfo
+    
+    AssetsProcessor --> PluginConfig
+    AssetsProcessor --> Logger
+    AssetsProcessor --> NoteInfo
+    AssetsProcessor --> AssetsInfo
+    
+    NoteCreator --> PluginConfig
+    NoteCreator --> Logger
+    NoteCreator --> NoteInitializer
+    
+    NoteInitializer --> PluginConfig
+    NoteInitializer --> Logger
+    NoteInitializer --> NoteScanner
+    NoteInitializer --> AssetTreeInfo
+```
+
 ### 核心组件
 
 #### 1. 插件入口点 (`plugin.py`)
@@ -242,6 +553,209 @@ notes/
    - 如果是索引页面：在标记之间插入最近笔记 HTML
 
    - 返回修改后的 markdown 内容
+
+#### 序列图：插件构建过程
+
+此图显示 MkDocs 构建期间的完整执行流程：
+
+```mermaid
+sequenceDiagram
+    participant MkDocs as MkDocs 框架
+    participant Plugin as MkdocsNotePlugin
+    participant Config as PluginConfig
+    participant Scanner as NoteScanner
+    participant Processor as NoteProcessor
+    participant AssetsProc as AssetsProcessor
+    participant Page as 页面内容
+    
+    Note over MkDocs,Plugin: 1. 初始化阶段
+    MkDocs->>Plugin: __init__()
+    activate Plugin
+    Plugin->>Plugin: 创建 Logger
+    Plugin->>Plugin: 初始化 _recent_notes = []
+    deactivate Plugin
+    
+    Note over MkDocs,AssetsProc: 2. 配置阶段
+    MkDocs->>Plugin: on_config(config)
+    activate Plugin
+    Plugin->>Config: 检查 enabled
+    Config-->>Plugin: True/False
+    Plugin->>Plugin: 存储 docs_dir
+    Plugin->>AssetsProc: 初始化 AssetsProcessor
+    Plugin->>Config: 设置 TOC 配置
+    Plugin->>Config: 设置 slugify 函数
+    Plugin-->>MkDocs: 更新后的配置
+    deactivate Plugin
+    
+    Note over MkDocs,Processor: 3. 文件处理阶段
+    MkDocs->>Plugin: on_files(files, config)
+    activate Plugin
+    Plugin->>Scanner: scan_notes()
+    activate Scanner
+    Scanner->>Scanner: 扫描笔记目录
+    Scanner->>Scanner: 按扩展名过滤
+    Scanner->>Scanner: 排除模式
+    Scanner-->>Plugin: List[Path]
+    deactivate Scanner
+    
+    loop 对每个笔记文件
+        Plugin->>Processor: process_note(file_path)
+        activate Processor
+        Processor->>Processor: 提取标题
+        Processor->>Processor: 获取 Git 提交时间（如果启用）
+        Processor->>Processor: 生成相对 URL
+        Processor->>AssetsProc: 提取资产
+        activate AssetsProc
+        AssetsProc->>AssetsProc: 查找图片引用
+        AssetsProc->>AssetsProc: 计算资产路径
+        AssetsProc-->>Processor: List[AssetsInfo]
+        deactivate AssetsProc
+        Processor-->>Plugin: NoteInfo
+        deactivate Processor
+    end
+    
+    Plugin->>Plugin: 按 modified_time 排序笔记
+    Plugin->>Plugin: 存储 recent_notes
+    Plugin-->>MkDocs: 更新后的文件
+    deactivate Plugin
+    
+    Note over MkDocs,Page: 4. 页面渲染阶段
+    loop 对每个页面
+        MkDocs->>Plugin: on_page_markdown(markdown, page, ...)
+        activate Plugin
+        
+        alt 是笔记页面？
+            Plugin->>Plugin: _is_note_page(page)
+            Plugin->>AssetsProc: update_markdown_content(markdown, page_path)
+            activate AssetsProc
+            AssetsProc->>AssetsProc: 查找图片模式: ![](...)
+            AssetsProc->>AssetsProc: get_note_relative_path()
+            AssetsProc->>AssetsProc: 计算深度与 ../ 前缀
+            AssetsProc->>AssetsProc: 添加 .assets 后缀
+            AssetsProc->>AssetsProc: 替换路径
+            AssetsProc-->>Plugin: 更新后的 markdown
+            deactivate AssetsProc
+        end
+        
+        alt 是笔记索引页面？
+            Plugin->>Plugin: _is_notes_index_page(page)
+            Plugin->>Plugin: _generate_notes_html()
+            Plugin->>Plugin: _insert_recent_notes(markdown)
+            Plugin->>Plugin: 替换标记之间的内容
+        end
+        
+        Plugin-->>MkDocs: 更新后的 markdown
+        deactivate Plugin
+    end
+```
+
+#### 序列图：笔记创建过程（CLI）
+
+此图显示创建新笔记的 CLI 工作流：
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant CLI as cli.py
+    participant Config as PluginConfig
+    participant Creator as NoteCreator
+    participant Initializer as NoteInitializer
+    participant Scanner as NoteScanner
+    participant FS as 文件系统
+    
+    User->>CLI: mkdocs-note new <file_path>
+    activate CLI
+    
+    CLI->>Config: 加载配置
+    Config-->>CLI: PluginConfig
+    
+    CLI->>Creator: create_new_note(file_path, template_path)
+    activate Creator
+    
+    Creator->>Initializer: validate_asset_tree_compliance()
+    activate Initializer
+    Initializer->>Scanner: scan_notes()
+    Scanner-->>Initializer: List[Path]
+    Initializer->>Initializer: _analyze_asset_tree()
+    Initializer->>Initializer: _check_compliance()
+    Initializer-->>Creator: (is_compliant, errors)
+    deactivate Initializer
+    
+    alt 不合规
+        Creator-->>CLI: 错误：运行 'mkdocs note init'
+        CLI-->>User: 错误消息
+    else 合规
+        Creator->>FS: 检查文件是否存在
+        FS-->>Creator: 文件状态
+        
+        alt 文件已存在
+            Creator-->>CLI: 错误：文件已存在
+            CLI-->>User: 错误消息
+        else 文件不存在
+            Creator->>Creator: _generate_note_content()
+            Creator->>Creator: 替换模板变量
+            Creator->>FS: 写入笔记文件
+            Creator->>Creator: _get_asset_directory()
+            Creator->>FS: 创建资产目录
+            Creator-->>CLI: 成功 (0)
+            CLI-->>User: 成功消息
+        end
+    end
+    
+    deactivate Creator
+    deactivate CLI
+```
+
+#### 序列图：资产路径处理
+
+此图显示页面渲染期间如何处理资产路径：
+
+```mermaid
+sequenceDiagram
+    participant Plugin as MkdocsNotePlugin
+    participant AssetsProc as AssetsProcessor
+    participant Helper as get_note_relative_path()
+    participant Markdown as Markdown 内容
+    
+    Note over Plugin,Markdown: 处理笔记页面: notes/dsa/anal/iter.md
+    
+    Plugin->>AssetsProc: update_markdown_content(content, note_file)
+    activate AssetsProc
+    
+    AssetsProc->>Markdown: 查找模式: ![alt](image.png)
+    Markdown-->>AssetsProc: 找到匹配项
+    
+    loop 对每个图片引用
+        AssetsProc->>AssetsProc: 检查是否为外部 URL
+        
+        alt 是外部 URL
+            AssetsProc->>AssetsProc: 跳过处理
+        else 是本地引用
+            AssetsProc->>Helper: get_note_relative_path(note_file, notes_dir)
+            activate Helper
+            Helper->>Helper: 计算相对路径
+            Note over Helper: notes/dsa/anal/iter.md → dsa/anal/iter
+            Helper->>Helper: 为第一级添加 .assets 后缀
+            Note over Helper: dsa/anal/iter → dsa.assets/anal/iter
+            Helper-->>AssetsProc: "dsa.assets/anal/iter"
+            deactivate Helper
+            
+            AssetsProc->>AssetsProc: 计算笔记深度
+            Note over AssetsProc: 深度 = 2 (dsa/anal/)
+            
+            AssetsProc->>AssetsProc: 构建相对路径
+            Note over AssetsProc: ../../assets/dsa.assets/anal/iter/image.png
+            
+            AssetsProc->>Markdown: 替换内容中的路径
+            Markdown-->>AssetsProc: 更新后的内容
+        end
+    end
+    
+    AssetsProc-->>Plugin: 更新后的 markdown 内容
+    deactivate AssetsProc
+    
+    Note over Plugin,Markdown: 结果: ![alt](../../assets/dsa.assets/anal/iter/image.png)
+```
 
 ### 数据流
 
