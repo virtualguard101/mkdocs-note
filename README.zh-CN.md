@@ -35,6 +35,12 @@ uv venv
 uv pip install mkdocs-note
 ```
 
+或者使用 [The `uv tool` Interface (`uvx`)](https://docs.astral.sh/uv/concepts/tools/) 安装和使用：
+
+```bash
+uvx mkdocs-note --help
+```
+
 或者使用 `pip`：
 
 ```bash
