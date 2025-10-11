@@ -19,6 +19,9 @@ from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.note_initializer import NoteInitializer
 from mkdocs_note.core.note_creator import NoteCreator
+from mkdocs_note.core.note_remover import NoteRemover
+from mkdocs_note.core.note_cleaner import NoteCleaner
+from mkdocs_note.core.notes_mover import NoteMover
 
 
 @click.group()
@@ -51,6 +54,11 @@ def init_note(ctx, path: Optional[str] = None):
     - Analyze existing asset structures
     - Fix non-compliant asset trees to match the plugin's design
     - Create an index file with proper markers
+    
+    \b
+    Examples:
+        mkdocs-note init
+        mkdocs-note init --path docs/notes
     """
     config = ctx.obj['config']
     logger = ctx.obj['logger']
@@ -96,6 +104,12 @@ def new_note(ctx, file_path: str, template: Optional[str] = None):
     - Create the corresponding asset directory
     - Set up proper asset management structure
     
+    \b
+    Examples:
+        mkdocs-note new docs/notes/my-note.md
+        mkdocs-note new docs/notes/python/intro.md
+        mkdocs-note new docs/notes/test.md --template custom-template.md
+    
     FILE_PATH: Path where the new note file should be created
     """
     config = ctx.obj['config']
@@ -140,6 +154,11 @@ def validate_notes(ctx, path: Optional[str] = None):
     
     This command checks if the current asset tree structure
     complies with the plugin's design requirements.
+    
+    \b
+    Examples:
+        mkdocs-note validate
+        mkdocs-note validate --path docs/notes
     """
     config = ctx.obj['config']
     logger = ctx.obj['logger']
@@ -179,6 +198,12 @@ def template_command(ctx, check: bool = False, create: bool = False):
     
     This command helps you check and create the template file
     configured in your mkdocs.yml.
+    
+    \b
+    Examples:
+        mkdocs-note template
+        mkdocs-note template --check
+        mkdocs-note template --create
     """
     config = ctx.obj['config']
     
@@ -218,6 +243,303 @@ def template_command(ctx, check: bool = False, create: bool = False):
         except Exception as e:
             click.echo(f"❌ Failed to create template file: {e}")
             raise click.Abort()
+
+
+@cli.command("remove")
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option(
+    "--keep-assets",
+    is_flag=True,
+    help="Keep the asset directory (only remove the note file)"
+)
+@click.option(
+    "--yes", "-y",
+    is_flag=True,
+    help="Skip confirmation prompt"
+)
+@click.pass_context
+def remove_note(ctx, file_path: str, keep_assets: bool = False, yes: bool = False):
+    """Remove a note file and its corresponding asset directory.
+    
+    \b
+    Aliases: rm
+    
+    This command will:
+    - Delete the specified note file
+    - Delete the corresponding asset directory (unless --keep-assets is specified)
+    - Clean up empty parent directories
+    
+    \b
+    Examples:
+        mkdocs-note remove docs/notes/test.md
+        mkdocs-note rm docs/notes/test.md --yes
+        mkdocs-note remove docs/notes/test.md --keep-assets
+    
+    FILE_PATH: Path to the note file to remove
+    """
+    config = ctx.obj['config']
+    logger = ctx.obj['logger']
+    
+    note_path = Path(file_path)
+    
+    # Validate it's a note file
+    if note_path.suffix.lower() not in config.supported_extensions:
+        logger.error(f"Not a supported note file: {note_path}")
+        click.echo(f"❌ Not a supported note file: {note_path}")
+        click.echo(f"💡 Supported extensions: {', '.join(config.supported_extensions)}")
+        raise click.Abort()
+    
+    # Show what will be removed
+    remover = NoteRemover(config, logger)
+    asset_dir = remover._get_asset_directory(note_path)
+    
+    click.echo(f"📝 Note file: {note_path}")
+    if not keep_assets and asset_dir.exists():
+        click.echo(f"📁 Asset directory: {asset_dir}")
+    elif not keep_assets:
+        click.echo(f"📁 Asset directory: {asset_dir} (doesn't exist)")
+    
+    # Confirm removal
+    if not yes:
+        if not click.confirm("⚠️  Are you sure you want to remove this note?"):
+            click.echo("❌ Operation cancelled")
+            return
+    
+    # Perform removal
+    logger.info(f"Removing note: {note_path}")
+    result = remover.remove_note(note_path, remove_assets=not keep_assets)
+    
+    if result == 0:
+        click.echo(f"✅ Successfully removed note: {note_path}")
+        if not keep_assets and asset_dir.exists():
+            click.echo(f"✅ Successfully removed asset directory: {asset_dir}")
+    else:
+        click.echo(f"❌ Failed to remove note")
+        raise click.Abort()
+
+
+@cli.command("clean")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be removed without actually removing"
+)
+@click.option(
+    "--yes", "-y",
+    is_flag=True,
+    help="Skip confirmation prompt"
+)
+@click.pass_context
+def clean_orphaned(ctx, dry_run: bool = False, yes: bool = False):
+    """Clean up orphaned asset directories without corresponding notes.
+    
+    This command will:
+    - Scan all note files in the notes directory
+    - Scan all asset directories
+    - Find asset directories that don't have corresponding note files
+    - Remove orphaned asset directories (unless --dry-run is specified)
+    - Clean up empty parent directories
+    
+    \b
+    Examples:
+        mkdocs-note clean --dry-run
+        mkdocs-note clean --yes
+    """
+    config = ctx.obj['config']
+    logger = ctx.obj['logger']
+    
+    logger.info("Scanning for orphaned asset directories...")
+    click.echo("🔍 Scanning for orphaned asset directories...")
+    
+    cleaner = NoteCleaner(config, logger)
+    orphaned_dirs = cleaner.find_orphaned_assets()
+    
+    if not orphaned_dirs:
+        logger.info("No orphaned asset directories found")
+        click.echo("✅ No orphaned asset directories found")
+        return
+    
+    # Show what will be removed
+    click.echo(f"\n📦 Found {len(orphaned_dirs)} orphaned asset director{'y' if len(orphaned_dirs) == 1 else 'ies'}:")
+    for asset_dir in orphaned_dirs:
+        click.echo(f"  • {asset_dir}")
+    
+    # Confirm removal
+    if not dry_run and not yes:
+        click.echo(f"\n⚠️  This will remove {len(orphaned_dirs)} asset director{'y' if len(orphaned_dirs) == 1 else 'ies'}")
+        if not click.confirm("Are you sure you want to continue?"):
+            click.echo("❌ Operation cancelled")
+            return
+    
+    # Perform cleanup
+    count, removed = cleaner.clean_orphaned_assets(dry_run=dry_run)
+    
+    if dry_run:
+        logger.info(f"[DRY RUN] Would remove {count} orphaned asset directories")
+        click.echo(f"\n💡 [DRY RUN] Would remove {count} orphaned asset director{'y' if count == 1 else 'ies'}")
+        click.echo("Run without --dry-run to actually remove them")
+    else:
+        logger.info(f"Successfully removed {count} orphaned asset directories")
+        click.echo(f"\n✅ Successfully removed {count} orphaned asset director{'y' if count == 1 else 'ies'}")
+
+
+@cli.command("move")
+@click.argument("source", type=click.Path(exists=True))
+@click.argument("destination", type=click.Path())
+@click.option(
+    "--keep-source-assets",
+    is_flag=True,
+    help="Keep the source asset directory (only move the note file/directory)"
+)
+@click.option(
+    "--yes", "-y",
+    is_flag=True,
+    help="Skip confirmation prompt"
+)
+@click.pass_context
+def move_note(ctx, source: str, destination: str, keep_source_assets: bool = False, yes: bool = False):
+    """Move or rename a note file/directory and its asset directory.
+    
+    \b
+    Aliases: mv
+    
+    This command mimics shell 'mv' behavior:
+    - If destination doesn't exist: rename source to destination
+    - If destination exists and is a directory: move source into destination
+    - Move the corresponding asset directories (unless --keep-source-assets is specified)
+    - Support moving entire directories with all notes inside
+    - Create necessary parent directories
+    - Clean up empty parent directories in the source location
+    
+    \b
+    Examples:
+        # Rename a note or directory
+        mkdocs-note move docs/notes/old.md docs/notes/new.md
+        mkdocs-note mv docs/notes/dsa/tree docs/notes/dsa/trees
+        
+        # Move into an existing directory
+        mkdocs-note mv docs/notes/dsa/ds/trees docs/notes/dsa
+        # → moves to docs/notes/dsa/trees
+        
+        mkdocs-note move docs/notes/test.md docs/notes/archive
+        # → moves to docs/notes/archive/test.md
+        
+        # Move a directory with all notes inside
+        mkdocs-note move docs/notes/old_category docs/notes/new_category
+        
+        # Move without moving assets
+        mkdocs-note mv docs/notes/test.md docs/notes/new.md --keep-source-assets
+    
+    \b
+    Arguments:
+        SOURCE: Current path of the note file or directory
+        DESTINATION: Destination path (or parent directory if exists)
+    """
+    config = ctx.obj['config']
+    logger = ctx.obj['logger']
+    
+    source_path = Path(source)
+    dest_path = Path(destination)
+    
+    # Show what will be moved
+    mover = NoteMover(config, logger)
+    
+    # Adjust destination path if it exists and is a directory (mimics shell mv behavior)
+    original_dest = dest_path
+    if dest_path.exists() and dest_path.is_dir():
+        dest_path = dest_path / source_path.name
+        click.echo(f"💡 Destination is a directory, will move to: {dest_path}")
+    
+    # Validate adjusted destination doesn't exist
+    if dest_path.exists():
+        logger.error(f"Destination already exists: {dest_path}")
+        click.echo(f"❌ Destination already exists: {dest_path}")
+        raise click.Abort()
+    
+    if source_path.is_dir():
+        # Moving a directory
+        click.echo(f"📁 Source directory: {source_path}")
+        click.echo(f"📁 Destination directory: {dest_path}")
+        
+        # Count notes in directory
+        note_count = 0
+        for file_path in source_path.rglob('*'):
+            if file_path.is_file() and file_path.suffix.lower() in config.supported_extensions:
+                if file_path.name not in config.exclude_patterns:
+                    note_count += 1
+        
+        if note_count == 0:
+            click.echo(f"⚠️  No note files found in directory: {source_path}")
+            if not yes and not click.confirm("Continue anyway?"):
+                click.echo("❌ Operation cancelled")
+                return
+        else:
+            click.echo(f"📝 Found {note_count} note file(s) to move")
+    else:
+        # Moving a single file
+        source_asset_dir = mover._get_asset_directory(source_path)
+        dest_asset_dir = mover._get_asset_directory(dest_path)
+        
+        click.echo(f"📝 Source note: {source_path}")
+        click.echo(f"📝 Destination note: {dest_path}")
+        
+        if not keep_source_assets:
+            if source_asset_dir.exists():
+                click.echo(f"📁 Source assets: {source_asset_dir}")
+                click.echo(f"📁 Destination assets: {dest_asset_dir}")
+            else:
+                click.echo(f"📁 No existing asset directory to move")
+    
+    # Confirm move
+    if not yes:
+        prompt = "\n⚠️  Are you sure you want to move this "
+        prompt += "directory?" if source_path.is_dir() else "note?"
+        if not click.confirm(prompt):
+            click.echo("❌ Operation cancelled")
+            return
+    
+    # Perform move
+    if source_path.is_dir():
+        logger.info(f"Moving directory: {source_path} → {dest_path}")
+    else:
+        logger.info(f"Moving note: {source_path} → {dest_path}")
+    
+    result = mover.move_note_or_directory(source_path, original_dest, move_assets=not keep_source_assets)
+    
+    if result == 0:
+        if source_path.is_dir():
+            click.echo(f"✅ Successfully moved directory: {source_path} → {dest_path}")
+        else:
+            click.echo(f"✅ Successfully moved note: {source_path} → {dest_path}")
+        
+        if not keep_source_assets:
+            click.echo(f"✅ Successfully moved asset directories")
+    else:
+        click.echo(f"❌ Failed to move")
+        raise click.Abort()
+
+
+# Add aliases for common commands
+@cli.command("rm")
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option("--keep-assets", is_flag=True, help="Keep the asset directory")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.pass_context
+def rm_note(ctx, file_path: str, keep_assets: bool = False, yes: bool = False):
+    """Alias for 'remove' command - Remove a note file and its asset directory."""
+    ctx.invoke(remove_note, file_path=file_path, keep_assets=keep_assets, yes=yes)
+
+
+@cli.command("mv")
+@click.argument("source", type=click.Path(exists=True))
+@click.argument("destination", type=click.Path())
+@click.option("--keep-source-assets", is_flag=True, help="Keep the source asset directory")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.pass_context
+def mv_note(ctx, source: str, destination: str, keep_source_assets: bool = False, yes: bool = False):
+    """Alias for 'move' command - Move or rename a note file/directory and its assets."""
+    ctx.invoke(move_note, source=source, destination=destination, 
+               keep_source_assets=keep_source_assets, yes=yes)
 
 
 if __name__ == '__main__':

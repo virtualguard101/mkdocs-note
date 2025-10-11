@@ -30,6 +30,317 @@ mkdocs_note/
     └── data_models.py       # Data models and structures
 ```
 
+### UML Diagrams
+
+#### Component Dependency Diagram
+
+This diagram shows how different modules depend on each other:
+
+```mermaid
+graph TB
+    subgraph "MkDocs Plugin Interface"
+        Plugin[MkdocsNotePlugin]
+    end
+    
+    subgraph "Configuration Layer"
+        Config[PluginConfig]
+        Logger[Logger]
+    end
+    
+    subgraph "Core Business Logic"
+        FileManager[file_manager.py]
+        NoteManager[note_manager.py]
+        AssetsManager[assets_manager.py]
+        NoteCreator[note_creator.py]
+        NoteInitializer[note_initializer.py]
+        DataModels[data_models.py]
+    end
+    
+    subgraph "CLI Interface"
+        CLI[cli.py]
+    end
+    
+    subgraph "External Dependencies"
+        MkDocs[MkDocs Framework]
+        Git[Git System]
+    end
+    
+    Plugin --> Config
+    Plugin --> Logger
+    Plugin --> FileManager
+    Plugin --> NoteManager
+    Plugin --> AssetsManager
+    Plugin --> MkDocs
+    
+    CLI --> Config
+    CLI --> Logger
+    CLI --> NoteCreator
+    CLI --> NoteInitializer
+    
+    FileManager --> Config
+    FileManager --> Logger
+    
+    NoteManager --> Config
+    NoteManager --> Logger
+    NoteManager --> FileManager
+    NoteManager --> AssetsManager
+    NoteManager --> DataModels
+    NoteManager --> Git
+    
+    AssetsManager --> Config
+    AssetsManager --> Logger
+    AssetsManager --> DataModels
+    
+    NoteCreator --> Config
+    NoteCreator --> Logger
+    NoteCreator --> NoteInitializer
+    
+    NoteInitializer --> Config
+    NoteInitializer --> Logger
+    NoteInitializer --> FileManager
+    NoteInitializer --> AssetsManager
+    NoteInitializer --> DataModels
+    
+    style Plugin fill:#e1f5ff
+    style Config fill:#fff4e1
+    style Logger fill:#fff4e1
+    style MkDocs fill:#f0f0f0
+    style Git fill:#f0f0f0
+```
+
+#### Class Diagram
+
+This diagram shows the main classes and their relationships:
+
+```mermaid
+classDiagram
+    class MkdocsNotePlugin {
+        -logger: Logger
+        -_recent_notes: List[NoteInfo]
+        -_assets_processor: AssetsProcessor
+        -_docs_dir: Path
+        +on_config(config) MkDocsConfig
+        +on_files(files, config) Files
+        +on_page_markdown(markdown, page, config, files) str
+        -_is_notes_index_page(page) bool
+        -_is_note_page(page) bool
+        -_insert_recent_notes(markdown) str
+        -_process_page_assets(markdown, page) str
+        -_generate_notes_html() str
+    }
+    
+    class PluginConfig {
+        +enabled: bool
+        +notes_dir: Path
+        +index_file: Path
+        +max_notes: int
+        +supported_extensions: Set[str]
+        +exclude_patterns: Set[str]
+        +exclude_dirs: Set[str]
+        +assets_dir: Path
+        +notes_template: str
+        +use_git_timestamps: bool
+        +timestamp_zone: str
+        +cache_size: int
+    }
+    
+    class Logger {
+        +debug(msg)
+        +info(msg)
+        +warning(msg)
+        +error(msg)
+    }
+    
+    class NoteScanner {
+        -config: PluginConfig
+        -logger: Logger
+        +scan_notes() List[Path]
+        -_is_valid_note_file(file_path) bool
+    }
+    
+    class AssetScanner {
+        -config: PluginConfig
+        -logger: Logger
+        +scan_assets() List[Path]
+        -_is_valid_asset_file(file_path) bool
+    }
+    
+    class NoteProcessor {
+        -config: PluginConfig
+        -logger: Logger
+        -assets_processor: AssetsProcessor
+        -_timezone: timezone
+        +process_note(file_path) NoteInfo
+        -_extract_title(file_path) str
+        -_extract_assets(file_path) List[AssetsInfo]
+        -_generate_relative_url(file_path) str
+        -_get_git_commit_time(file_path) float
+        -_format_timestamp(timestamp) str
+    }
+    
+    class CacheManager {
+        -logger: Logger
+        -_last_notes_hash: str
+        -_last_content_hash: str
+        +should_update_notes(notes) bool
+        +should_update_content(content) bool
+        -_calculate_notes_hash(notes) str
+    }
+    
+    class IndexUpdater {
+        -config: PluginConfig
+        -logger: Logger
+        +update_index(notes) bool
+        -_generate_html_list(notes) str
+        -_replace_section(content, new_section) str
+    }
+    
+    class RecentNotesUpdater {
+        -config: PluginConfig
+        -logger: Logger
+        -file_scanner: NoteScanner
+        -note_processor: NoteProcessor
+        -cache_manager: CacheManager
+        -index_updater: IndexUpdater
+        +update() bool
+    }
+    
+    class AssetsCatalogTree {
+        -_root: Path
+        -_notes_dir: Path
+        -_catalog: Dict[str, List[AssetsInfo]]
+        +add_node(note_relative_path, assets_list)
+        +get_assets(note_relative_path) List[AssetsInfo]
+        +get_all_assets() Dict
+        +get_asset_dir_for_note(note_file) Path
+    }
+    
+    class AssetsManager {
+        -config: PluginConfig
+        -logger: Logger
+        -catalog_tree: AssetsCatalogTree
+        +catalog_generator(assets_list, note_info) str
+        +catalog_updater(catalog) bool
+    }
+    
+    class AssetsProcessor {
+        -config: PluginConfig
+        -logger: Logger
+        -image_pattern: Pattern
+        +process_assets(note_info) List[AssetsInfo]
+        +update_markdown_content(content, note_file) str
+        -_process_image_reference(image_path, note_file, index) AssetsInfo
+    }
+    
+    class NoteCreator {
+        -config: PluginConfig
+        -logger: Logger
+        -initializer: NoteInitializer
+        -_timezone: timezone
+        +create_new_note(file_path, template_path) int
+        +validate_note_creation(file_path) Tuple
+        -_generate_note_content(file_path, template_path) str
+        -_create_asset_directory(note_file_path)
+        -_get_asset_directory(note_file_path) Path
+    }
+    
+    class NoteInitializer {
+        -config: PluginConfig
+        -logger: Logger
+        -file_scanner: NoteScanner
+        +initialize_note_directory(notes_dir) int
+        +validate_asset_tree_compliance(notes_dir) Tuple
+        -_create_basic_structure(notes_dir)
+        -_analyze_asset_tree(notes_dir, note_files) List[AssetTreeInfo]
+        -_fix_asset_tree(notes_dir, non_compliant)
+        -_check_compliance(asset_dir, expected_structure) bool
+    }
+    
+    class NoteInfo {
+        +file_path: Path
+        +title: str
+        +relative_url: str
+        +modified_date: str
+        +file_size: int
+        +modified_time: float
+        +assets_list: List[AssetsInfo]
+    }
+    
+    class AssetsInfo {
+        +file_path: Path
+        +file_name: str
+        +relative_path: str
+        +index_in_list: int
+        +exists: bool
+    }
+    
+    class AssetTreeInfo {
+        +note_name: str
+        +asset_dir: Path
+        +expected_structure: List[Path]
+        +actual_structure: List[Path]
+        +is_compliant: bool
+        +missing_dirs: List[Path]
+        +extra_dirs: List[Path]
+    }
+    
+    %% Relationships
+    MkdocsNotePlugin --> PluginConfig
+    MkdocsNotePlugin --> Logger
+    MkdocsNotePlugin --> NoteScanner
+    MkdocsNotePlugin --> NoteProcessor
+    MkdocsNotePlugin --> AssetsProcessor
+    MkdocsNotePlugin --> NoteInfo
+    
+    NoteScanner --> PluginConfig
+    NoteScanner --> Logger
+    
+    AssetScanner --> PluginConfig
+    AssetScanner --> Logger
+    
+    NoteProcessor --> PluginConfig
+    NoteProcessor --> Logger
+    NoteProcessor --> AssetsProcessor
+    NoteProcessor --> NoteInfo
+    NoteProcessor --> AssetsInfo
+    
+    RecentNotesUpdater --> PluginConfig
+    RecentNotesUpdater --> Logger
+    RecentNotesUpdater --> NoteScanner
+    RecentNotesUpdater --> NoteProcessor
+    RecentNotesUpdater --> CacheManager
+    RecentNotesUpdater --> IndexUpdater
+    
+    CacheManager --> Logger
+    CacheManager --> NoteInfo
+    
+    IndexUpdater --> PluginConfig
+    IndexUpdater --> Logger
+    IndexUpdater --> NoteInfo
+    
+    AssetsManager --> PluginConfig
+    AssetsManager --> Logger
+    AssetsManager --> AssetsCatalogTree
+    AssetsManager --> AssetsInfo
+    AssetsManager --> NoteInfo
+    
+    AssetsCatalogTree --> AssetsInfo
+    
+    AssetsProcessor --> PluginConfig
+    AssetsProcessor --> Logger
+    AssetsProcessor --> NoteInfo
+    AssetsProcessor --> AssetsInfo
+    
+    NoteCreator --> PluginConfig
+    NoteCreator --> Logger
+    NoteCreator --> NoteInitializer
+    
+    NoteInitializer --> PluginConfig
+    NoteInitializer --> Logger
+    NoteInitializer --> NoteScanner
+    NoteInitializer --> AssetTreeInfo
+```
+
 ### Core Components
 
 #### 1. Plugin Entry Point (`plugin.py`)
@@ -246,6 +557,209 @@ The plugin execution follows this sequence:
    - If it's the index page: Insert recent notes HTML between markers
 
    - Return modified markdown content
+
+#### Sequence Diagram: Plugin Build Process
+
+This diagram shows the complete execution flow during MkDocs build:
+
+```mermaid
+sequenceDiagram
+    participant MkDocs as MkDocs Framework
+    participant Plugin as MkdocsNotePlugin
+    participant Config as PluginConfig
+    participant Scanner as NoteScanner
+    participant Processor as NoteProcessor
+    participant AssetsProc as AssetsProcessor
+    participant Page as Page Content
+    
+    Note over MkDocs,Plugin: 1. Initialization Phase
+    MkDocs->>Plugin: __init__()
+    activate Plugin
+    Plugin->>Plugin: Create Logger
+    Plugin->>Plugin: Initialize _recent_notes = []
+    deactivate Plugin
+    
+    Note over MkDocs,AssetsProc: 2. Configuration Phase
+    MkDocs->>Plugin: on_config(config)
+    activate Plugin
+    Plugin->>Config: Check enabled
+    Config-->>Plugin: True/False
+    Plugin->>Plugin: Store docs_dir
+    Plugin->>AssetsProc: Initialize AssetsProcessor
+    Plugin->>Config: Setup TOC config
+    Plugin->>Config: Setup slugify function
+    Plugin-->>MkDocs: Updated config
+    deactivate Plugin
+    
+    Note over MkDocs,Processor: 3. File Processing Phase
+    MkDocs->>Plugin: on_files(files, config)
+    activate Plugin
+    Plugin->>Scanner: scan_notes()
+    activate Scanner
+    Scanner->>Scanner: Scan notes directory
+    Scanner->>Scanner: Filter by extensions
+    Scanner->>Scanner: Exclude patterns
+    Scanner-->>Plugin: List[Path]
+    deactivate Scanner
+    
+    loop For each note file
+        Plugin->>Processor: process_note(file_path)
+        activate Processor
+        Processor->>Processor: Extract title
+        Processor->>Processor: Get Git commit time (if enabled)
+        Processor->>Processor: Generate relative URL
+        Processor->>AssetsProc: Extract assets
+        activate AssetsProc
+        AssetsProc->>AssetsProc: Find image references
+        AssetsProc->>AssetsProc: Calculate asset paths
+        AssetsProc-->>Processor: List[AssetsInfo]
+        deactivate AssetsProc
+        Processor-->>Plugin: NoteInfo
+        deactivate Processor
+    end
+    
+    Plugin->>Plugin: Sort notes by modified_time
+    Plugin->>Plugin: Store recent_notes
+    Plugin-->>MkDocs: Updated files
+    deactivate Plugin
+    
+    Note over MkDocs,Page: 4. Page Rendering Phase
+    loop For each page
+        MkDocs->>Plugin: on_page_markdown(markdown, page, ...)
+        activate Plugin
+        
+        alt Is note page?
+            Plugin->>Plugin: _is_note_page(page)
+            Plugin->>AssetsProc: update_markdown_content(markdown, page_path)
+            activate AssetsProc
+            AssetsProc->>AssetsProc: Find image patterns: ![](...)
+            AssetsProc->>AssetsProc: get_note_relative_path()
+            AssetsProc->>AssetsProc: Calculate depth & ../prefixes
+            AssetsProc->>AssetsProc: Add .assets suffix
+            AssetsProc->>AssetsProc: Replace paths
+            AssetsProc-->>Plugin: Updated markdown
+            deactivate AssetsProc
+        end
+        
+        alt Is notes index page?
+            Plugin->>Plugin: _is_notes_index_page(page)
+            Plugin->>Plugin: _generate_notes_html()
+            Plugin->>Plugin: _insert_recent_notes(markdown)
+            Plugin->>Plugin: Replace content between markers
+        end
+        
+        Plugin-->>MkDocs: Updated markdown
+        deactivate Plugin
+    end
+```
+
+#### Sequence Diagram: Note Creation Process (CLI)
+
+This diagram shows the CLI workflow for creating new notes:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as cli.py
+    participant Config as PluginConfig
+    participant Creator as NoteCreator
+    participant Initializer as NoteInitializer
+    participant Scanner as NoteScanner
+    participant FS as File System
+    
+    User->>CLI: mkdocs-note new <file_path>
+    activate CLI
+    
+    CLI->>Config: Load configuration
+    Config-->>CLI: PluginConfig
+    
+    CLI->>Creator: create_new_note(file_path, template_path)
+    activate Creator
+    
+    Creator->>Initializer: validate_asset_tree_compliance()
+    activate Initializer
+    Initializer->>Scanner: scan_notes()
+    Scanner-->>Initializer: List[Path]
+    Initializer->>Initializer: _analyze_asset_tree()
+    Initializer->>Initializer: _check_compliance()
+    Initializer-->>Creator: (is_compliant, errors)
+    deactivate Initializer
+    
+    alt Not compliant
+        Creator-->>CLI: Error: Run 'mkdocs note init'
+        CLI-->>User: Error message
+    else Compliant
+        Creator->>FS: Check if file exists
+        FS-->>Creator: File status
+        
+        alt File exists
+            Creator-->>CLI: Error: File already exists
+            CLI-->>User: Error message
+        else File doesn't exist
+            Creator->>Creator: _generate_note_content()
+            Creator->>Creator: Replace template variables
+            Creator->>FS: Write note file
+            Creator->>Creator: _get_asset_directory()
+            Creator->>FS: Create asset directory
+            Creator-->>CLI: Success (0)
+            CLI-->>User: Success message
+        end
+    end
+    
+    deactivate Creator
+    deactivate CLI
+```
+
+#### Sequence Diagram: Asset Path Processing
+
+This diagram shows how asset paths are processed during page rendering:
+
+```mermaid
+sequenceDiagram
+    participant Plugin as MkdocsNotePlugin
+    participant AssetsProc as AssetsProcessor
+    participant Helper as get_note_relative_path()
+    participant Markdown as Markdown Content
+    
+    Note over Plugin,Markdown: Processing note page: notes/dsa/anal/iter.md
+    
+    Plugin->>AssetsProc: update_markdown_content(content, note_file)
+    activate AssetsProc
+    
+    AssetsProc->>Markdown: Find pattern: ![alt](image.png)
+    Markdown-->>AssetsProc: Matches found
+    
+    loop For each image reference
+        AssetsProc->>AssetsProc: Check if external URL
+        
+        alt Is external URL
+            AssetsProc->>AssetsProc: Skip processing
+        else Is local reference
+            AssetsProc->>Helper: get_note_relative_path(note_file, notes_dir)
+            activate Helper
+            Helper->>Helper: Calculate relative path
+            Note over Helper: notes/dsa/anal/iter.md → dsa/anal/iter
+            Helper->>Helper: Add .assets suffix to first level
+            Note over Helper: dsa/anal/iter → dsa.assets/anal/iter
+            Helper-->>AssetsProc: "dsa.assets/anal/iter"
+            deactivate Helper
+            
+            AssetsProc->>AssetsProc: Calculate note depth
+            Note over AssetsProc: Depth = 2 (dsa/anal/)
+            
+            AssetsProc->>AssetsProc: Build relative path
+            Note over AssetsProc: ../../assets/dsa.assets/anal/iter/image.png
+            
+            AssetsProc->>Markdown: Replace path in content
+            Markdown-->>AssetsProc: Updated content
+        end
+    end
+    
+    AssetsProc-->>Plugin: Updated markdown content
+    deactivate AssetsProc
+    
+    Note over Plugin,Markdown: Result: ![alt](../../assets/dsa.assets/anal/iter/image.png)
+```
 
 ### Data Flow
 
