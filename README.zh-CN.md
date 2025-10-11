@@ -1,7 +1,7 @@
 # MkDocs-Note
 
 <div align="center">
-   <p>插件使用示例：<a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
+   <p>插件使用效果：<a href="https://wiki.virtualguard101.com/notes/" target="_blank">Notebook | virtualguard101's Wiki</a></p>
 </div>
 
 `MkDocs-Note` 是一个为 `MkDocs` 设计的插件，可以自动管理文档站点中的笔记。它专为与 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 主题无缝协作而设计，以创建统一的笔记记录和文档体验。
@@ -88,7 +88,7 @@ mkdocs-note new docs/notes/my-new-note.md
 <!-- recent_notes_end -->
 ```
 
-### 命令行界面
+### 命令行接口
 
 插件提供了多个用于笔记管理的 CLI 命令：
 
@@ -129,6 +129,56 @@ mkdocs-note template [--check] [--create]
 - 检查配置的模板文件是否存在
 
 - 如果不存在则创建模板文件
+
+#### 删除笔记
+```bash
+mkdocs-note remove FILE_PATH [--keep-assets] [--yes]
+# 或使用别名
+mkdocs-note rm FILE_PATH [--keep-assets] [--yes]
+```
+- 删除笔记文件及其对应的资产目录
+
+- 使用 `--keep-assets` 保留资产目录
+
+- 使用 `--yes` 或 `-y` 跳过确认提示
+
+#### 清理孤立资产
+```bash
+mkdocs-note clean [--dry-run] [--yes]
+```
+- 查找并删除没有对应笔记文件的资产目录
+
+- 使用 `--dry-run` 预览将要删除的内容而不实际删除
+
+- 使用 `--yes` 或 `-y` 跳过确认提示
+
+- 自动清理空的父目录
+
+#### 移动/重命名笔记或目录
+```bash
+mkdocs-note move SOURCE DESTINATION [--keep-source-assets] [--yes]
+# 或使用别名
+mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
+```
+- **模仿 shell `mv` 命令行为**：
+
+  - 如果目标不存在：将源重命名为目标
+
+  - 如果目标存在且是目录：将源移动到目标目录内
+
+- 移动或重命名笔记文件或整个目录及其资产目录
+
+- 支持移动单个笔记或包含所有笔记的整个目录
+
+- 示例：`mkdocs-note mv docs/notes/dsa/ds/trees docs/notes/dsa` 将移动到 `docs/notes/dsa/trees`
+
+- 使用 `--keep-source-assets` 保留源资产目录
+
+- 使用 `--yes` 或 `-y` 跳过确认提示
+
+- 自动创建必要的父目录
+
+- 自动清理源位置的空父目录
 
 ### 配置选项
 
