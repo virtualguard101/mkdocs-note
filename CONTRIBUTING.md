@@ -52,6 +52,7 @@ graph TB
         FileManager[file_manager.py]
         NoteManager[note_manager.py]
         AssetsManager[assets_manager.py]
+        FrontmatterManager[frontmatter_manager.py]
         NoteCreator[note_creator.py]
         NoteInitializer[note_initializer.py]
         DataModels[data_models.py]
@@ -85,6 +86,7 @@ graph TB
     NoteManager --> Logger
     NoteManager --> FileManager
     NoteManager --> AssetsManager
+    NoteManager --> FrontmatterManager
     NoteManager --> DataModels
     NoteManager --> Git
     
@@ -92,9 +94,12 @@ graph TB
     AssetsManager --> Logger
     AssetsManager --> DataModels
     
+    FrontmatterManager --> DataModels
+    
     NoteCreator --> Config
     NoteCreator --> Logger
     NoteCreator --> NoteInitializer
+    NoteCreator --> FrontmatterManager
     
     NoteInitializer --> Config
     NoteInitializer --> Logger
@@ -237,6 +242,7 @@ classDiagram
         -config: PluginConfig
         -logger: Logger
         -initializer: NoteInitializer
+        -frontmatter_manager: FrontmatterManager
         -_timezone: timezone
         +create_new_note(file_path, template_path) int
         +validate_note_creation(file_path) Tuple
@@ -255,6 +261,48 @@ classDiagram
         -_analyze_asset_tree(notes_dir, note_files) List[AssetTreeInfo]
         -_fix_asset_tree(notes_dir, non_compliant)
         -_check_compliance(asset_dir, expected_structure) bool
+    }
+    
+    class MetadataField {
+        +name: str
+        +field_type: Type
+        +default: Any
+        +required: bool
+        +validator: Optional[Callable]
+        +description: str
+        +validate(value) bool
+    }
+    
+    class MetadataRegistry {
+        -_fields: Dict[str, MetadataField]
+        +register(field) None
+        +unregister(field_name) None
+        +get_field(field_name) Optional[MetadataField]
+        +get_all_fields() Dict[str, MetadataField]
+        +get_default_values() Dict[str, Any]
+        +validate_data(data) Tuple[bool, List[str]]
+    }
+    
+    class FrontmatterParser {
+        -registry: MetadataRegistry
+        +parse(content) Tuple[Dict, str]
+        +parse_file(file_path) Tuple[Dict, str]
+        +generate(frontmatter, body) str
+        +update_frontmatter(content, updates, merge) str
+        +remove_frontmatter(content) str
+        +validate_content(content) Tuple[bool, List[str]]
+    }
+    
+    class FrontmatterManager {
+        -registry: MetadataRegistry
+        -parser: FrontmatterParser
+        +register_field(field) None
+        +create_default_frontmatter(custom_values) Dict[str, Any]
+        +parse_file(file_path) Tuple[Dict, str]
+        +create_note_content(frontmatter, body, validate) Tuple[str, List[str]]
+        +update_note_frontmatter(file_path, updates, merge) None
+        +get_field_info(field_name) Optional[MetadataField]
+        +list_all_fields() Dict[str, MetadataField]
     }
     
     class NoteFrontmatter {
@@ -312,8 +360,10 @@ classDiagram
     NoteProcessor --> PluginConfig
     NoteProcessor --> Logger
     NoteProcessor --> AssetsProcessor
+    NoteProcessor --> FrontmatterManager
     NoteProcessor --> NoteInfo
     NoteProcessor --> AssetsInfo
+    NoteProcessor --> NoteFrontmatter
     
     RecentNotesUpdater --> PluginConfig
     RecentNotesUpdater --> Logger
@@ -345,11 +395,21 @@ classDiagram
     NoteCreator --> PluginConfig
     NoteCreator --> Logger
     NoteCreator --> NoteInitializer
+    NoteCreator --> FrontmatterManager
     
     NoteInitializer --> PluginConfig
     NoteInitializer --> Logger
     NoteInitializer --> NoteScanner
     NoteInitializer --> AssetTreeInfo
+    
+    FrontmatterManager --> MetadataRegistry
+    FrontmatterManager --> FrontmatterParser
+    
+    FrontmatterParser --> MetadataRegistry
+    
+    MetadataRegistry --> MetadataField
+    
+    NoteInfo --> NoteFrontmatter
 ```
 
 ### Core Components
