@@ -141,6 +141,54 @@ mkdocs-note template [--check] [--create]
 
 - Create the template file if it doesn't exist
 
+#### Remove Note
+```bash
+mkdocs-note remove FILE_PATH [--keep-assets] [--yes]
+# or use the alias
+mkdocs-note rm FILE_PATH [--keep-assets] [--yes]
+```
+- Remove a note file and its corresponding asset directory
+
+- Use `--keep-assets` to keep the asset directory
+
+- Use `--yes` or `-y` to skip confirmation prompt
+
+#### Clean Orphaned Assets
+```bash
+mkdocs-note clean [--dry-run] [--yes]
+```
+- Find and remove asset directories without corresponding note files
+
+- Use `--dry-run` to preview what would be removed without actually removing
+
+- Use `--yes` or `-y` to skip confirmation prompt
+
+- Automatically cleans up empty parent directories
+
+#### Move/Rename Note or Directory
+```bash
+mkdocs-note move SOURCE DESTINATION [--keep-source-assets] [--yes]
+# or use the alias
+mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
+```
+- **Mimics shell `mv` behavior**: 
+  - If destination doesn't exist: rename source to destination
+  - If destination exists and is a directory: move source into destination
+
+- Move or rename a note file or entire directory with its asset directories
+
+- Supports moving single notes or entire directories with all notes inside
+
+- Example: `mkdocs-note mv docs/notes/dsa/ds/trees docs/notes/dsa` moves to `docs/notes/dsa/trees`
+
+- Use `--keep-source-assets` to keep the source asset directory
+
+- Use `--yes` or `-y` to skip confirmation prompt
+
+- Automatically creates necessary parent directories
+
+- Cleans up empty parent directories in source location
+
 ### Configuration Options
 
 The plugin supports the following configuration options in your `mkdocs.yml`:

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.2.0 - 2025-10-11
+## [Unreleased]
 
 ### Added
 
@@ -70,6 +70,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced code documentation with detailed docstrings
 
 - Added inline examples for metadata registration usage
+
+
+## 1.2.0 - 2025-10-11
+
+### Added
+
+- **CLI Note Removal**: Added `mkdocs-note remove` (alias: `rm`) command for deleting notes and their asset directories (#19)
+  
+  - Removes note file and its corresponding asset directory
+  
+  - Option `--keep-assets` to preserve asset directory while removing note
+  
+  - Option `--yes` / `-y` to skip confirmation prompt
+  
+  - Automatically cleans up empty parent directories after removal
+  
+  - Validates file extension before removal
+
+- **CLI Orphaned Assets Cleanup**: Added `mkdocs-note clean` command for cleaning up orphaned asset directories (#19)
+  
+  - Scans notes directory and assets directory to find orphaned assets
+  
+  - Identifies asset directories without corresponding note files
+  
+  - Option `--dry-run` to preview what would be removed without actually removing
+  
+  - Option `--yes` / `-y` to skip confirmation prompt
+  
+  - Automatically cleans up empty parent directories after cleanup
+
+- **CLI Note Movement**: Added `mkdocs-note move` (alias: `mv`) command for moving/renaming notes and directories
+  
+  - Mimics shell `mv` command behavior: if destination exists and is a directory, moves source into it
+  
+  - Moves or renames note file or entire directory with its asset directories simultaneously
+  
+  - Supports moving single notes or entire directories with all notes inside
+  
+  - Supports both simple renaming and moving into existing directories
+  
+  - Example: `mkdocs-note mv docs/notes/dsa/ds/trees docs/notes/dsa` moves to `docs/notes/dsa/trees`
+  
+  - Option `--keep-source-assets` to preserve source asset directory
+  
+  - Option `--yes` / `-y` to skip confirmation prompt
+  
+  - Automatically creates necessary parent directories
+  
+  - Automatically cleans up empty parent directories in source location
+  
+  - Includes rollback mechanism in case of errors
+  
+  - Intelligently handles tree-based asset structure when moving directories
+
+- **Core Modules**: Added new core modules for note management
+  
+  - `note_remover.py`: Handles note file and asset directory removal
+  
+  - `note_cleaner.py`: Manages orphaned asset cleanup and note movement operations
+
+  - `notes_mover.py`: Handles note file and directory movement and renaming with their assets correspondingly
+  
+  - Both modules properly handle tree-based asset structure with `.assets` suffix
+
+### Changed
+
+- **CLI User Experience**: Enhanced CLI commands with better user feedback
+  
+  - Added emoji indicators for better visual feedback (✅, ❌, ⚠️, 📝, 📁, 🔍)
+  
+  - Added clear confirmation prompts for destructive operations
+  
+  - Improved error messages with helpful suggestions
 
 ## 1.1.4 - 2025-10-09
 
