@@ -67,7 +67,7 @@ class PluginConfig(Config):
     """The directory of the assets.
     """
 
-    notes_template = config_opt.Type(str, default='docs/notes/template/default.md')
+    notes_template = config_opt.Type(str, default='docs/templates/default.md')
     """The template of the notes.
     """
 

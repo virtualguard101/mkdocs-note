@@ -148,12 +148,12 @@ mkdocs-note template [--check] [--create]
 | `use_git_timestamps` | bool | `true` | 使用 Git 提交时间戳进行排序，而不是文件系统时间戳 |
 | `timestamp_zone` | str | `"UTC+0"` | 时间戳显示的时区（例如 'UTC+0'、'UTC+8'、'UTC-5'）。确保不同部署环境中的时间戳显示一致 |
 | `assets_dir` | Path | `"docs/notes/assets"` | 存储笔记资产的目录。使用树状结构，第一级子目录带有 `.assets` 后缀 |
-| `notes_template` | Path | `"docs/notes/template/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
+| `notes_template` | Path | `"docs/templates/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
 
 ### 模板系统
 
-插件支持灵活的新笔记模板系统：
+插件支持灵活的带 frontmatter 的新笔记模板系统：
 
 #### 模板变量
 
@@ -163,17 +163,40 @@ mkdocs-note template [--check] [--create]
 
 - `{{note_name}}`: 原始笔记文件名
 
+**注意**：模板变量**仅在 frontmatter 部分**被替换，保持笔记正文的简洁，不受模板语法干扰。
+
 #### 默认模板
 
-默认模板（`docs/notes/template/default.md`）包含：
+默认模板包含：
 
 ```markdown
+---
+date: {{date}}
+title: {{title}}
+permalink: 
+publish: true
+---
+
 # {{title}}
 
-Created on {{date}}
-
-Note: {{note_name}}
+开始编写你的笔记内容...
 ```
+
+#### Frontmatter 支持
+
+笔记支持使用 YAML frontmatter 进行元数据管理：
+
+- **标准字段**：
+  
+  - `date`: 创建或发布日期
+  
+  - `permalink`: 笔记的自定义永久链接
+  
+  - `publish`: 笔记是否应该被发布（true/false）
+
+- **自定义字段**：你可以通过可扩展的注册系统添加自定义元数据字段
+
+- **元数据注册**：插件提供元数据注册接口，无需修改核心代码即可添加新字段
 
 #### 自定义模板
 
@@ -182,6 +205,12 @@ Note: {{note_name}}
 ```bash
 mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 ```
+
+**模板类型**：
+
+- **Frontmatter 模板**（推荐）：包含带变量的 YAML frontmatter 部分
+
+- **传统模板**：不带 frontmatter 的简单 markdown（仍然支持）
 
 ### 资产管理
 

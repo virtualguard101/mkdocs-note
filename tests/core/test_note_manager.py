@@ -484,12 +484,12 @@ class TestRecentNotesUpdater(unittest.TestCase):
         mock_process.return_value = note1
         mock_cache.return_value = False  # No changes
         
-        with patch.object(self.updater.logger, 'info') as mock_info:
+        with patch.object(self.updater.logger, 'debug') as mock_debug:
             result = self.updater.update()
         
         self.assertTrue(result)
         # Check that the specific "Notes unchanged" message was called
-        mock_info.assert_any_call('Notes unchanged, skipping update')
+        mock_debug.assert_any_call('Notes unchanged, skipping update')
 
 
 if __name__ == '__main__':

@@ -63,7 +63,7 @@ def init_note(ctx, path: Optional[str] = None):
     result = initializer.initialize_note_directory(notes_dir)
     
     if result == 0:
-        logger.info(f"Successfully initialized the note directory at {notes_dir}")
+        # logger.info(f"Successfully initialized the note directory at {notes_dir}")
         click.echo(f"✅ Note directory initialized successfully at {notes_dir}")
         
         # Check template file status
@@ -74,7 +74,7 @@ def init_note(ctx, path: Optional[str] = None):
             click.echo(f"⚠️  Template file not found: {template_path}")
             click.echo("💡 Please create the template file or update the 'notes_template' configuration")
     else:
-        logger.error(f"Failed to initialize the note directory at {notes_dir}")
+        # logger.error(f"Failed to initialize the note directory at {notes_dir}")
         click.echo(f"❌ Failed to initialize the note directory at {notes_dir}")
         raise click.Abort()
 
@@ -109,7 +109,7 @@ def new_note(ctx, file_path: str, template: Optional[str] = None):
     # Validate before creating
     is_valid, error_msg = creator.validate_note_creation(note_path)
     if not is_valid:
-        logger.error(f"Cannot create note: {error_msg}")
+        # logger.error(f"Cannot create note: {error_msg}")
         click.echo(f"❌ Cannot create note: {error_msg}")
         click.echo("💡 Try running 'mkdocs-note init' first to initialize the directory structure")
         raise click.Abort()
@@ -119,11 +119,11 @@ def new_note(ctx, file_path: str, template: Optional[str] = None):
     result = creator.create_new_note(note_path, template_path)
     
     if result == 0:
-        logger.info(f"Successfully created a new note at {note_path}")
+        # logger.info(f"Successfully created a new note at {note_path}")
         click.echo(f"✅ Successfully created note: {note_path}")
         click.echo(f"📁 Asset directory created: {creator._get_asset_directory(note_path)}")
     else:
-        logger.error(f"Failed to create a new note at {note_path}")
+        # logger.error(f"Failed to create a new note at {note_path}")
         click.echo(f"❌ Failed to create note at {note_path}")
         raise click.Abort()
 
@@ -141,6 +141,8 @@ def validate_notes(ctx, path: Optional[str] = None):
     This command checks if the current asset tree structure
     complies with the plugin's design requirements.
     """
+    from mkdocs_note.core.file_manager import NoteScanner
+    
     config = ctx.obj['config']
     logger = ctx.obj['logger']
     
@@ -148,14 +150,20 @@ def validate_notes(ctx, path: Optional[str] = None):
     
     logger.info(f"Validating asset tree structure: {notes_dir}")
     
+    # Scan and display note count
+    scanner = NoteScanner(config, logger)
+    note_files = scanner.scan_notes()
+    click.echo(f"📝 Found {len(note_files)} note files")
+    
+    # Validate asset tree structure
     initializer = NoteInitializer(config, logger)
     is_compliant, error_messages = initializer.validate_asset_tree_compliance(notes_dir)
     
     if is_compliant:
-        logger.info("Asset tree structure is compliant")
+        # logger.info("Asset tree structure is compliant")
         click.echo("✅ Asset tree structure is compliant with plugin design")
     else:
-        logger.warning("Asset tree structure is not compliant")
+        # logger.warning("Asset tree structure is not compliant")
         click.echo("❌ Asset tree structure is not compliant:")
         for error in error_messages:
             click.echo(f"  • {error}")
@@ -212,7 +220,17 @@ def template_command(ctx, check: bool = False, create: bool = False):
         template_path.parent.mkdir(parents=True, exist_ok=True)
         
         try:
-            template_content = "# {{title}}\n\nCreated on {{date}}\n\nNote: {{note_name}}"
+            # Use new frontmatter-style template
+            template_content = """---
+date: {{date}}
+title: {{title}}
+permalink: 
+publish: true
+---
+
+# {{title}}
+
+Start writing your note content..."""
             template_path.write_text(template_content, encoding='utf-8')
             click.echo(f"✅ Template file created: {template_path}")
         except Exception as e:

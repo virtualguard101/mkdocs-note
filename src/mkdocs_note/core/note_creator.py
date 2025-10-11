@@ -4,12 +4,13 @@ Note creator for creating new note files with proper asset structure.
 
 import re
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 from datetime import datetime, timezone, timedelta
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.note_initializer import NoteInitializer
+from mkdocs_note.core.frontmatter_manager import FrontmatterManager
 
 
 class NoteCreator:
@@ -19,6 +20,7 @@ class NoteCreator:
         self.config = config
         self.logger = logger
         self.initializer = NoteInitializer(config, logger)
+        self.frontmatter_manager = FrontmatterManager()
         self._timezone = self._parse_timezone(config.timestamp_zone)
     
     def _parse_timezone(self, timezone_str: str) -> timezone:
@@ -56,7 +58,7 @@ class NoteCreator:
             int: 0 if successful, 1 if failed
         """
         try:
-            self.logger.info(f"Creating new note: {file_path}")
+            self.logger.debug(f"Creating new note: {file_path}")
             
             # Validate asset tree compliance first
             # Use configured notes_dir instead of file_path.parent to ensure consistent validation
@@ -85,8 +87,8 @@ class NoteCreator:
             # Create corresponding asset directory
             self._create_asset_directory(file_path)
             
-            self.logger.info(f"Successfully created note: {file_path}")
-            self.logger.info(f"Asset directory created: {self._get_asset_directory(file_path)}")
+            self.logger.debug(f"Successfully created note: {file_path}")
+            self.logger.debug(f"Asset directory created: {self._get_asset_directory(file_path)}")
             
             return 0
             
@@ -97,23 +99,123 @@ class NoteCreator:
     def _generate_note_content(self, file_path: Path, template_path: Optional[Path] = None) -> str:
         """Generate content for the new note file.
         
+        This method generates note content with frontmatter. Template variables
+        are replaced only in the frontmatter section, keeping the body clean.
+        
         Args:
             file_path (Path): The path of the note file
             template_path (Optional[Path]): Path to template file
             
         Returns:
-            str: The generated note content
+            str: The generated note content with frontmatter
         """
-        # Use provided template or default template
+        # Determine which template to use
+        actual_template_path = None
         if template_path and template_path.exists():
-            template_content = template_path.read_text(encoding='utf-8')
+            actual_template_path = template_path
         else:
-            # Use default template
-            template_content = self._get_default_template()
+            default_template_path = self._get_default_template_path()
+            if default_template_path.exists():
+                actual_template_path = default_template_path
         
-        # Replace template variables
+        # If no template file exists, use fallback template
+        if not actual_template_path:
+            template_content = self._get_default_template()
+            return self._generate_legacy_template_content(file_path, template_content)
+        
+        # Parse template to extract frontmatter and body
+        template_fm, template_body = self.frontmatter_manager.parse_file(actual_template_path)
+        
+        # If template has no frontmatter, handle old-style template
+        if not template_fm:
+            template_content = actual_template_path.read_text(encoding='utf-8')
+            return self._generate_legacy_template_content(file_path, template_content)
+        
+        # Prepare template variables
         note_name = file_path.stem
-        # Use configured timezone for timestamp
+        current_date = datetime.now(tz=self._timezone).strftime(self.config.output_date_format)
+        title = note_name.replace('-', ' ').replace('_', ' ').title()
+        
+        template_vars = {
+            'title': title,
+            'date': current_date,
+            'note_name': note_name
+        }
+        
+        # Replace variables in frontmatter
+        processed_fm = self._replace_variables_in_dict(template_fm, template_vars)
+        
+        # Replace variables in body (for compatibility)
+        processed_body = self._replace_variables_in_text(template_body, template_vars)
+        
+        # Generate final content
+        content, errors = self.frontmatter_manager.create_note_content(
+            processed_fm, 
+            processed_body, 
+            validate=True
+        )
+        
+        if errors:
+            self.logger.warning(f"Frontmatter validation warnings: {', '.join(errors)}")
+        
+        return content
+    
+    def _replace_variables_in_dict(
+        self, 
+        data: Dict[str, Any], 
+        variables: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Replace template variables in dictionary values.
+        
+        Args:
+            data: Dictionary to process
+            variables: Variable replacements
+            
+        Returns:
+            Dict[str, Any]: Dictionary with replaced values
+        """
+        result = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                result[key] = self._replace_variables_in_text(value, variables)
+            elif isinstance(value, dict):
+                result[key] = self._replace_variables_in_dict(value, variables)
+            elif isinstance(value, list):
+                result[key] = [
+                    self._replace_variables_in_text(item, variables) 
+                    if isinstance(item, str) else item
+                    for item in value
+                ]
+            else:
+                result[key] = value
+        return result
+    
+    def _replace_variables_in_text(self, text: str, variables: Dict[str, str]) -> str:
+        """Replace template variables in text.
+        
+        Args:
+            text: Text to process
+            variables: Variable replacements
+            
+        Returns:
+            str: Text with replaced variables
+        """
+        result = text
+        for var_name, var_value in variables.items():
+            result = result.replace(f'{{{{{var_name}}}}}', var_value)
+        return result
+    
+    def _generate_legacy_template_content(self, file_path: Path, template_content: str) -> str:
+        """Generate content for old-style templates without frontmatter.
+        
+        Args:
+            file_path: Path to the note file
+            template_content: Template content
+            
+        Returns:
+            str: Generated content
+        """
+        note_name = file_path.stem
         current_date = datetime.now(tz=self._timezone).strftime(self.config.output_date_format)
         
         content = template_content.replace('{{title}}', note_name.replace('-', ' ').replace('_', ' ').title())
@@ -121,6 +223,14 @@ class NoteCreator:
         content = content.replace('{{note_name}}', note_name)
         
         return content
+    
+    def _get_default_template_path(self) -> Path:
+        """Get the path to the default template.
+        
+        Returns:
+            Path: Path to the default template
+        """
+        return Path(self.config.notes_template)
     
     def _get_default_template(self) -> str:
         """Get the default note template from config.

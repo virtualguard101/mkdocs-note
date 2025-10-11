@@ -451,11 +451,12 @@ wheels = [
 
 [[package]]
 name = "mkdocs-note"
-version = "1.1.4"
-source = { virtual = "." }
+version = "1.2.0"
+source = { editable = "." }
 dependencies = [
     { name = "colorlog" },
     { name = "mkdocs" },
+    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
@@ -482,6 +483,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
+    { name = "pyyaml", specifier = ">=6.0" },
 ]
 provides-extras = ["dev", "test"]
 

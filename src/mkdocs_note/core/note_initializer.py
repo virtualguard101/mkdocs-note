@@ -35,11 +35,11 @@ class NoteInitializer:
             # Use provided directory or config default
             target_dir = Path(notes_dir) if notes_dir else Path(self.config.notes_dir)
             
-            self.logger.info(f"Initializing note directory: {target_dir}")
+            self.logger.debug(f"Initializing note directory: {target_dir}")
             
             # Check if directory exists
             if not target_dir.exists():
-                self.logger.info(f"Creating notes directory: {target_dir}")
+                self.logger.debug(f"Creating notes directory: {target_dir}")
                 target_dir.mkdir(parents=True, exist_ok=True)
             
             # Scan existing notes
@@ -57,15 +57,15 @@ class NoteInitializer:
             non_compliant = [info for info in asset_tree_analysis if not info.is_compliant]
             
             if non_compliant:
-                self.logger.info(f"Found {len(non_compliant)} non-compliant asset structures")
+                self.logger.debug(f"Found {len(non_compliant)} non-compliant asset structures")
                 self._fix_asset_tree(target_dir, non_compliant)
             else:
-                self.logger.info("Asset tree structure is already compliant")
+                self.logger.debug("Asset tree structure is already compliant")
             
             # Create index file if it doesn't exist
             self._ensure_index_file(target_dir)
             
-            self.logger.info("Note directory initialization completed successfully")
+            self.logger.debug("Note directory initialization completed successfully")
             return 0
             
         except Exception as e:
@@ -192,7 +192,7 @@ class NoteInitializer:
         assets_dir = notes_dir / "assets"
         
         for info in non_compliant:
-            self.logger.info(f"Fixing asset structure for note: {info.note_name}")
+            self.logger.debug(f"Fixing asset structure for note: {info.note_name}")
             
             # Create missing directories
             for missing_dir in info.missing_dirs:
@@ -205,7 +205,7 @@ class NoteInitializer:
                     f"Note '{info.note_name}' has extra directories that don't match our design: "
                     f"{[str(d) for d in info.extra_dirs]}"
                 )
-                self.logger.info("These directories will be preserved but may not be managed by the plugin")
+                self.logger.debug("These directories will be preserved but may not be managed by the plugin")
     
     def _ensure_index_file(self, notes_dir: Path) -> None:
         """Ensure index file exists in notes directory.
@@ -217,7 +217,7 @@ class NoteInitializer:
         
         if not index_file.exists():
             index_file.write_text("", encoding='utf-8')
-            self.logger.info(f"Created index file: {index_file}")
+            self.logger.debug(f"Created index file: {index_file}")
     
     def _ensure_template_file(self, notes_dir: Path) -> None:
         """Ensure template file exists based on config.
@@ -229,7 +229,7 @@ class NoteInitializer:
         
         # Check if template exists
         if template_path.exists():
-            self.logger.info(f"Template file found: {template_path}")
+            self.logger.debug(f"Template file found: {template_path}")
             return
         
         # Template doesn't exist, check if we should create it
@@ -247,12 +247,12 @@ class NoteInitializer:
         # Create empty template file
         if should_create:
             template_path.write_text("", encoding='utf-8')
-            self.logger.info(f"Created template file: {template_path}")
+            self.logger.debug(f"Created template file: {template_path}")
         else:
             self.logger.warning(
                 f"Template file not found and cannot be auto-created: {template_path}"
             )
-            self.logger.info(
+            self.logger.debug(
                 f"Please create the template file manually or update the 'notes_template' "
                 f"configuration in mkdocs.yml"
             )

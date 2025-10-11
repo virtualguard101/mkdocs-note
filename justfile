@@ -1,5 +1,5 @@
 alias t := test
-alias p: publish
+alias p:= publish
 
 test OPTIONS:
     ./tests/test.sh {{OPTIONS}}

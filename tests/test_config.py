@@ -33,7 +33,7 @@ class TestPluginConfig(unittest.TestCase):
         self.assertEqual(self.config.cache_size, 256)
         self.assertTrue(self.config.use_git_timestamps)
         self.assertEqual(self.config.assets_dir, 'docs/notes/assets')
-        self.assertEqual(self.config.notes_template, 'docs/notes/template/default.md')
+        self.assertEqual(self.config.notes_template, 'docs/templates/default.md')
 
     def test_config_validation(self):
         """Test configuration validation."""
