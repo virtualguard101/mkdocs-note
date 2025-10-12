@@ -1,3 +1,0 @@
-# JavaScript Introduction
-
-JavaScript fundamentals.

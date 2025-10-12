@@ -1,7 +1,7 @@
 alias t := test
 alias p:= publish
 
-test OPTIONS:
+test OPTIONS="":
     ./tests/test.sh {{OPTIONS}}
 
 publish VERSION:
