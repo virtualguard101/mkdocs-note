@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 class NoteScanner:
-    """File scanner"""
+    """Note file scanner"""
     
     def __init__(self, config: PluginConfig, logger: Logger):
         self.config = config
