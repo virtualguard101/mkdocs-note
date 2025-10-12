@@ -15,7 +15,7 @@ import click
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from mkdocs_note.config import PluginConfig
+from mkdocs_note.config import PluginConfig, load_config_from_mkdocs_yml
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.note_initializer import NoteInitializer
 from mkdocs_note.core.note_creator import NoteCreator
@@ -30,13 +30,30 @@ from mkdocs_note.core.notes_mover import NoteMover
 def cli(ctx, config):
     """MkDocs-Note CLI - Manage notes and their asset structure."""
     # Load configuration
-    if config:
-        # TODO: Parse mkdocs.yml to extract plugin config
-        pass
-    
     ctx.ensure_object(dict)
-    ctx.obj['config'] = PluginConfig()
-    ctx.obj['logger'] = Logger()
+    logger = Logger()
+    
+    try:
+        if config:
+            # Load config from specified file
+            plugin_config = load_config_from_mkdocs_yml(Path(config))
+            logger.debug(f"Loaded configuration from: {config}")
+        else:
+            # Try to find and load mkdocs.yml automatically
+            plugin_config = load_config_from_mkdocs_yml()
+            if plugin_config:
+                logger.debug("Automatically found and loaded mkdocs.yml configuration")
+    except FileNotFoundError as e:
+        logger.error(str(e))
+        click.echo(f"❌ {e}")
+        raise click.Abort()
+    except ValueError as e:
+        logger.error(f"Failed to parse config: {e}")
+        click.echo(f"❌ {e}")
+        raise click.Abort()
+    
+    ctx.obj['config'] = plugin_config
+    ctx.obj['logger'] = logger
 
 
 @cli.command("init")

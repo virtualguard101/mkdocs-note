@@ -90,7 +90,12 @@ mkdocs-note new docs/notes/my-new-note.md
 
 ### 命令行接口
 
-插件提供了多个用于笔记管理的 CLI 命令：
+插件提供了多个用于笔记管理的 CLI 命令。
+
+> **配置自动加载**：所有 CLI 命令会自动从当前目录或父目录中的 `mkdocs.yml` 加载您的自定义配置。您也可以使用 `--config` 或 `-c` 选项显式指定配置文件：
+> ```bash
+> mkdocs-note --config path/to/mkdocs.yml <command>
+> ```
 
 #### 初始化笔记目录
 ```bash

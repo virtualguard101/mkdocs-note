@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-note"
-version = "1.2.0"
+version = "1.2.1"
 description = "A MkDocs plugin to add note boxes to your documentation."
 readme = "README.md"
 requires-python = ">=3.12"

@@ -72,6 +72,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added inline examples for metadata registration usage
 
 
+## 1.2.1 - 2025-10-13
+
+### Fixed
+
+- **CLI Configuration Loading**: Fixed CLI tools not respecting user's custom configuration from `mkdocs.yml` (#23)
+  
+  - Previously, CLI commands (`validate`, `init`, `new`, etc.) always used default configuration values, ignoring user's custom settings in `mkdocs.yml`
+  
+  - This caused commands to operate on wrong directories (e.g., validating `docs/notes` when user configured `docs/usage`)
+  
+  - Implemented `load_config_from_mkdocs_yml()` function to parse and load plugin configuration from `mkdocs.yml`
+  
+  - Added automatic `mkdocs.yml` file discovery in current and parent directories
+  
+  - CLI now correctly applies user's custom configuration for all commands
+  
+  - Added comprehensive unit tests for configuration loading functionality
+
+
 ## 1.2.0 - 2025-10-11
 
 ### Added

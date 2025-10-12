@@ -101,7 +101,12 @@ mkdocs-note new docs/notes/my-new-note.md
 
 ### Command Line Interface
 
-The plugin provides several CLI commands for note management:
+The plugin provides several CLI commands for note management.
+
+> **Configuration Auto-Loading**: All CLI commands automatically load your custom configuration from `mkdocs.yml` in the current or parent directories. You can also specify a config file explicitly using `--config` or `-c` option:
+> ```bash
+> mkdocs-note --config path/to/mkdocs.yml <command>
+> ```
 
 #### Initialize Notes Directory
 ```bash
