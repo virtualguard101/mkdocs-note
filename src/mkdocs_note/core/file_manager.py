@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 class NoteScanner:
-    """File scanner"""
+    """Note file scanner"""
     
     def __init__(self, config: PluginConfig, logger: Logger):
         self.config = config
@@ -28,7 +28,7 @@ class NoteScanner:
             self.logger.error(f"Permission denied while scanning {notes_dir}: {e}")
             return []
         
-        self.logger.info(f"Found {len(notes)} note files")
+        self.logger.debug(f"Found {len(notes)} note files")
         return notes
     
     def _is_valid_note_file(self, file_path: Path) -> bool:
@@ -86,7 +86,7 @@ class AssetScanner:
             self.logger.error(f"Permission denied while scanning {assets_dir}: {e}")
             return []
         
-        self.logger.info(f"Found {len(assets)} asset files")
+        self.logger.debug(f"Found {len(assets)} asset files")
         return assets
     
     def _is_valid_asset_file(self, file_path: Path) -> bool:

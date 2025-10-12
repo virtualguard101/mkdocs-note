@@ -1,5 +1,1 @@
----
-date:
-permalink:
-publish: 
----
+# Template content

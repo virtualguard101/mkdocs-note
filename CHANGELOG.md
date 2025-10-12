@@ -5,6 +5,92 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Frontmatter Metadata System** (#15): Implemented comprehensive frontmatter management system for notes
+  
+  - Added `NoteFrontmatter` data class to `data_models.py` for storing note metadata
+  
+  - Created `frontmatter_manager.py` module with extensible metadata registration system:
+    
+    - `MetadataRegistry`: Central registry for managing metadata fields
+    
+    - `MetadataField`: Definition class for metadata fields with type validation
+    
+    - `FrontmatterParser`: YAML frontmatter parser for markdown files
+    
+    - `FrontmatterManager`: High-level facade for frontmatter operations
+  
+  - Standard metadata fields: `date`, `permalink`, `publish`
+  
+  - Support for custom metadata fields through registration interface
+  
+  - Metadata validation system with type checking and custom validators
+
+- **Template System Enhancement**: Improved note template framework
+  
+  - Template variables now only substitute in frontmatter section, keeping note body clean
+  
+  - Support for both new frontmatter-style templates and legacy templates
+  
+  - Automatic detection and handling of template types
+  
+  - Updated default template with frontmatter structure
+
+- **Metadata Integration**:
+  
+  - `NoteProcessor` now extracts frontmatter from markdown notes
+  
+  - `NoteInfo` dataclass extended with optional `frontmatter` field
+  
+  - `NoteCreator` generates notes with proper frontmatter structure
+
+### Changed
+
+- **Dependencies**: Added `pyyaml>=6.0` for YAML frontmatter parsing
+
+- **Default Template**: Updated to include frontmatter with standard fields
+
+- **Project Configuration**: Added `build-system` to `pyproject.toml` for proper package installation
+
+### Technical Details
+
+- **Extensibility**: Metadata system uses registration pattern for easy extension without modifying core code
+
+- **Backward Compatibility**: Existing notes without frontmatter continue to work normally
+
+- **Type Safety**: Comprehensive type hints throughout frontmatter system
+
+- **Testing**: Added 31 unit tests for frontmatter management system (all passing)
+
+### Documentation
+
+- Enhanced code documentation with detailed docstrings
+
+- Added inline examples for metadata registration usage
+
+
+## 1.2.1 - 2025-10-13
+
+### Fixed
+
+- **CLI Configuration Loading**: Fixed CLI tools not respecting user's custom configuration from `mkdocs.yml` (#23)
+  
+  - Previously, CLI commands (`validate`, `init`, `new`, etc.) always used default configuration values, ignoring user's custom settings in `mkdocs.yml`
+  
+  - This caused commands to operate on wrong directories (e.g., validating `docs/notes` when user configured `docs/usage`)
+  
+  - Implemented `load_config_from_mkdocs_yml()` function to parse and load plugin configuration from `mkdocs.yml`
+  
+  - Added automatic `mkdocs.yml` file discovery in current and parent directories
+  
+  - CLI now correctly applies user's custom configuration for all commands
+  
+  - Added comprehensive unit tests for configuration loading functionality
+
+
 ## 1.2.0 - 2025-10-11
 
 ### Added

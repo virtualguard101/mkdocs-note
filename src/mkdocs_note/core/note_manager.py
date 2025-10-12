@@ -10,8 +10,9 @@ from pathlib import Path
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+from mkdocs_note.core.data_models import NoteInfo, AssetsInfo, NoteFrontmatter
 from mkdocs_note.core.assets_manager import AssetsProcessor
+from mkdocs_note.core.frontmatter_manager import FrontmatterManager
 
 class NoteProcessor:
     """Note processor
@@ -21,6 +22,7 @@ class NoteProcessor:
         self.config = config
         self.logger = logger
         self.assets_processor = AssetsProcessor(config, logger)
+        self.frontmatter_manager = FrontmatterManager()
         self._timezone = self._parse_timezone(config.timestamp_zone)
     
     def _parse_timezone(self, timezone_str: str) -> timezone:
@@ -72,6 +74,9 @@ class NoteProcessor:
             # Get basic information
             stat = file_path.stat()
             
+            # Extract frontmatter (if present)
+            frontmatter = self._extract_frontmatter(file_path)
+            
             # Extract title
             title = self._extract_title(file_path)
             if not title or title == "Notebook":
@@ -105,13 +110,38 @@ class NoteProcessor:
                 modified_date=modified_date,
                 file_size=stat.st_size,
                 modified_time=modified_time,
-                assets_list=self._extract_assets(file_path)
+                assets_list=self._extract_assets(file_path),
+                frontmatter=frontmatter
             )
             
         except Exception as e:
             self.logger.error(f"Failed to process note {file_path}: {e}")
             return None
 
+    def _extract_frontmatter(self, file_path: Path) -> Optional[NoteFrontmatter]:
+        """Extract frontmatter from file.
+        
+        Args:
+            file_path (Path): The path of the file to extract frontmatter from
+            
+        Returns:
+            Optional[NoteFrontmatter]: The frontmatter if successful, None otherwise
+        """
+        # Only process markdown files for frontmatter
+        if file_path.suffix.lower() != '.md':
+            return None
+        
+        try:
+            frontmatter_dict, _ = self.frontmatter_manager.parse_file(file_path)
+            
+            if frontmatter_dict:
+                return NoteFrontmatter.from_dict(frontmatter_dict)
+            else:
+                return None
+                
+        except Exception as e:
+            self.logger.debug(f"No frontmatter found in {file_path.name}: {e}")
+            return None
    
     def _extract_title(self, file_path: Path) -> Optional[str]:
         """Extract title from file
@@ -356,7 +386,7 @@ class IndexUpdater:
             
             # Write to file
             index_file.write_text(updated_content, encoding='utf-8')
-            self.logger.info(f"Updated index file with {len(notes) - 1} notes")
+            self.logger.debug(f"Updated index file with {len(notes) - 1} notes")
             return True
             
         except Exception as e:
@@ -438,7 +468,7 @@ class RecentNotesUpdater:
         Returns:
             bool: True if the recent notes update is successful, False otherwise
         """
-        self.logger.info("Starting recent notes update...")
+        self.logger.debug("Starting recent notes update...")
         
         try:
             # Scan note files
@@ -460,7 +490,7 @@ class RecentNotesUpdater:
             
             # Check cache
             if not self.cache_manager.should_update_notes(notes):
-                self.logger.info("Notes unchanged, skipping update")
+                self.logger.debug("Notes unchanged, skipping update")
                 return True
             
             # Sort by modified time
@@ -470,7 +500,7 @@ class RecentNotesUpdater:
             # Update index file
             success = self.index_updater.update_index(recent_notes)
             if success:
-                self.logger.info(f"Successfully updated recent notes ({len(recent_notes) - 1} notes)")
+                self.logger.debug(f"Successfully updated recent notes ({len(recent_notes) - 1} notes)")
             else:
                 self.logger.error("Failed to update index file")
             

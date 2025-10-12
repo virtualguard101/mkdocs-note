@@ -101,7 +101,12 @@ mkdocs-note new docs/notes/my-new-note.md
 
 ### Command Line Interface
 
-The plugin provides several CLI commands for note management:
+The plugin provides several CLI commands for note management.
+
+> **Configuration Auto-Loading**: All CLI commands automatically load your custom configuration from `mkdocs.yml` in the current or parent directories. You can also specify a config file explicitly using `--config` or `-c` option:
+> ```bash
+> mkdocs-note --config path/to/mkdocs.yml <command>
+> ```
 
 #### Initialize Notes Directory
 ```bash
@@ -207,12 +212,12 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | `use_git_timestamps` | bool | `true` | Use Git commit timestamps for sorting instead of file system timestamps |
 | `timestamp_zone` | str | `"UTC+0"` | Timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5'). Ensures consistent timestamp display across different deployment environments |
 | `assets_dir` | Path | `"docs/notes/assets"` | Directory for storing note assets. Uses tree-based structure with `.assets` suffix on first-level subdirectories |
-| `notes_template` | Path | `"docs/notes/template/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
+| `notes_template` | Path | `"docs/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
 
 ### Template System
 
-The plugin supports a flexible template system for creating new notes:
+The plugin supports a flexible template system with frontmatter support for creating new notes:
 
 #### Template Variables
 
@@ -222,17 +227,40 @@ The plugin supports a flexible template system for creating new notes:
 
 - `{{note_name}}`: The original note filename
 
+**Note**: Template variables are replaced **only in the frontmatter section**, keeping the note body clean and free from template syntax.
+
 #### Default Template
 
-The default template (`docs/notes/template/default.md`) contains:
+The default template (`docs/templates/default.md`) contains:
 
 ```markdown
+---
+date: {{date}}
+title: {{title}}
+permalink: 
+publish: true
+---
+
 # {{title}}
 
-Created on {{date}}
-
-Note: {{note_name}}
+Start writing your note content...
 ```
+
+#### Frontmatter Support
+
+Notes support YAML frontmatter for metadata management:
+
+- **Standard Fields**:
+  
+  - `date`: Creation or publication date
+  
+  - `permalink`: Custom permalink for the note
+  
+  - `publish`: Whether the note should be published (true/false)
+
+- **Custom Fields**: You can add custom metadata fields through the extensible registration system
+
+- **Metadata Registry**: The plugin provides a metadata registration interface for adding new fields without modifying core code
 
 #### Custom Templates
 
@@ -241,6 +269,12 @@ You can use custom templates when creating notes:
 ```bash
 mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 ```
+
+**Template Types**:
+
+- **Frontmatter Templates** (Recommended): Include YAML frontmatter section with variables
+
+- **Legacy Templates**: Simple markdown without frontmatter (still supported)
 
 ### Asset Management
 

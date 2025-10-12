@@ -1,7 +1,10 @@
 from pathlib import Path
-from typing import Set
+from typing import Set, Dict, Any, Optional
 from mkdocs.config import Config
 from mkdocs.config import base, config_options as config_opt
+import yaml
+
+
 
 class PluginConfig(Config):
     """Configuration class, managing all configuration parameters.
@@ -67,7 +70,7 @@ class PluginConfig(Config):
     """The directory of the assets.
     """
 
-    notes_template = config_opt.Type(str, default='docs/notes/template/default.md')
+    notes_template = config_opt.Type(str, default='docs/templates/default.md')
     """The template of the notes.
     """
 
@@ -75,3 +78,120 @@ class PluginConfig(Config):
     """The timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5').
     This ensures consistent timestamp display across different deployment environments.
     """
+
+
+def load_config_from_mkdocs_yml(config_path: Optional[Path] = None) -> PluginConfig:
+    """Load plugin configuration from mkdocs.yml file.
+    
+    This function parses the mkdocs.yml file and extracts the mkdocs-note plugin
+    configuration. If no config file is provided or the plugin is not configured,
+    it returns a default PluginConfig instance.
+    
+    Args:
+        config_path: Path to the mkdocs.yml file. If None, tries to find it in:
+                    1. Current working directory
+                    2. Parent directories (up to 3 levels)
+    
+    Returns:
+        PluginConfig: A configured PluginConfig instance
+    
+    Raises:
+        FileNotFoundError: If the config file is specified but doesn't exist
+        ValueError: If the config file is invalid or cannot be parsed
+    """
+    # Try to find mkdocs.yml if not specified
+    if config_path is None:
+        config_path = _find_mkdocs_yml()
+    
+    if config_path is None:
+        # No config file found, return default config
+        return PluginConfig()
+    
+    config_path = Path(config_path)
+    
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            # Use UnsafeLoader to handle Python object references in mkdocs.yml
+            # This is safe in our context because:
+            # 1. We're only reading the project's own configuration file
+            # 2. We only extract the plugin configuration, not execute any code
+            # 3. MkDocs itself also loads and trusts this file
+            mkdocs_config = yaml.load(f, Loader=yaml.UnsafeLoader)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Failed to parse YAML config file: {e}")
+    except Exception as e:
+        raise ValueError(f"Failed to read config file: {e}")
+    
+    # Extract plugin configuration
+    plugin_config_dict = _extract_plugin_config(mkdocs_config)
+    
+    # Create PluginConfig instance with extracted config
+    config = PluginConfig()
+    
+    # Apply user configuration to the config instance
+    if plugin_config_dict:
+        for key, value in plugin_config_dict.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+    
+    return config
+
+
+def _find_mkdocs_yml() -> Optional[Path]:
+    """Find mkdocs.yml file in current or parent directories.
+    
+    Searches for mkdocs.yml in:
+    1. Current working directory
+    2. Up to 3 parent directories
+    
+    Returns:
+        Optional[Path]: Path to mkdocs.yml if found, None otherwise
+    """
+    current_dir = Path.cwd()
+    
+    # Check current directory
+    for filename in ['mkdocs.yml', 'mkdocs.yaml']:
+        config_path = current_dir / filename
+        if config_path.exists():
+            return config_path
+    
+    # Check parent directories (up to 3 levels)
+    for _ in range(3):
+        current_dir = current_dir.parent
+        for filename in ['mkdocs.yml', 'mkdocs.yaml']:
+            config_path = current_dir / filename
+            if config_path.exists():
+                return config_path
+    
+    return None
+
+
+def _extract_plugin_config(mkdocs_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract mkdocs-note plugin configuration from MkDocs config.
+    
+    Args:
+        mkdocs_config: The parsed MkDocs configuration dictionary
+    
+    Returns:
+        Dict[str, Any]: The plugin configuration dictionary
+    """
+    if not mkdocs_config or 'plugins' not in mkdocs_config:
+        return {}
+    
+    plugins = mkdocs_config['plugins']
+    
+    # Handle both list and dict plugin configurations
+    if isinstance(plugins, list):
+        for plugin in plugins:
+            if isinstance(plugin, dict) and 'mkdocs-note' in plugin:
+                return plugin['mkdocs-note']
+            elif isinstance(plugin, str) and plugin == 'mkdocs-note':
+                return {}  # Plugin enabled with default config
+    elif isinstance(plugins, dict):
+        if 'mkdocs-note' in plugins:
+            return plugins['mkdocs-note']
+    
+    return {}

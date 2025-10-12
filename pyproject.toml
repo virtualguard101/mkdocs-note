@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-note"
-version = "1.2.0"
+version = "1.2.1"
 description = "A MkDocs plugin to add note boxes to your documentation."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -16,6 +16,7 @@ license-files = ["LICENSE"]
 dependencies = [
     "mkdocs>=1.6.1",
     "colorlog>=6.9.0",
+    "pyyaml>=6.0",
 ]
 
 [project.urls]
@@ -40,6 +41,13 @@ mkdocs-note = "mkdocs_note.cli:cli"
 
 [project.entry-points."mkdocs.plugins"]
 mkdocs-note = "mkdocs_note.plugin:MkdocsNotePlugin"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+package = true
 
 # TestPyPI configuration for uv
 [[tool.uv.index]]

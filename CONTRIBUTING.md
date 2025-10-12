@@ -26,7 +26,8 @@ mkdocs_note/
     ├── note_manager.py      # Note processing and management
     ├── note_creator.py      # Note creation with templates
     ├── note_initializer.py  # Directory structure initialization
-    ├── assets_manager.py    # Assets management (NEW)
+    ├── assets_manager.py    # Assets management
+    ├── frontmatter_manager.py  # Frontmatter metadata system (NEW)
     └── data_models.py       # Data models and structures
 ```
 
@@ -51,6 +52,7 @@ graph TB
         FileManager[file_manager.py]
         NoteManager[note_manager.py]
         AssetsManager[assets_manager.py]
+        FrontmatterManager[frontmatter_manager.py]
         NoteCreator[note_creator.py]
         NoteInitializer[note_initializer.py]
         DataModels[data_models.py]
@@ -84,6 +86,7 @@ graph TB
     NoteManager --> Logger
     NoteManager --> FileManager
     NoteManager --> AssetsManager
+    NoteManager --> FrontmatterManager
     NoteManager --> DataModels
     NoteManager --> Git
     
@@ -91,9 +94,12 @@ graph TB
     AssetsManager --> Logger
     AssetsManager --> DataModels
     
+    FrontmatterManager --> DataModels
+    
     NoteCreator --> Config
     NoteCreator --> Logger
     NoteCreator --> NoteInitializer
+    NoteCreator --> FrontmatterManager
     
     NoteInitializer --> Config
     NoteInitializer --> Logger
@@ -236,6 +242,7 @@ classDiagram
         -config: PluginConfig
         -logger: Logger
         -initializer: NoteInitializer
+        -frontmatter_manager: FrontmatterManager
         -_timezone: timezone
         +create_new_note(file_path, template_path) int
         +validate_note_creation(file_path) Tuple
@@ -256,6 +263,57 @@ classDiagram
         -_check_compliance(asset_dir, expected_structure) bool
     }
     
+    class MetadataField {
+        +name: str
+        +field_type: Type
+        +default: Any
+        +required: bool
+        +validator: Optional[Callable]
+        +description: str
+        +validate(value) bool
+    }
+    
+    class MetadataRegistry {
+        -_fields: Dict[str, MetadataField]
+        +register(field) None
+        +unregister(field_name) None
+        +get_field(field_name) Optional[MetadataField]
+        +get_all_fields() Dict[str, MetadataField]
+        +get_default_values() Dict[str, Any]
+        +validate_data(data) Tuple[bool, List[str]]
+    }
+    
+    class FrontmatterParser {
+        -registry: MetadataRegistry
+        +parse(content) Tuple[Dict, str]
+        +parse_file(file_path) Tuple[Dict, str]
+        +generate(frontmatter, body) str
+        +update_frontmatter(content, updates, merge) str
+        +remove_frontmatter(content) str
+        +validate_content(content) Tuple[bool, List[str]]
+    }
+    
+    class FrontmatterManager {
+        -registry: MetadataRegistry
+        -parser: FrontmatterParser
+        +register_field(field) None
+        +create_default_frontmatter(custom_values) Dict[str, Any]
+        +parse_file(file_path) Tuple[Dict, str]
+        +create_note_content(frontmatter, body, validate) Tuple[str, List[str]]
+        +update_note_frontmatter(file_path, updates, merge) None
+        +get_field_info(field_name) Optional[MetadataField]
+        +list_all_fields() Dict[str, MetadataField]
+    }
+    
+    class NoteFrontmatter {
+        +date: Optional[str]
+        +permalink: Optional[str]
+        +publish: Optional[bool]
+        +custom: Dict[str, Any]
+        +to_dict() Dict[str, Any]
+        +from_dict(data) NoteFrontmatter
+    }
+    
     class NoteInfo {
         +file_path: Path
         +title: str
@@ -264,6 +322,7 @@ classDiagram
         +file_size: int
         +modified_time: float
         +assets_list: List[AssetsInfo]
+        +frontmatter: Optional[NoteFrontmatter]
     }
     
     class AssetsInfo {
@@ -301,8 +360,10 @@ classDiagram
     NoteProcessor --> PluginConfig
     NoteProcessor --> Logger
     NoteProcessor --> AssetsProcessor
+    NoteProcessor --> FrontmatterManager
     NoteProcessor --> NoteInfo
     NoteProcessor --> AssetsInfo
+    NoteProcessor --> NoteFrontmatter
     
     RecentNotesUpdater --> PluginConfig
     RecentNotesUpdater --> Logger
@@ -334,11 +395,21 @@ classDiagram
     NoteCreator --> PluginConfig
     NoteCreator --> Logger
     NoteCreator --> NoteInitializer
+    NoteCreator --> FrontmatterManager
     
     NoteInitializer --> PluginConfig
     NoteInitializer --> Logger
     NoteInitializer --> NoteScanner
     NoteInitializer --> AssetTreeInfo
+    
+    FrontmatterManager --> MetadataRegistry
+    FrontmatterManager --> FrontmatterParser
+    
+    FrontmatterParser --> MetadataRegistry
+    
+    MetadataRegistry --> MetadataField
+    
+    NoteInfo --> NoteFrontmatter
 ```
 
 ### Core Components
@@ -413,7 +484,75 @@ Multiple classes handle note processing and management:
 
 - **`RecentNotesUpdater`**: Main orchestrator class
 
-#### 5. Assets Management (`core/assets_manager.py`) **NEW**
+#### 5. Frontmatter Management (`core/frontmatter_manager.py`) **NEW**
+
+The frontmatter management system provides extensible metadata handling for notes:
+
+- **`MetadataRegistry`**: Central registry for managing metadata fields
+  
+  - Stores field definitions with type information and validators
+  
+  - Provides registration/unregistration interface
+  
+  - Validates metadata against registered fields
+  
+  - Default fields: `date`, `permalink`, `publish`
+
+- **`MetadataField`**: Definition class for metadata fields
+  
+  - Field name, type, default value, required flag
+  
+  - Optional custom validator function
+  
+  - Type checking and validation logic
+
+- **`FrontmatterParser`**: YAML frontmatter parser
+  
+  - Parses YAML frontmatter from markdown files
+  
+  - Generates markdown with frontmatter
+  
+  - Updates existing frontmatter (merge or replace)
+  
+  - Validates frontmatter structure
+
+- **`FrontmatterManager`**: High-level facade
+  
+  - Combines registry and parser functionality
+  
+  - Simplified interface for common operations
+  
+  - Creates notes with validated frontmatter
+
+- **Global Registry**: Singleton registry instance
+  
+  - `get_registry()`: Access global registry
+  
+  - `register_field()`: Register fields globally
+
+**Extensibility**:
+- New metadata fields can be added through registration without modifying core code
+- Custom validators can enforce field-specific rules
+- Type system ensures metadata consistency
+
+**Example: Registering a Custom Field**:
+```python
+from mkdocs_note.core.frontmatter_manager import MetadataField, register_field
+
+# Define custom field
+author_field = MetadataField(
+    name="author",
+    field_type=str,
+    default="Anonymous",
+    required=False,
+    description="Note author"
+)
+
+# Register globally
+register_field(author_field)
+```
+
+#### 6. Assets Management (`core/assets_manager.py`)
 
 The assets management system uses a tree-based structure to organize note assets:
 
@@ -468,7 +607,7 @@ notes/
 - Converted to `![](../../assets/dsa.assets/anal/iter/img.png)`
 - MkDocs resolves the path correctly relative to the note file
 
-#### 6. Note Creation (`core/note_creator.py`)
+#### 7. Note Creation (`core/note_creator.py`)
 
 The `NoteCreator` class handles creating new notes with proper asset structure:
 
@@ -480,7 +619,7 @@ The `NoteCreator` class handles creating new notes with proper asset structure:
 
 - Supports custom templates
 
-#### 7. Directory Initialization (`core/note_initializer.py`)
+#### 8. Directory Initialization (`core/note_initializer.py`)
 
 The `NoteInitializer` class manages directory structure:
 
@@ -492,7 +631,7 @@ The `NoteInitializer` class manages directory structure:
 
 - Creates necessary directories and index files
 
-#### 8. Logging (`logger.py`)
+#### 9. Logging (`logger.py`)
 
 The `Logger` class provides colored console logging:
 
