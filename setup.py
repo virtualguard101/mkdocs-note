@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="mkdocs-note",
-    version="1.2.1",
+    version="1.2.2",
     author="virtualguard101",
     author_email="virtualguard101@gmail.com",
     description="A MkDocs plugin to add note boxes to your documentation.",
@@ -16,6 +16,8 @@ setup(
     install_requires=[
         "mkdocs>=1.6.1",
         "colorlog>=6.9.0",
+        "pyyaml>=6.0",
+        "pymdown-extensions>=10.15"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

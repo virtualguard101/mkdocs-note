@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-note"
-version = "1.2.1"
+version = "1.2.2"
 description = "A MkDocs plugin to add note boxes to your documentation."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -17,6 +17,7 @@ dependencies = [
     "mkdocs>=1.6.1",
     "colorlog>=6.9.0",
     "pyyaml>=6.0",
+    "pymdown-extensions>=10.15"
 ]
 
 [project.urls]
