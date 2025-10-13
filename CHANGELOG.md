@@ -71,6 +71,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added inline examples for metadata registration usage
 
+
+## 1.2.3 - 2025-10-13
+
+### Fixed
+
+- **Dependencies**: Added `mkdocs-material>=9.6.14`, `mkdocs-jupyter>=0.25.1`, `mkdocs-minify-plugin>=0.8.0`, `mkdocs-git-revision-date-localized-plugin>=1.4.0` to `pyproject.toml` and `setup.py`
+
+
 ## 1.2.2 - 2025-10-13
 
 ### Fixed
