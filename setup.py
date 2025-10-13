@@ -17,7 +17,7 @@ setup(
         "mkdocs>=1.6.1",
         "colorlog>=6.9.0",
         "pyyaml>=6.0",
-        "pymdown-extensions>=10.15"
+        "pymdown-extensions>=10.15",
         "mkdocs-material>=9.6.14",
         "mkdocs-jupyter>=0.25.1",
         "mkdocs-minify-plugin>=0.8.0",
