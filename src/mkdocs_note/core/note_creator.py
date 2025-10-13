@@ -266,9 +266,10 @@ class NoteCreator:
     def _get_asset_directory(self, note_file_path: Path) -> Path:
         """Get the asset directory path for a note file.
         
-        This method calculates the asset directory using the note's relative path
-        from the notes directory, ensuring that notes in different subdirectories
-        with the same name don't conflict.
+        This method calculates the asset directory based on the note file's location.
+        The asset directory is always placed in an 'assets' subdirectory within the
+        same directory as the note file, using the note's stem (filename without extension)
+        as the final directory name.
         
         Args:
             note_file_path (Path): The path of the note file
@@ -277,19 +278,18 @@ class NoteCreator:
             Path: The asset directory path
             
         Examples:
-            For note: docs/notes/python/intro.md
-            Returns: docs/notes/assets/python/intro/
+            For note: docs/usage/contributing.md
+            Returns: docs/usage/assets/contributing/
             
-            For note: docs/notes/javascript/intro.md
-            Returns: docs/notes/assets/javascript/intro/
+            For note: docs/notes/python/intro.md
+            Returns: docs/notes/python/assets/intro/
+            
+            For note: docs/notes/python/advanced/oop.md
+            Returns: docs/notes/python/advanced/assets/oop/
         """
-        from mkdocs_note.core.assets_manager import get_note_relative_path
-        
-        notes_dir = Path(self.config.notes_dir)
-        note_relative_path = get_note_relative_path(note_file_path, notes_dir)
-        
-        assets_dir = Path(self.config.assets_dir)
-        return assets_dir / note_relative_path
+        # Asset directory is in the same directory as the note file
+        # Structure: note_file.parent / "assets" / note_file.stem
+        return note_file_path.parent / "assets" / note_file_path.stem
     
     def validate_note_creation(self, file_path: Path) -> Tuple[bool, str]:
         """Validate if a note can be created at the given path.

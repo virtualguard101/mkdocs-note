@@ -202,7 +202,7 @@ mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | 要排除的目录 |
 | `use_git_timestamps` | bool | `true` | 使用 Git 提交时间戳进行排序，而不是文件系统时间戳 |
 | `timestamp_zone` | str | `"UTC+0"` | 时间戳显示的时区（例如 'UTC+0'、'UTC+8'、'UTC-5'）。确保不同部署环境中的时间戳显示一致 |
-| `assets_dir` | Path | `"docs/notes/assets"` | 存储笔记资产的目录。使用树状结构，第一级子目录带有 `.assets` 后缀 |
+| `assets_dir` | Path | `"docs/notes/assets"` | *（自 v1.1.0 起已弃用）* 此选项不再使用。资产现在自动以就近存放结构放置在笔记旁边 |
 | `notes_template` | Path | `"docs/templates/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
 
@@ -269,30 +269,27 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 ### 资产管理
 
-插件使用**树状结构**自动管理每个笔记的资产：
+插件使用**就近存放结构**自动管理每个笔记的资产：
 
-#### 树状资产组织
+#### 就近存放的资产组织
 
-- **层次化结构**：资产镜像您的笔记目录结构，防止不同目录中同名笔记之间的冲突
+- **本地化结构**：资产目录与对应的笔记文件放在同一目录下，便于查找和管理
 
-- **第一级分类**：第一级子目录具有 `.assets` 后缀以便更好地识别
+- **简单模式**：对于任何笔记文件，资产存储在同目录下的 `assets/{笔记名}/` 中
   
-  - `notes/dsa/` → `assets/dsa.assets/`
+  - 笔记：`docs/usage/contributing.md` → 资产：`docs/usage/assets/contributing/`
 
-  - `notes/language/` → `assets/language.assets/`
+  - 笔记：`docs/notes/python/intro.md` → 资产：`docs/notes/python/assets/intro/`
 
-  - `notes/ml/` → `assets/ml.assets/`
+  - 笔记：`docs/notes/quickstart.md` → 资产：`docs/notes/assets/quickstart/`
 
 - **路径映射示例**：
   
   ```
-  notes/dsa/anal/iter.md           → assets/dsa.assets/anal/iter/
-
-  notes/language/python/intro.md  → assets/language.assets/python/intro/
-
-  notes/language/cpp/intro.md     → assets/language.assets/cpp/intro/
-
-  notes/quickstart.md              → assets/quickstart/
+  docs/notes/dsa/anal/iter.md           → docs/notes/dsa/anal/assets/iter/
+  docs/notes/language/python/intro.md  → docs/notes/language/python/assets/intro/
+  docs/usage/contributing.md            → docs/usage/assets/contributing/
+  docs/notes/quickstart.md              → docs/notes/assets/quickstart/
   ```
 
 #### 自动路径转换
@@ -305,21 +302,23 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 - **自动转换**：插件在构建期间自动转换路径：
   
-  - 对于 `notes/dsa/anal/iter.md` → `../../assets/dsa.assets/anal/iter/recursion_tree.png`
+  - 对于 `docs/notes/dsa/anal/iter.md` → `assets/iter/recursion_tree.png`
 
-  - 对于 `notes/quickstart.md` → `assets/quickstart/recursion_tree.png`
+  - 对于 `docs/notes/quickstart.md` → `assets/quickstart/recursion_tree.png`
 
 - **无需手动路径管理**：原始 markdown 文件保持简洁清晰
 
 #### 优势
 
-- ✅ **无命名冲突**：不同目录中的同名笔记不会冲突
+- ✅ **就近存放**：资产就在笔记旁边，便于查找和管理
 
-- ✅ **清晰组织**：`.assets` 后缀使资产类别易于识别
+- ✅ **无命名冲突**：每个笔记都有专属的资产目录
 
 - ✅ **自动处理**：图片路径在构建期间自动转换
 
 - ✅ **MkDocs 兼容**：生成的路径与 MkDocs 无缝协作
+
+- ✅ **便于移动**：笔记和资产目录可以一起轻松移动
 
 ### 工作原理
 
@@ -341,9 +340,7 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
    
    - 计算笔记在目录树中的位置
    
-   - 将相对资产路径转换为带有正确 `../` 前缀的正确引用
-   
-   - 为第一级目录添加 `.assets` 后缀以进行组织
+   - 将相对资产路径转换为指向就近存放的资产目录的正确引用
 
 6. 每次构建文档时都会自动运行此过程
 
@@ -354,21 +351,26 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
    ```
    docs/notes/
    ├── dsa/           # 数据结构与算法
+   │   └── anal/
+   │       ├── iter.md
+   │       └── assets/
+   │           └── iter/
+   │               ├── recursion_tree.png
+   │               └── diagram.png
    ├── language/      # 编程语言
+   │   └── python/
+   │       ├── intro.md
+   │       └── assets/
+   │           └── intro/
+   │               └── syntax.png
    ├── ml/            # 机器学习
    └── tools/         # 开发工具
    ```
 
-2. **资产放置**：将资产放置在相应的资产目录中
+2. **资产放置**：资产自动放置在笔记旁边
    
-   ```
-   docs/notes/assets/
-   ├── dsa.assets/
-   │   └── anal/
-   │       └── iter/
-   │           ├── recursion_tree.png
-   │           └── diagram.png
-   ```
+   - 笔记文件：`docs/notes/dsa/anal/iter.md`
+   - 资产目录：`docs/notes/dsa/anal/assets/iter/`
 
 3. **简单引用**：在笔记中编写简单的相对引用
    
@@ -379,7 +381,7 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 4. **自动转换**：让插件在构建期间处理路径转换
 
-> **注意**：如果您正在从旧版本迁移，可能需要重新组织您的资产目录以匹配新的树状结构（第一级目录带有 `.assets` 后缀）。
+> **注意**：从 v1.1.0 版本开始，插件使用就近存放的资产结构，资产存储在笔记旁边。这使得笔记及其资产更容易一起管理和移动。
 
 ### 时区配置
 

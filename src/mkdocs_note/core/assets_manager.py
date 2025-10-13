@@ -253,20 +253,16 @@ class AssetsProcessor:
             Optional[AssetsInfo]: The asset information if valid, None otherwise
         """
         try:
-            # Get the note's relative path from notes_dir
-            notes_dir = Path(self.config.notes_dir)
-            note_relative_path = get_note_relative_path(note_file, notes_dir)
-            
-            # Determine the asset directory structure
-            assets_dir = Path(self.config.assets_dir)
-            note_assets_dir = assets_dir / note_relative_path
+            # Co-located asset directory structure
+            # Asset directory is: note_file.parent / "assets" / note_file.stem
+            note_assets_dir = note_file.parent / "assets" / note_file.stem
             
             # Construct the full asset file path
             asset_file = note_assets_dir / image_path
             
             # Construct the relative path for markdown references
-            # This should be relative to the notes directory
-            relative_path = f"assets/{note_relative_path}/{image_path}"
+            # Path is relative to note file: assets/{note_stem}/{image_path}
+            relative_path = f"assets/{note_file.stem}/{image_path}"
             
             # Check if file exists
             exists = asset_file.exists()
@@ -290,7 +286,8 @@ class AssetsProcessor:
         """Update markdown content to use correct asset paths.
         
         This method converts relative asset references to paths that MkDocs
-        can correctly resolve. The paths are relative to the note file's location.
+        can correctly resolve. With co-located assets, the path is simply
+        'assets/{note_stem}/{image_path}' relative to the note file.
         
         Args:
             content (str): The original markdown content
@@ -307,25 +304,9 @@ class AssetsProcessor:
             if image_path.startswith(('http://', 'https://', '//', '/')):
                 return match.group(0)
             
-            # Get the note's relative path from notes_dir
-            notes_dir = Path(self.config.notes_dir)
-            note_relative_path = get_note_relative_path(note_file, notes_dir)
-            
-            # Calculate the depth of the note file (how many levels deep from notes_dir)
-            # This determines how many "../" we need to go up
-            try:
-                note_file_abs = note_file.resolve() if not note_file.is_absolute() else note_file
-                notes_dir_abs = notes_dir.resolve() if not notes_dir.is_absolute() else notes_dir
-                relative_to_notes = note_file_abs.relative_to(notes_dir_abs)
-                depth = len(relative_to_notes.parent.parts)
-            except (ValueError, AttributeError):
-                # Fallback: count slashes in relative path
-                depth = note_relative_path.replace('.assets', '').count('/')
-            
-            # Build the relative path from note file to assets directory
-            # Go up to notes_dir, then into assets directory
-            up_levels = '../' * depth if depth > 0 else ''
-            assets_path = f"{up_levels}assets/{note_relative_path}/{image_path}"
+            # Co-located asset structure: assets are in the same directory as the note
+            # Path format: assets/{note_stem}/{image_path}
+            assets_path = f"assets/{note_file.stem}/{image_path}"
             
             return f"![{alt_text}]({assets_path})"
         

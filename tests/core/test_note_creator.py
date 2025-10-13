@@ -148,8 +148,8 @@ class TestNoteCreator(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertTrue(note_path.exists())
         
-        # Check asset directory is created with .assets suffix on first level
-        expected_asset_dir = Path(self.config.assets_dir) / "dsa.assets" / "anal" / "iter"
+        # Check asset directory is created in co-located structure
+        expected_asset_dir = subdir / "assets" / "iter"
         self.assertTrue(expected_asset_dir.exists())
         
         # Check content
@@ -215,7 +215,7 @@ class TestNoteCreator(unittest.TestCase):
     
     def test_get_asset_directory_nested(self):
         """Test asset directory path generation for nested notes."""
-        # Test with nested note (should have .assets suffix on first level)
+        # Test with nested note (co-located structure)
         subdir = self.temp_dir / "dsa" / "anal"
         subdir.mkdir(parents=True, exist_ok=True)
         note_path = subdir / "intro.md"
@@ -223,8 +223,8 @@ class TestNoteCreator(unittest.TestCase):
         
         asset_dir = self.creator._get_asset_directory(note_path)
         
-        # First level should have .assets suffix
-        expected = Path(self.config.assets_dir) / "dsa.assets" / "anal" / "intro"
+        # Asset directory should be next to the note file
+        expected = subdir / "assets" / "intro"
         self.assertEqual(asset_dir, expected)
 
     @patch('mkdocs_note.core.note_creator.NoteInitializer')

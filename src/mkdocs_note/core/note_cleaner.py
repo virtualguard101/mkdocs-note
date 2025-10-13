@@ -9,7 +9,6 @@ from typing import List, Set, Tuple
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.assets_manager import get_note_relative_path
 
 
 class NoteCleaner:
@@ -27,11 +26,6 @@ class NoteCleaner:
             List[Path]: List of orphaned asset directory paths
         """
         notes_dir = Path(self.config.notes_dir)
-        assets_dir = Path(self.config.assets_dir)
-        
-        if not assets_dir.exists():
-            self.logger.warning(f"Assets directory does not exist: {assets_dir}")
-            return []
         
         # Get all note files
         note_files = self.note_scanner.scan_notes()
@@ -39,25 +33,30 @@ class NoteCleaner:
         # Build a set of expected asset directory paths
         expected_asset_dirs: Set[str] = set()
         for note_file in note_files:
-            note_relative_path = get_note_relative_path(note_file, notes_dir)
-            asset_dir_path = assets_dir / note_relative_path
+            # Calculate asset directory based on note file location
+            asset_dir_path = note_file.parent / "assets" / note_file.stem
             expected_asset_dirs.add(str(asset_dir_path.resolve()))
         
-        # Find all actual asset directories
+        # Find all actual asset directories by scanning notes_dir
         orphaned_dirs: List[Path] = []
         
         try:
-            # Scan for directories that could be note asset directories
-            for item in assets_dir.rglob('*'):
-                if item.is_dir():
-                    # Check if this is a leaf directory (no subdirectories)
-                    has_subdirs = any(child.is_dir() for child in item.iterdir())
+            # Scan for 'assets' directories within notes_dir
+            for assets_subdir in notes_dir.rglob('assets'):
+                if not assets_subdir.is_dir():
+                    continue
                     
-                    if not has_subdirs:
-                        # This is a leaf directory, check if it corresponds to a note
-                        item_resolved = str(item.resolve())
-                        if item_resolved not in expected_asset_dirs:
-                            orphaned_dirs.append(item)
+                # Check all subdirectories within each assets directory
+                for item in assets_subdir.iterdir():
+                    if item.is_dir():
+                        # Check if this is a leaf directory (no subdirectories)
+                        has_subdirs = any(child.is_dir() for child in item.iterdir())
+                        
+                        if not has_subdirs:
+                            # This is a leaf directory, check if it corresponds to a note
+                            item_resolved = str(item.resolve())
+                            if item_resolved not in expected_asset_dirs:
+                                orphaned_dirs.append(item)
         except Exception as e:
             self.logger.error(f"Error scanning asset directories: {e}")
         
@@ -100,15 +99,18 @@ class NoteCleaner:
     def _cleanup_empty_parent_dirs(self, directory: Path) -> None:
         """Recursively clean up empty parent directories.
         
+        This method removes empty 'assets' directories and their empty parent
+        directories up to the note directory level.
+        
         Args:
             directory (Path): The directory to start cleanup from
         """
         try:
-            assets_dir = Path(self.config.assets_dir).resolve()
             current_dir = directory.resolve()
+            notes_dir = Path(self.config.notes_dir).resolve()
             
-            # Don't remove the assets root directory
-            if current_dir <= assets_dir:
+            # Don't remove directories outside or at the notes directory level
+            if not current_dir.is_relative_to(notes_dir) or current_dir == notes_dir:
                 return
             
             # Check if directory is empty

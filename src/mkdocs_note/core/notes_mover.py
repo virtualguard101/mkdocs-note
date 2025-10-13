@@ -7,7 +7,6 @@ from pathlib import Path
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.assets_manager import get_note_relative_path
 
 
 
@@ -120,16 +119,16 @@ class NoteMover:
                 if result != 0:
                     failed_count += 1
             
-            # Move any remaining non-note files
-            for item in source_dir_resolved.iterdir():
-                if item.is_file() and item not in all_note_files:
-                    # Move non-note files (like images, etc.)
-                    dest_item = dest_dir / item.name
-                    if not dest_item.exists():
-                        shutil.move(str(item), str(dest_item))
-            
-            # Remove the source directory if it's empty or only has empty subdirs
+            # Move any remaining non-note files (only if source dir still exists)
             if source_dir_resolved.exists():
+                for item in source_dir_resolved.iterdir():
+                    if item.is_file() and item not in all_note_files:
+                        # Move non-note files (like images, etc.)
+                        dest_item = dest_dir / item.name
+                        if not dest_item.exists():
+                            shutil.move(str(item), str(dest_item))
+                
+                # Remove the source directory if it's empty or only has empty subdirs
                 try:
                     # Try to remove the directory tree if empty
                     if not any(source_dir_resolved.rglob('*')):
@@ -223,30 +222,39 @@ class NoteMover:
     def _get_asset_directory(self, note_file_path: Path) -> Path:
         """Get the asset directory path for a note file.
         
+        This method calculates the asset directory based on the note file's location.
+        The asset directory is always placed in an 'assets' subdirectory within the
+        same directory as the note file.
+        
         Args:
             note_file_path (Path): The path of the note file
             
         Returns:
             Path: The asset directory path
+            
+        Examples:
+            For note: docs/usage/contributing.md
+            Returns: docs/usage/assets/contributing/
         """
-        notes_dir = Path(self.config.notes_dir)
-        note_relative_path = get_note_relative_path(note_file_path, notes_dir)
-        
-        assets_dir = Path(self.config.assets_dir)
-        return assets_dir / note_relative_path
+        # Asset directory is in the same directory as the note file
+        # Structure: note_file.parent / "assets" / note_file.stem
+        return note_file_path.parent / "assets" / note_file_path.stem
     
     def _cleanup_empty_parent_dirs(self, directory: Path) -> None:
         """Recursively clean up empty parent directories.
+        
+        This method removes empty 'assets' directories and their empty parent
+        directories up to the note directory level.
         
         Args:
             directory (Path): The directory to start cleanup from
         """
         try:
-            assets_dir = Path(self.config.assets_dir).resolve()
             current_dir = directory.resolve()
+            notes_dir = Path(self.config.notes_dir).resolve()
             
-            # Don't remove the assets root directory
-            if current_dir <= assets_dir:
+            # Don't remove directories outside or at the notes directory level
+            if not current_dir.is_relative_to(notes_dir) or current_dir == notes_dir:
                 return
             
             # Check if directory is empty

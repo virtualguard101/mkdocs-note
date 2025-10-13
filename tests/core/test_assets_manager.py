@@ -350,11 +350,12 @@ class TestAssetsProcessor(unittest.TestCase):
         content = "# Test Note\n\n![Image 1](image1.png)\n\n![Image 2](images/image2.jpg)"
         note_info.file_path.write_text(content)
         
-        # Create asset directories and files
-        (self.temp_dir / "test-note").mkdir(parents=True)
-        (self.temp_dir / "test-note" / "image1.png").touch()
-        (self.temp_dir / "test-note" / "images").mkdir()
-        (self.temp_dir / "test-note" / "images" / "image2.jpg").touch()
+        # Create co-located asset directories and files
+        asset_dir = self.temp_dir / "assets" / "test-note"
+        asset_dir.mkdir(parents=True)
+        (asset_dir / "image1.png").touch()
+        (asset_dir / "images").mkdir()
+        (asset_dir / "images" / "image2.jpg").touch()
         
         result = self.processor.process_assets(note_info)
         
@@ -430,8 +431,8 @@ class TestAssetsProcessor(unittest.TestCase):
         
         self.assertIsNotNone(result)
         self.assertEqual(result.file_name, 'diagram.png')
-        # Should use dsa.assets/anal/intro as the path with .assets suffix
-        self.assertEqual(result.relative_path, 'assets/dsa.assets/anal/intro/diagram.png')
+        # Co-located structure: assets/{note_stem}/{image_path}
+        self.assertEqual(result.relative_path, 'assets/intro/diagram.png')
 
     def test_update_markdown_content_no_images(self):
         """Test updating markdown content with no images."""
@@ -491,8 +492,9 @@ class TestAssetsProcessor(unittest.TestCase):
         content = "# Python Intro\n\n![Diagram](diagram.png)"
         result = self.processor.update_markdown_content(content, note_file)
         
-        # Should use ../../ to go up two levels, then into assets
-        self.assertIn("![Diagram](../../assets/language.assets/python/intro/diagram.png)", result)
+        # Co-located structure: assets are in the same directory as the note
+        # Path: assets/{note_stem}/{image_path}
+        self.assertIn("![Diagram](assets/intro/diagram.png)", result)
 
 
 if __name__ == '__main__':

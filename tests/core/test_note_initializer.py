@@ -90,45 +90,51 @@ class TestNoteInitializer(unittest.TestCase):
 
     def test_analyze_asset_tree(self):
         """Test asset tree analysis."""
-        # Create test structure
-        assets_dir = self.temp_dir / "assets"
-        assets_dir.mkdir(parents=True)
-        
+        # Create test structure with co-located assets
         note_file = self.temp_dir / "test-note.md"
         note_file.write_text("# Test Note")
         
-        # Create compliant asset directory
+        # Create compliant asset directory (co-located)
+        assets_dir = self.temp_dir / "assets"
+        assets_dir.mkdir(parents=True)
         asset_dir = assets_dir / "test-note"
         asset_dir.mkdir()
         
         analysis = self.initializer._analyze_asset_tree(self.temp_dir, [note_file])
         
         self.assertEqual(len(analysis), 1)
-        self.assertEqual(analysis[0].note_name, "test-note")
+        self.assertEqual(analysis[0].note_name, "test-note.md")
         self.assertTrue(analysis[0].is_compliant)
 
     def test_check_compliance_compliant(self):
         """Test compliance check for compliant structure."""
+        # Create note file
+        note_file = self.temp_dir / "test-note.md"
+        note_file.write_text("# Test")
+        
+        # Create co-located asset directory
         assets_dir = self.temp_dir / "assets"
         assets_dir.mkdir(parents=True)
         asset_dir = assets_dir / "test-note"
         asset_dir.mkdir()
         
-        expected_structure = [asset_dir]
-        is_compliant = self.initializer._check_compliance(asset_dir, expected_structure)
+        is_compliant = self.initializer._check_compliance(asset_dir, note_file)
         
         self.assertTrue(is_compliant)
 
     def test_check_compliance_non_compliant(self):
         """Test compliance check for non-compliant structure."""
-        # Create nested structure (non-compliant)
+        # Create note file
+        note_file = self.temp_dir / "test-note.md"
+        note_file.write_text("# Test")
+        
+        # Create non-compliant structure (wrong location)
         assets_dir = self.temp_dir / "assets"
         assets_dir.mkdir(parents=True)
-        nested_dir = assets_dir / "old-structure" / "test-note"
-        nested_dir.mkdir(parents=True)
+        wrong_dir = assets_dir / "wrong-name"  # Wrong name, should be "test-note"
+        wrong_dir.mkdir(parents=True)
         
-        expected_structure = [assets_dir / "test-note"]
-        is_compliant = self.initializer._check_compliance(nested_dir, expected_structure)
+        is_compliant = self.initializer._check_compliance(wrong_dir, note_file)
         
         self.assertFalse(is_compliant)
 

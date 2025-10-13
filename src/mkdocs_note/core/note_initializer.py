@@ -10,7 +10,6 @@ from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 from mkdocs_note.core.file_manager import NoteScanner
 from mkdocs_note.core.data_models import AssetTreeInfo
-from mkdocs_note.core.assets_manager import get_note_relative_path
 
 
 class NoteInitializer:
@@ -88,6 +87,10 @@ class NoteInitializer:
     def _analyze_asset_tree(self, notes_dir: Path, note_files: List[Path]) -> List[AssetTreeInfo]:
         """Analyze current asset tree structure.
         
+        In the new design, asset directories are co-located with note files:
+        - Note: docs/usage/contributing.md
+        - Assets: docs/usage/assets/contributing/
+        
         Args:
             notes_dir (Path): The notes directory
             note_files (List[Path]): List of note files
@@ -96,15 +99,17 @@ class NoteInitializer:
             List[AssetTreeInfo]: Analysis results for each note
         """
         analysis_results = []
-        assets_dir = notes_dir / "assets"
         
         for note_file in note_files:
-            # Use get_note_relative_path to calculate the tree-based path
-            note_relative_path = get_note_relative_path(note_file, notes_dir)
-            note_asset_dir = assets_dir / note_relative_path
+            # Calculate asset directory based on note file location
+            # Asset directory is: note_file.parent / "assets" / note_file.stem
+            note_asset_dir = note_file.parent / "assets" / note_file.stem
             
-            # For display purposes, use the full relative path as note name
-            note_name = note_relative_path
+            # For display purposes, use relative path from notes_dir
+            try:
+                note_name = str(note_file.relative_to(notes_dir))
+            except ValueError:
+                note_name = note_file.name
             
             # Expected structure (based on our design)
             expected_structure = [note_asset_dir]
@@ -116,7 +121,7 @@ class NoteInitializer:
                 actual_structure = [p for p in actual_structure if p.is_dir()]
             
             # Check compliance
-            is_compliant = self._check_compliance(note_asset_dir, expected_structure)
+            is_compliant = self._check_compliance(note_asset_dir, note_file)
             
             # Find missing and extra directories
             missing_dirs = []
@@ -137,16 +142,16 @@ class NoteInitializer:
         
         return analysis_results
     
-    def _check_compliance(self, asset_dir: Path, expected_structure: List[Path]) -> bool:
-        """Check if asset directory complies with our tree-based design.
+    def _check_compliance(self, asset_dir: Path, note_file: Path) -> bool:
+        """Check if asset directory complies with our co-located design.
         
-        The tree-based design allows asset directories at any depth under assets/,
-        mirroring the notes directory structure. The first-level subdirectories
-        should have '.assets' suffix for better identification.
+        In the new design, asset directories are co-located with note files:
+        - Note: /path/to/note.md
+        - Assets: /path/to/assets/note/
         
         Args:
             asset_dir (Path): The asset directory to check
-            expected_structure (List[Path]): Expected directory structure
+            note_file (Path): The corresponding note file
             
         Returns:
             bool: True if compliant, False otherwise
@@ -155,32 +160,14 @@ class NoteInitializer:
         if not asset_dir.exists() or not asset_dir.is_dir():
             return False
         
-        # Check if asset_dir is under an 'assets' directory
-        # Walk up the path to find 'assets' directory
-        current = asset_dir
-        found_assets = False
-        while current.parent != current:  # Stop at root
-            if current.parent.name == 'assets':
-                found_assets = True
-                break
-            current = current.parent
+        # Check if asset_dir follows the pattern: note_file.parent / "assets" / note_file.stem
+        expected_asset_dir = note_file.parent / "assets" / note_file.stem
         
-        if not found_assets:
+        try:
+            # Compare resolved paths for accuracy
+            return asset_dir.resolve() == expected_asset_dir.resolve()
+        except Exception:
             return False
-        
-        # Additional check: if asset_dir is a first-level subdirectory under assets/
-        # and it has multiple path components, it should have '.assets' suffix
-        relative_to_assets = asset_dir.relative_to(current.parent)
-        parts = relative_to_assets.parts
-        
-        # If there are multiple levels (e.g., 'dsa.assets/anal/iter')
-        # the first level should have '.assets' suffix
-        if len(parts) > 1 and not parts[0].endswith('.assets'):
-            # This is a multi-level path but first level doesn't have .assets suffix
-            # This might be an old flat structure
-            return False
-        
-        return True
     
     def _fix_asset_tree(self, notes_dir: Path, non_compliant: List[AssetTreeInfo]) -> None:
         """Fix non-compliant asset tree structures.

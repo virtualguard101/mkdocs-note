@@ -278,27 +278,27 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 ### Asset Management
 
-The plugin automatically manages assets for each note using a **tree-based structure**:
+The plugin automatically manages assets for each note using a **co-located structure**:
 
-#### Tree-Based Asset Organization
+#### Co-Located Asset Organization
 
-- **Hierarchical Structure**: Assets mirror your notes directory structure, preventing conflicts between notes with the same name in different directories
+- **Local Structure**: Asset directories are placed in the same directory as their corresponding note files, making them easy to find and manage
 
-- **First-Level Categorization**: First-level subdirectories have `.assets` suffix for better identification
+- **Simple Pattern**: For any note file, assets are stored in `assets/{note_stem}/` within the same directory
   
-  - `notes/dsa/` → `assets/dsa.assets/`
+  - Note: `docs/usage/contributing.md` → Assets: `docs/usage/assets/contributing/`
 
-  - `notes/language/` → `assets/language.assets/`
+  - Note: `docs/notes/python/intro.md` → Assets: `docs/notes/python/assets/intro/`
 
-  - `notes/ml/` → `assets/ml.assets/`
+  - Note: `docs/notes/quickstart.md` → Assets: `docs/notes/assets/quickstart/`
 
 - **Path Mapping Examples**:
   
   ```
-  notes/dsa/anal/iter.md           → assets/dsa.assets/anal/iter/
-  notes/language/python/intro.md  → assets/language.assets/python/intro/
-  notes/language/cpp/intro.md     → assets/language.assets/cpp/intro/
-  notes/quickstart.md              → assets/quickstart/
+  docs/notes/dsa/anal/iter.md           → docs/notes/dsa/anal/assets/iter/
+  docs/notes/language/python/intro.md  → docs/notes/language/python/assets/intro/
+  docs/usage/contributing.md            → docs/usage/assets/contributing/
+  docs/notes/quickstart.md              → docs/notes/assets/quickstart/
   ```
 
 #### Automatic Path Conversion
@@ -311,21 +311,23 @@ The plugin automatically manages assets for each note using a **tree-based struc
 
 - **Automatic Conversion**: The plugin automatically converts paths during build:
   
-  - For `notes/dsa/anal/iter.md` → `../../assets/dsa.assets/anal/iter/recursion_tree.png`
+  - For `docs/notes/dsa/anal/iter.md` → `assets/iter/recursion_tree.png`
 
-  - For `notes/quickstart.md` → `assets/quickstart/recursion_tree.png`
+  - For `docs/notes/quickstart.md` → `assets/quickstart/recursion_tree.png`
 
 - **No Manual Path Management**: Original markdown files remain clean and simple
 
 #### Benefits
 
-- ✅ **No Naming Conflicts**: Notes with the same name in different directories don't conflict
+- ✅ **Co-Located**: Assets are right next to their notes, making them easy to find and manage
 
-- ✅ **Clear Organization**: `.assets` suffix makes asset categories easily identifiable
+- ✅ **No Naming Conflicts**: Each note has its own dedicated asset directory
 
 - ✅ **Automatic Processing**: Image paths are converted automatically during build
 
 - ✅ **MkDocs Compatible**: Generated paths work seamlessly with MkDocs
+
+- ✅ **Portable**: Moving a note and its assets directory together is straightforward
 
 ### How It Works
 
@@ -347,9 +349,7 @@ The plugin automatically manages assets for each note using a **tree-based struc
    
    - Calculates the note's position in the directory tree
    
-   - Converts relative asset paths to correct references with proper `../` prefixes
-   
-   - Adds `.assets` suffix to first-level directories for organization
+   - Converts relative asset paths to correct references pointing to the co-located assets directory
 
 6. The process runs automatically every time you build your documentation
 
@@ -360,21 +360,26 @@ The plugin automatically manages assets for each note using a **tree-based struc
    ```
    docs/notes/
    ├── dsa/           # Data Structures & Algorithms
+   │   └── anal/
+   │       ├── iter.md
+   │       └── assets/
+   │           └── iter/
+   │               ├── recursion_tree.png
+   │               └── diagram.png
    ├── language/      # Programming Languages
+   │   └── python/
+   │       ├── intro.md
+   │       └── assets/
+   │           └── intro/
+   │               └── syntax.png
    ├── ml/            # Machine Learning
    └── tools/         # Development Tools
    ```
 
-2. **Asset Placement**: Place assets in the corresponding asset directory
+2. **Asset Placement**: Assets are automatically placed next to their note
    
-   ```
-   docs/notes/assets/
-   ├── dsa.assets/
-   │   └── anal/
-   │       └── iter/
-   │           ├── recursion_tree.png
-   │           └── diagram.png
-   ```
+   - Note file: `docs/notes/dsa/anal/iter.md`
+   - Assets directory: `docs/notes/dsa/anal/assets/iter/`
 
 3. **Simple References**: Write simple relative references in your notes
    
@@ -385,7 +390,7 @@ The plugin automatically manages assets for each note using a **tree-based struc
 
 4. **Automatic Conversion**: Let the plugin handle path conversion during build
 
-> **Note**: If you're migrating from an older version, you may need to reorganize your asset directories to match the new tree-based structure with `.assets` suffix on first-level directories.
+> **Note**: Starting from version 1.1.0, the plugin uses a co-located asset structure where assets are stored next to their notes. This makes it easier to manage and move notes with their assets together.
 
 ### Sorting Behavior
 

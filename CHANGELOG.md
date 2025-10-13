@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Asset Directory Structure**: Simplified asset directory organization from centralized to co-located structure
+  
+  - Assets are now placed next to their corresponding notes instead of in a centralized location
+  
+  - New pattern: `note_file.parent / "assets" / note_file.stem`
+  
+  - Examples:
+    
+    - Note: `docs/usage/contributing.md` → Assets: `docs/usage/assets/contributing/`
+    
+    - Note: `docs/notes/python/intro.md` → Assets: `docs/notes/python/assets/intro/`
+  
+  - **Benefits**:
+    
+    - ✅ Co-located: Assets are right next to their notes for easier management
+    
+    - ✅ Portable: Moving notes with their assets is straightforward
+    
+    - ✅ Consistent: No path mismatches when notes are outside `notes_dir`
+    
+    - ✅ Simpler: No dependency on `notes_dir` or `assets_dir` configuration
+  
+  - **Breaking Change**: Existing assets in centralized structure need migration
+  
+  - Updated components:
+    
+    - `NoteCreator._get_asset_directory()`: Simplified logic
+    
+    - `NoteRemover._get_asset_directory()`: Co-located pattern
+    
+    - `NoteMover._get_asset_directory()`: Co-located pattern
+    
+    - `NoteCleaner.find_orphaned_assets()`: Searches all `assets/` subdirectories
+    
+    - `NoteInitializer._analyze_asset_tree()`: Validates co-located structure
+
+- **Configuration Deprecation**: `assets_dir` configuration option is now deprecated
+  
+  - The option is kept for backward compatibility but no longer used
+  
+  - Assets are automatically placed using the co-located pattern
+
 ### Added
 
 - **Frontmatter Metadata System** (#15): Implemented comprehensive frontmatter management system for notes
