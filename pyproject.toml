@@ -25,6 +25,20 @@ Homepage = "https://github.com/virtualguard101/mkdocs-note"
 Issues = "https://github.com/virtualguard101/mkdocs-note/issues"
 
 [project.optional-dependencies]
+validate = [
+    "pymdown-extensions>=10.0",
+    "mkdocs-material>=8.0",
+    "mkdocs-jupyter>=0.25.1",
+]
+
+full = [
+    "pymdown-extensions",
+    "mkdocs-material",
+    "mkdocs-jupyter",
+    "mkdocs-minify-plugin",
+    "mkdocs-git-revision-date-localized-plugin",
+]
+
 dev = [
     "pytest",
     "pytest-cov",
@@ -32,6 +46,7 @@ dev = [
     "mkdocs-minify-plugin>=0.8.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
     "pymdown-extensions>=10.0",
+    "mkdocs-material==9.6.14"
 ]
 test = [
     "pytest-cov",

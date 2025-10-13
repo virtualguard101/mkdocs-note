@@ -18,6 +18,10 @@ setup(
         "colorlog>=6.9.0",
         "pyyaml>=6.0",
         "pymdown-extensions>=10.15"
+        "mkdocs-material>=9.6.14",
+        "mkdocs-jupyter>=0.25.1",
+        "mkdocs-minify-plugin>=0.8.0",
+        "mkdocs-git-revision-date-localized-plugin>=1.4.0"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
