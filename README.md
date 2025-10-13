@@ -17,7 +17,8 @@
 
 `MkDocs-Note` is a plugin for `MkDocs` that automatically manages notes in your documentation site. It's designed to work seamlessly with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme to create a unified note-taking and documentation experience.
 
->[!IMPORTANT]- Breaking Change
+>[!IMPORTANT]
+> **Breaking Changes**
 >
 > Since `v2.0.0`, the plugin uses a co-located asset structure instead of the old unified tree structure, where assets are stored next to their notes. This makes it easier to manage and move notes with their assets together. 
 >
