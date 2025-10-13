@@ -71,6 +71,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added inline examples for metadata registration usage
 
+## 1.2.5 - 2025-10-13
+
+### Fixed
+
+- Fix some dependencies issues in `pyproject.toml`
+
+### Changed
+
+- Remove `setup.py` and `requirements.txt`, use `pyproject.toml` instead.
+
 
 ## 1.2.4 - 2025-10-13
 

@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-note"
-version = "1.2.4"
+version = "1.2.5"
 description = "A MkDocs plugin to add note boxes to your documentation."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -17,21 +17,7 @@ dependencies = [
     "mkdocs>=1.6.1",
     "colorlog>=6.9.0",
     "pyyaml>=6.0",
-    "pymdown-extensions>=10.15"
-]
-
-[project.urls]
-Homepage = "https://github.com/virtualguard101/mkdocs-note"
-Issues = "https://github.com/virtualguard101/mkdocs-note/issues"
-
-[project.optional-dependencies]
-validate = [
-    "pymdown-extensions>=10.0",
-    "mkdocs-material>=8.0",
-    "mkdocs-jupyter>=0.25.1",
-]
-
-full = [
+    "pymdown-extensions>=10.15",
     "mkdocs-material>=9.6.4",
     "mkdocs-material-extensions>=1.3.1",
     "mkdocs-jupyter>=0.25.1",
@@ -39,6 +25,11 @@ full = [
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/virtualguard101/mkdocs-note"
+Issues = "https://github.com/virtualguard101/mkdocs-note/issues"
+
+[project.optional-dependencies]
 dev = [
     "pytest",
     "pytest-cov",
@@ -48,6 +39,7 @@ dev = [
     "pymdown-extensions>=10.0",
     "mkdocs-material==9.6.4"
 ]
+
 test = [
     "pytest-cov",
 ]
