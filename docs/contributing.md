@@ -1,10 +1,10 @@
 ---
-date: {{date}}
-title: {{title}}
+date: 2025-10-14 00:34:33
+title: Contributing
 permalink: 
 publish: true
 ---
 
-# {{title}}
+# Contributing
 
 Start writing your note content...
