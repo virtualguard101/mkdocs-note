@@ -32,11 +32,10 @@ validate = [
 ]
 
 full = [
-    "pymdown-extensions",
-    "mkdocs-material",
-    "mkdocs-jupyter",
-    "mkdocs-minify-plugin",
-    "mkdocs-git-revision-date-localized-plugin",
+    "mkdocs-material>=9.6.4",
+    "mkdocs-jupyter>=0.25.1",
+    "mkdocs-minify-plugin>=0.8.0",
+    "mkdocs-git-revision-date-localized-plugin>=1.4.0",
 ]
 
 dev = [

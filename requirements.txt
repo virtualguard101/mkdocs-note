@@ -1,12 +1,14 @@
 # Core dependencies for mkdocs-note plugin
 mkdocs>=1.6.1
 colorlog>=6.9.0
+pyyaml>=6.0,
 
 # MkDocs plugins and extensions required by mkdocs.yml
 mkdocs-material>=9.6.4
 mkdocs-minify-plugin>=0.8.0
 mkdocs-git-revision-date-localized-plugin>=1.4.0
 pymdown-extensions>=10.0
+mkdocs-jupyter>=0.25.1
 
 # Development and testing dependencies
 pytest>=8.4.2
