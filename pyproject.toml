@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-note"
-version = "1.2.3"
+version = "1.2.4"
 description = "A MkDocs plugin to add note boxes to your documentation."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -33,6 +33,7 @@ validate = [
 
 full = [
     "mkdocs-material>=9.6.4",
+    "mkdocs-material-extensions>=1.3.1",
     "mkdocs-jupyter>=0.25.1",
     "mkdocs-minify-plugin>=0.8.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
@@ -45,7 +46,7 @@ dev = [
     "mkdocs-minify-plugin>=0.8.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
     "pymdown-extensions>=10.0",
-    "mkdocs-material==9.6.14"
+    "mkdocs-material==9.6.4"
 ]
 test = [
     "pytest-cov",
