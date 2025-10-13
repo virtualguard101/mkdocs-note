@@ -206,7 +206,7 @@ mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
 | `notes_template` | Path | `"docs/templates/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
 
-### 模板系统
+<!-- ### 模板系统
 
 插件支持灵活的带 frontmatter 的新笔记模板系统：
 
@@ -265,7 +265,7 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 - **Frontmatter 模板**（推荐）：包含带变量的 YAML frontmatter 部分
 
-- **传统模板**：不带 frontmatter 的简单 markdown（仍然支持）
+- **传统模板**：不带 frontmatter 的简单 markdown（仍然支持） -->
 
 ### 资产管理
 

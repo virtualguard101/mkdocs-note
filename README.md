@@ -222,7 +222,7 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | `notes_template` | Path | `"docs/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
 
-### Template System
+<!-- ### Template System
 
 The plugin supports a flexible template system with frontmatter support for creating new notes:
 
@@ -281,7 +281,7 @@ mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
 
 - **Frontmatter Templates** (Recommended): Include YAML frontmatter section with variables
 
-- **Legacy Templates**: Simple markdown without frontmatter (still supported)
+- **Legacy Templates**: Simple markdown without frontmatter (still supported) -->
 
 ### Asset Management
 
