@@ -71,6 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added inline examples for metadata registration usage
 
+## 1.2.2 - 2025-10-13
+
+### Fixed
+
+- **Dependencies**: Added `pyyaml>=6.0` and `pymdown-extensions>=10.15` to `pyproject.toml` and `setup.py`
+
 
 ## 1.2.1 - 2025-10-13
 
