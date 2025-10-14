@@ -105,6 +105,7 @@ plugins:
       enable_creation_date: true
   - mkdocs-note:
       notes_dir: "docs/usage"
+      recent_notes_scan_field: "docs/**/*.md"
       recent_notes_index_file: "docs/index.md"
       timestamp_zone: "UTC+8"
 

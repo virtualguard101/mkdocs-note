@@ -284,26 +284,22 @@ class RecentNotesUpdater:
         if not notes:
             return '<p><em>No recent notes found.</em></p>'
         
-        lines = []
-        lines.append('<div class="recent-notes">')
-        lines.append('<h3>Recent Notes</h3>')
-        lines.append('<ul>')
+        items = []
         
         for note in notes:
             # Skip the index page itself
             if 'index.md' in note.file_path.name:
                 continue
-                
-            lines.append(f'<li>')
-            lines.append(f'  <a href="{note.relative_url}">{note.title}</a>')
-            lines.append(f'  <small class="note-date">({note.modified_date})</small>')
-            lines.append(f'</li>')
-        
-        lines.append('</ul>')
-        lines.append('</div>')
-        
-        return '\n'.join(lines)
 
+            items.append(
+                f'<li><div style="display:flex; justify-content:space-between; align-items:center;">'
+                f'<a href="{note.relative_url}">{note.title}</a>'
+                f'<span style="font-size:0.8em;">{note.modified_date}</span>'
+                '</div></li>'
+            )
+        
+        return '<ul>\n' + '\n'.join(items) + '\n</ul>'
+                
 
 class RecentNotesManager:
     """Main recent notes management class.
