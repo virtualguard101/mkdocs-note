@@ -219,7 +219,7 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | `use_git_timestamps` | bool | `true` | Use Git commit timestamps for sorting instead of file system timestamps |
 | `timestamp_zone` | str | `"UTC+0"` | Timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5'). Ensures consistent timestamp display across different deployment environments |
 | `assets_dir` | Path | `"docs/notes/assets"` | Directory for storing note assets. Uses tree-based structure with `.assets` suffix on first-level subdirectories |
-| `notes_template` | Path | `"docs/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
+| `notes_template` | Path | `"overrides/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
 
 <!-- ### Template System

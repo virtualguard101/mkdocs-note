@@ -110,7 +110,7 @@ plugins:
   - git-revision-date-localized:
       enable_creation_date: true
   - mkdocs-note:
-      notes_dir: "docs/usage"
+      notes_dir: "docs"
       timestamp_zone: "UTC+8"
 
 
