@@ -210,17 +210,17 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | bool | `true` | Enable or disable the plugin |
-| `notes_dir` | Path | `"docs/notes"` | Directory containing your notes |
-| `index_file` | Path | `"docs/notes/index.md"` | Index file where recent notes will be displayed |
-| `max_notes` | int | `11` | Maximum number of recent notes to display (including index page, but display not including the index page itself) |
-| `start_marker` | str | `"<!-- recent_notes_start -->"` | Start marker for notes insertion |
-| `end_marker` | str | `"<!-- recent_notes_end -->"` | End marker for notes insertion |
+| `recent_notes_enabled` | bool | `true` | Enable or disable the recent notes functionality |
+| `recent_notes_scan_field` | str | `"docs/notes"` | Scan field for recent notes. Supports multiple formats:<br/>- Directory path: `'docs/notes'` (scan specified directory)<br/>- File pattern: `'docs/**/*.md'` (scan files matching pattern)<br/>- Metadata filter: `'metadata.publish=true'` (filter by metadata)<br/>- Combined: `'docs/notes+metadata.publish=true'` (directory + metadata filter) |
+| `recent_notes_index_file` | Path | `"docs/notes/index.md"` | Index file where recent notes will be displayed |
+| `recent_notes_max_count` | int | `10` | Maximum number of recent notes to display |
+| `recent_notes_start_marker` | str | `"<!-- recent_notes_start -->"` | Start marker for notes insertion |
+| `recent_notes_end_marker` | str | `"<!-- recent_notes_end -->"` | End marker for notes insertion |
 | `supported_extensions` | Set[str] | `{".md", ".ipynb"}` | File extensions to include as notes |
 | `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | File patterns to exclude |
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | Directories to exclude |
 | `use_git_timestamps` | bool | `true` | Use Git commit timestamps for sorting instead of file system timestamps |
 | `timestamp_zone` | str | `"UTC+0"` | Timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5'). Ensures consistent timestamp display across different deployment environments |
-| `assets_dir` | Path | `"docs/notes/assets"` | Directory for storing note assets. Uses tree-based structure with `.assets` suffix on first-level subdirectories |
 | `notes_template` | Path | `"docs/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
 

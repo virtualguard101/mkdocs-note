@@ -192,17 +192,17 @@ mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
 | 选项 | 类型 | 默认值 | 描述 |
 |------|------|--------|------|
 | `enabled` | bool | `true` | 启用或禁用插件 |
-| `notes_dir` | Path | `"docs/notes"` | 包含笔记的目录 |
-| `index_file` | Path | `"docs/notes/index.md"` | 显示最近笔记的索引文件 |
-| `max_notes` | int | `11` | 显示的最大笔记数量（包含索引页面，但显示时不包含索引页面本身） |
-| `start_marker` | str | `"<!-- recent_notes_start -->"` | 笔记插入的开始标记 |
-| `end_marker` | str | `"<!-- recent_notes_end -->"` | 笔记插入的结束标记 |
+| `recent_notes_enabled` | bool | `true` | 启用或禁用最近笔记功能 |
+| `recent_notes_scan_field` | str | `"docs/notes"` | 最近笔记的扫描字段。支持多种格式：<br/>- 目录路径：`'docs/notes'`（扫描指定目录）<br/>- 文件模式：`'docs/**/*.md'`（扫描匹配模式的文件）<br/>- 元数据过滤器：`'metadata.publish=true'`（按元数据过滤）<br/>- 组合：`'docs/notes+metadata.publish=true'`（目录 + 元数据过滤器） |
+| `recent_notes_index_file` | Path | `"docs/notes/index.md"` | 显示最近笔记的索引文件 |
+| `recent_notes_max_count` | int | `10` | 显示的最大笔记数量 |
+| `recent_notes_start_marker` | str | `"<!-- recent_notes_start -->"` | 笔记插入的开始标记 |
+| `recent_notes_end_marker` | str | `"<!-- recent_notes_end -->"` | 笔记插入的结束标记 |
 | `supported_extensions` | Set[str] | `{".md", ".ipynb"}` | 作为笔记包含的文件扩展名 |
 | `exclude_patterns` | Set[str] | `{"index.md", "README.md"}` | 要排除的文件模式 |
 | `exclude_dirs` | Set[str] | `{"__pycache__", ".git", "node_modules"}` | 要排除的目录 |
 | `use_git_timestamps` | bool | `true` | 使用 Git 提交时间戳进行排序，而不是文件系统时间戳 |
 | `timestamp_zone` | str | `"UTC+0"` | 时间戳显示的时区（例如 'UTC+0'、'UTC+8'、'UTC-5'）。确保不同部署环境中的时间戳显示一致 |
-| `assets_dir` | Path | `"docs/notes/assets"` | *（自 v1.1.0 起已弃用）* 此选项不再使用。资产现在自动以就近存放结构放置在笔记旁边 |
 | `notes_template` | Path | `"docs/templates/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
 

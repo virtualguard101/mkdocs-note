@@ -17,13 +17,21 @@ mkdocs_note/
 ├── config.py                # MkDocs 配置管理
 ├── logger.py                # 日志工具
 ├── cli.py                   # 命令行接口
-└── core/                    # 核心业务逻辑
+└── utils/                   # 工具模块（从core/重构而来）
+    ├── data_models.py       # 数据模型和结构
     ├── file_manager.py      # 文件扫描和验证
-    ├── note_manager.py      # 笔记处理和管理
-    ├── note_creator.py      # 使用模板创建笔记
-    ├── note_initializer.py  # 目录结构初始化
-    ├── assets_manager.py    # 资产管理（新增）
-    └── data_models.py       # 数据模型和结构
+    ├── assets/              # 资产管理模块
+    │   └── assets_manager.py
+    ├── frontmatter/         # Frontmatter元数据系统
+    │   └── frontmatter_manager.py
+    └── notes/               # 笔记管理模块
+        ├── note_creator.py      # 使用模板创建笔记
+        ├── note_initializer.py  # 目录结构初始化
+        ├── note_manager.py      # 笔记处理和管理
+        ├── note_cleaner.py      # 孤立资产清理
+        ├── note_remover.py      # 笔记删除操作
+        ├── notes_mover.py       # 笔记移动和重命名
+        └── recent_notes_manager.py  # 最近笔记功能（新增）
 ```
 
 ### UML 图
@@ -43,14 +51,27 @@ graph TB
         Logger[Logger]
     end
     
-    subgraph "核心业务逻辑"
+    subgraph "工具模块"
         FileManager[file_manager.py]
-        NoteManager[note_manager.py]
-        AssetsManager[assets_manager.py]
-        FrontmatterManager[frontmatter_manager.py]
-        NoteCreator[note_creator.py]
-        NoteInitializer[note_initializer.py]
         DataModels[data_models.py]
+    end
+    
+    subgraph "资产管理"
+        AssetsManager[assets/assets_manager.py]
+    end
+    
+    subgraph "Frontmatter系统"
+        FrontmatterManager[frontmatter/frontmatter_manager.py]
+    end
+    
+    subgraph "笔记管理"
+        NoteManager[notes/note_manager.py]
+        NoteCreator[notes/note_creator.py]
+        NoteInitializer[notes/note_initializer.py]
+        NoteCleaner[notes/note_cleaner.py]
+        NoteRemover[notes/note_remover.py]
+        NotesMover[notes/notes_mover.py]
+        RecentNotesManager[notes/recent_notes_manager.py]
     end
     
     subgraph "CLI 接口"
@@ -67,12 +88,16 @@ graph TB
     Plugin --> FileManager
     Plugin --> NoteManager
     Plugin --> AssetsManager
+    Plugin --> RecentNotesManager
     Plugin --> MkDocs
     
     CLI --> Config
     CLI --> Logger
     CLI --> NoteCreator
     CLI --> NoteInitializer
+    CLI --> NoteCleaner
+    CLI --> NoteRemover
+    CLI --> NotesMover
     
     FileManager --> Config
     FileManager --> Logger
@@ -102,6 +127,11 @@ graph TB
     NoteInitializer --> AssetsManager
     NoteInitializer --> DataModels
     
+    RecentNotesManager --> Config
+    RecentNotesManager --> Logger
+    RecentNotesManager --> FrontmatterManager
+    RecentNotesManager --> DataModels
+    
     style Plugin fill:#e1f5ff
     style Config fill:#fff4e1
     style Logger fill:#fff4e1
@@ -120,6 +150,7 @@ classDiagram
         -_recent_notes: List[NoteInfo]
         -_assets_processor: AssetsProcessor
         -_docs_dir: Path
+        -_recent_notes_manager: RecentNotesManager
         +on_config(config) MkDocsConfig
         +on_files(files, config) Files
         +on_page_markdown(markdown, page, config, files) str
@@ -132,16 +163,18 @@ classDiagram
     
     class PluginConfig {
         +enabled: bool
-        +notes_dir: Path
-        +index_file: Path
-        +max_notes: int
+        +recent_notes_enabled: bool
+        +recent_notes_scan_field: str
+        +recent_notes_index_file: Path
+        +recent_notes_max_count: int
+        +recent_notes_start_marker: str
+        +recent_notes_end_marker: str
         +supported_extensions: Set[str]
         +exclude_patterns: Set[str]
         +exclude_dirs: Set[str]
-        +assets_dir: Path
-        +notes_template: str
         +use_git_timestamps: bool
         +timestamp_zone: str
+        +notes_template: str
         +cache_size: int
     }
     
@@ -152,18 +185,30 @@ classDiagram
         +error(msg)
     }
     
-    class NoteScanner {
+    class RecentNotesManager {
         -config: PluginConfig
         -logger: Logger
-        +scan_notes() List[Path]
-        -_is_valid_note_file(file_path) bool
+        -scanner: RecentNotesScanner
+        -updater: RecentNotesUpdater
+        +process_recent_notes() bool
     }
     
-    class AssetScanner {
+    class RecentNotesScanner {
         -config: PluginConfig
         -logger: Logger
-        +scan_assets() List[Path]
-        -_is_valid_asset_file(file_path) bool
+        +scan_notes() List[NoteInfo]
+        -_parse_scan_field(scan_field) Tuple
+        -_scan_directory(directory) List[NoteInfo]
+        -_scan_pattern(pattern) List[NoteInfo]
+        -_filter_by_metadata(notes, filter_expr) List[NoteInfo]
+    }
+    
+    class RecentNotesUpdater {
+        -config: PluginConfig
+        -logger: Logger
+        +update_index(notes) bool
+        -_generate_html_list(notes) str
+        -_replace_section(content, new_section) str
     }
     
     class NoteProcessor {
@@ -340,28 +385,24 @@ classDiagram
     
     %% 关系
     MkdocsNotePlugin --> PluginConfig
-    MkdocsNotePlugin --> Logger
-    MkdocsNotePlugin --> NoteScanner
-    MkdocsNotePlugin --> NoteProcessor
+    MkdocsNotePlugin --> RecentNotesManager
     MkdocsNotePlugin --> AssetsProcessor
     MkdocsNotePlugin --> NoteInfo
     
-    NoteScanner --> PluginConfig
-    NoteScanner --> Logger
+    RecentNotesManager --> RecentNotesScanner
+    RecentNotesManager --> RecentNotesUpdater
+    RecentNotesManager --> PluginConfig
     
-    AssetScanner --> PluginConfig
-    AssetScanner --> Logger
+    RecentNotesScanner --> NoteProcessor
+    RecentNotesScanner --> NoteInfo
+    
+    RecentNotesUpdater --> PluginConfig
     
     NoteProcessor --> PluginConfig
     NoteProcessor --> Logger
     NoteProcessor --> AssetsProcessor
     NoteProcessor --> FrontmatterManager
     NoteProcessor --> NoteInfo
-    NoteProcessor --> AssetsInfo
-    NoteProcessor --> NoteFrontmatter
-    
-    RecentNotesUpdater --> PluginConfig
-    RecentNotesUpdater --> Logger
     RecentNotesUpdater --> NoteScanner
     RecentNotesUpdater --> NoteProcessor
     RecentNotesUpdater --> CacheManager
@@ -419,7 +460,7 @@ classDiagram
 
   - `on_config()`: 配置 MkDocs 设置（TOC、slugify 函数、资产处理器）
 
-  - `on_files()`: 扫描和处理笔记文件
+  - `on_files()`: 使用新的RecentNotesManager处理最近笔记
 
   - `on_page_markdown()`: 将最近笔记插入索引页面并处理资产路径
 
@@ -435,11 +476,17 @@ classDiagram
 
   - `enabled`: 启用/禁用插件
 
-  - `notes_dir`: 包含笔记的目录
+  - `recent_notes_enabled`: 启用/禁用最近笔记功能
 
-  - `index_file`: 最近笔记的目标索引文件
+  - `recent_notes_scan_field`: 灵活的扫描字段（目录、模式或元数据过滤器）
 
-  - `max_notes`: 显示的最大笔记数量
+  - `recent_notes_index_file`: 最近笔记的目标索引文件
+
+  - `recent_notes_max_count`: 显示的最大笔记数量
+
+  - `recent_notes_start_marker`: 笔记插入的开始标记
+
+  - `recent_notes_end_marker`: 笔记插入的结束标记
 
   - `supported_extensions`: 要包含的文件类型（`.md`、`.ipynb`）
 
@@ -447,13 +494,11 @@ classDiagram
 
   - `exclude_dirs`: 扫描时要跳过的目录
 
-  - `assets_dir`: 存储笔记资产的目录
-
   - `notes_template`: 新笔记的模板文件
 
-#### 3. 文件管理 (`core/file_manager.py`)
+#### 3. 文件管理 (`utils/file_manager.py`)
 
-`FileScanner` 类处理文件发现和验证：
+`NoteScanner` 和 `AssetScanner` 类处理文件发现和验证（已弃用，推荐使用RecentNotesManager）：
 
 - **职责**:
 
@@ -465,21 +510,47 @@ classDiagram
 
   - 返回有效笔记文件列表
 
-#### 4. 笔记处理 (`core/note_manager.py`)
+#### 4. 最近笔记管理 (`utils/notes/recent_notes_manager.py`) **新增**
 
-多个类处理笔记处理和管理：
+最近笔记管理系统提供解耦和灵活的最近笔记功能：
+
+- **`RecentNotesManager`**: 最近笔记处理的主协调器类
+  
+  - 协调扫描和更新操作
+  
+  - 为最近笔记功能提供统一接口
+  
+  - 处理配置和错误管理
+
+- **`RecentNotesScanner`**: 具有多种策略的灵活笔记扫描
+  
+  - 支持目录扫描：`'docs/notes'`
+  
+  - 支持文件模式扫描：`'docs/**/*.md'`
+  
+  - 支持元数据过滤：`'metadata.publish=true'`
+  
+  - 支持组合策略：`'docs/notes+metadata.publish=true'`
+  
+  - 委托给 `NoteProcessor` 进行元数据提取
+
+- **`RecentNotesUpdater`**: 使用最近笔记更新索引文件
+  
+  - 从笔记信息生成HTML列表
+  
+  - 替换索引文件中标记之间的内容
+  
+  - 安全处理文件I/O操作
+
+#### 5. 笔记处理 (`utils/notes/note_manager.py`)
+
+简化的笔记处理，包含核心功能：
 
 - **`NoteInfo`**: 存储笔记元数据的数据类
 
 - **`NoteProcessor`**: 从文件中提取标题和元数据
 
-- **`CacheManager`**: 管理缓存以避免不必要的更新
-
-- **`IndexUpdater`**: 使用最近笔记更新索引文件
-
-- **`RecentNotesUpdater`**: 主协调器类
-
-#### 5. 资产管理 (`core/assets_manager.py`) **新增**
+#### 6. 资产管理 (`utils/assets/assets_manager.py`)
 
 资产管理系统使用树状结构来组织笔记资产：
 
@@ -534,7 +605,7 @@ notes/
 - 转换为 `![](../../assets/dsa.assets/anal/iter/img.png)`
 - MkDocs 相对于笔记文件正确解析路径
 
-#### 6. 笔记创建 (`core/note_creator.py`)
+#### 7. 笔记创建 (`utils/notes/note_creator.py`)
 
 `NoteCreator` 类处理创建具有适当资产结构的新笔记：
 
@@ -546,7 +617,7 @@ notes/
 
 - 支持自定义模板
 
-#### 7. 目录初始化 (`core/note_initializer.py`)
+#### 8. 目录初始化 (`utils/notes/note_initializer.py`)
 
 `NoteInitializer` 类管理目录结构：
 
@@ -594,13 +665,15 @@ notes/
 
 3. **文件处理阶段** (`on_files`)
 
-   - FileScanner 扫描笔记目录
+   - RecentNotesManager 处理最近笔记功能
+
+   - RecentNotesScanner 使用灵活策略扫描笔记
 
    - NoteProcessor 从每个文件提取元数据
 
    - 按修改时间排序笔记
 
-   - 填充最近笔记列表等
+   - RecentNotesUpdater 使用最近笔记更新索引文件
 
 4. **页面渲染阶段** (`on_page_markdown`)
 
@@ -834,14 +907,14 @@ sequenceDiagram
 #### 功能1：最近笔记显示
 
 ```
-笔记目录
-    ↓ (NoteScanner)
-有效笔记文件
+扫描字段配置
+    ↓ (RecentNotesScanner)
+灵活扫描策略
     ↓ (NoteProcessor)
 NoteInfo 对象（含 assets_list）
     ↓ (按修改时间排序)
 最近笔记列表
-    ↓ (HTML 生成)
+    ↓ (RecentNotesUpdater)
 索引页面内容
 ```
 
@@ -883,33 +956,37 @@ NoteInfo 对象（含 assets_list）
 
 2. **标题提取**: 为新文件格式扩展 `NoteProcessor`
 
-3. **输出格式**: 修改 `_generate_notes_html()` 中的 HTML 生成
+3. **输出格式**: 修改 `RecentNotesUpdater._generate_html_list()` 中的 HTML 生成
 
-4. **缓存策略**: 在 `CacheManager` 中实现自定义缓存
+4. **扫描策略**: 扩展 `RecentNotesScanner` 以支持自定义扫描逻辑
 
-5. **过滤逻辑**: 在 `FileScanner` 中自定义文件过滤
+5. **元数据字段**: 使用 `FrontmatterManager.register_field()` 注册自定义字段
 
 6. **资产路径计算**: 扩展 `AssetsProcessor` 以支持自定义路径方案
 
 7. **CLI 命令**: 在 `cli.py` 中添加新命令
 
+8. **最近笔记处理**: 扩展 `RecentNotesManager` 以支持自定义处理逻辑
+
 ### 资产管理设计
 
 资产管理系统遵循以下关键原则：
 
-1. **树状结构**：资产镜像笔记目录层次结构
+1. **就近存放结构**：资产放置在对应笔记旁边
    
    - 防止不同目录中笔记之间的命名冲突
    
-   - 示例：`dsa/anal/intro.md` 和 `language/python/intro.md` 可以共存
+   - 示例：`dsa/anal/intro.md` → `dsa/anal/assets/intro/`
+   
+   - 示例：`language/python/intro.md` → `language/python/assets/intro/`
 
-2. **第一级分类**：使用 `.assets` 后缀以提高清晰度
+2. **简单模式**：对于任何笔记文件，资产存储在同目录下的 `assets/{笔记名}/` 中
    
-   - `dsa/` → `assets/dsa.assets/`
+   - 笔记：`docs/usage/contributing.md` → 资产：`docs/usage/assets/contributing/`
    
-   - `language/` → `assets/language.assets/`
+   - 笔记：`docs/notes/python/intro.md` → 资产：`docs/notes/python/assets/intro/`
    
-   - 使资产类别易于识别
+   - 笔记：`docs/notes/quickstart.md` → 资产：`docs/notes/assets/quickstart/`
 
 3. **相对路径转换**：路径相对于笔记文件位置
    
@@ -917,7 +994,7 @@ NoteInfo 对象（含 assets_list）
    
    - 确保 MkDocs 可以正确解析资产引用
    
-   - 示例：深度 2 级 → `../../assets/category.assets/path/`
+   - 示例：深度 2 级 → `../../assets/note-name/`
 
 4. **自动处理**：Markdown 图片引用自动转换
    

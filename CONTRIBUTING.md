@@ -21,14 +21,21 @@ mkdocs_note/
 ├── config.py                # MkDocs configuration management
 ├── logger.py                # Logging utilities
 ├── cli.py                   # Command-line interface
-└── core/                    # Core business logic
+└── utils/                   # Utility modules (refactored from core/)
+    ├── data_models.py       # Data models and structures
     ├── file_manager.py      # File scanning and validation
-    ├── note_manager.py      # Note processing and management
-    ├── note_creator.py      # Note creation with templates
-    ├── note_initializer.py  # Directory structure initialization
-    ├── assets_manager.py    # Assets management
-    ├── frontmatter_manager.py  # Frontmatter metadata system (NEW)
-    └── data_models.py       # Data models and structures
+    ├── assets/              # Asset management modules
+    │   └── assets_manager.py
+    ├── frontmatter/         # Frontmatter metadata system
+    │   └── frontmatter_manager.py
+    └── notes/               # Note management modules
+        ├── note_creator.py      # Note creation with templates
+        ├── note_initializer.py  # Directory structure initialization
+        ├── note_manager.py      # Note processing and management
+        ├── note_cleaner.py      # Orphaned assets cleanup
+        ├── note_remover.py      # Note removal operations
+        ├── notes_mover.py       # Note movement and renaming
+        └── recent_notes_manager.py  # Recent notes functionality (NEW)
 ```
 
 ### UML Diagrams
@@ -38,7 +45,102 @@ mkdocs_note/
 This diagram shows how different modules depend on each other:
 
 ```mermaid
-
+graph TB
+    subgraph "MkDocs Plugin Interface"
+        Plugin[MkdocsNotePlugin]
+    end
+    
+    subgraph "Configuration Layer"
+        Config[PluginConfig]
+        Logger[Logger]
+    end
+    
+    subgraph "Utility Modules"
+        FileManager[file_manager.py]
+        DataModels[data_models.py]
+    end
+    
+    subgraph "Asset Management"
+        AssetsManager[assets/assets_manager.py]
+    end
+    
+    subgraph "Frontmatter System"
+        FrontmatterManager[frontmatter/frontmatter_manager.py]
+    end
+    
+    subgraph "Note Management"
+        NoteManager[notes/note_manager.py]
+        NoteCreator[notes/note_creator.py]
+        NoteInitializer[notes/note_initializer.py]
+        NoteCleaner[notes/note_cleaner.py]
+        NoteRemover[notes/note_remover.py]
+        NotesMover[notes/notes_mover.py]
+        RecentNotesManager[notes/recent_notes_manager.py]
+    end
+    
+    subgraph "CLI Interface"
+        CLI[cli.py]
+    end
+    
+    subgraph "External Dependencies"
+        MkDocs[MkDocs Framework]
+        Git[Git System]
+    end
+    
+    Plugin --> Config
+    Plugin --> Logger
+    Plugin --> FileManager
+    Plugin --> NoteManager
+    Plugin --> AssetsManager
+    Plugin --> RecentNotesManager
+    Plugin --> MkDocs
+    
+    CLI --> Config
+    CLI --> Logger
+    CLI --> NoteCreator
+    CLI --> NoteInitializer
+    CLI --> NoteCleaner
+    CLI --> NoteRemover
+    CLI --> NotesMover
+    
+    FileManager --> Config
+    FileManager --> Logger
+    
+    NoteManager --> Config
+    NoteManager --> Logger
+    NoteManager --> FileManager
+    NoteManager --> AssetsManager
+    NoteManager --> FrontmatterManager
+    NoteManager --> DataModels
+    NoteManager --> Git
+    
+    AssetsManager --> Config
+    AssetsManager --> Logger
+    AssetsManager --> DataModels
+    
+    FrontmatterManager --> DataModels
+    
+    NoteCreator --> Config
+    NoteCreator --> Logger
+    NoteCreator --> NoteInitializer
+    NoteCreator --> FrontmatterManager
+    
+    NoteInitializer --> Config
+    NoteInitializer --> Logger
+    NoteInitializer --> FileManager
+    NoteInitializer --> AssetsManager
+    NoteInitializer --> DataModels
+    
+    RecentNotesManager --> Config
+    RecentNotesManager --> Logger
+    RecentNotesManager --> FrontmatterManager
+    RecentNotesManager --> DataModels
+    
+    style Plugin fill:#e1f5ff
+    style Config fill:#fff4e1
+    style Logger fill:#fff4e1
+    style MkDocs fill:#f0f0f0
+    style Git fill:#f0f0f0
 ```
 
 #### Class Diagram
@@ -46,7 +148,132 @@ This diagram shows how different modules depend on each other:
 This diagram shows the main classes and their relationships:
 
 ```mermaid
-
+classDiagram
+    class MkdocsNotePlugin {
+        -logger: Logger
+        -_recent_notes: List[NoteInfo]
+        -_assets_processor: AssetsProcessor
+        -_docs_dir: Path
+        -_recent_notes_manager: RecentNotesManager
+        +on_config(config) MkDocsConfig
+        +on_files(files, config) Files
+        +on_page_markdown(markdown, page, config, files) str
+        -_is_notes_index_page(page) bool
+        -_is_note_page(page) bool
+        -_insert_recent_notes(markdown) str
+        -_process_page_assets(markdown, page) str
+        -_generate_notes_html() str
+    }
+    
+    class PluginConfig {
+        +enabled: bool
+        +recent_notes_enabled: bool
+        +recent_notes_scan_field: str
+        +recent_notes_index_file: Path
+        +recent_notes_max_count: int
+        +recent_notes_start_marker: str
+        +recent_notes_end_marker: str
+        +supported_extensions: Set[str]
+        +exclude_patterns: Set[str]
+        +exclude_dirs: Set[str]
+        +use_git_timestamps: bool
+        +timestamp_zone: str
+        +notes_template: str
+        +cache_size: int
+    }
+    
+    class RecentNotesManager {
+        -config: PluginConfig
+        -logger: Logger
+        -scanner: RecentNotesScanner
+        -updater: RecentNotesUpdater
+        +process_recent_notes() bool
+    }
+    
+    class RecentNotesScanner {
+        -config: PluginConfig
+        -logger: Logger
+        +scan_notes() List[NoteInfo]
+        -_parse_scan_field(scan_field) Tuple
+        -_scan_directory(directory) List[NoteInfo]
+        -_scan_pattern(pattern) List[NoteInfo]
+        -_filter_by_metadata(notes, filter_expr) List[NoteInfo]
+    }
+    
+    class RecentNotesUpdater {
+        -config: PluginConfig
+        -logger: Logger
+        +update_index(notes) bool
+        -_generate_html_list(notes) str
+        -_replace_section(content, new_section) str
+    }
+    
+    class NoteProcessor {
+        -config: PluginConfig
+        -logger: Logger
+        -assets_processor: AssetsProcessor
+        -_timezone: timezone
+        +process_note(file_path) NoteInfo
+        -_extract_title(file_path) str
+        -_extract_assets(file_path) List[AssetsInfo]
+        -_generate_relative_url(file_path) str
+        -_get_git_commit_time(file_path) float
+        -_format_timestamp(timestamp) str
+    }
+    
+    class AssetsProcessor {
+        -config: PluginConfig
+        -logger: Logger
+        -image_pattern: Pattern
+        +process_assets(note_info) List[AssetsInfo]
+        +update_markdown_content(content, note_file) str
+        -_process_image_reference(image_path, note_file, index) AssetsInfo
+    }
+    
+    class FrontmatterManager {
+        -registry: MetadataRegistry
+        -parser: FrontmatterParser
+        +register_field(field) None
+        +create_default_frontmatter(custom_values) Dict[str, Any]
+        +parse_file(file_path) Tuple[Dict, str]
+        +create_note_content(frontmatter, body, validate) Tuple[str, List[str]]
+        +update_note_frontmatter(file_path, updates, merge) None
+        +get_field_info(field_name) Optional[MetadataField]
+        +list_all_fields() Dict[str, MetadataField]
+    }
+    
+    class NoteInfo {
+        +file_path: Path
+        +title: str
+        +relative_url: str
+        +modified_date: str
+        +file_size: int
+        +modified_time: float
+        +assets_list: List[AssetsInfo]
+        +frontmatter: Optional[NoteFrontmatter]
+    }
+    
+    %% Relationships
+    MkdocsNotePlugin --> PluginConfig
+    MkdocsNotePlugin --> RecentNotesManager
+    MkdocsNotePlugin --> AssetsProcessor
+    MkdocsNotePlugin --> NoteInfo
+    
+    RecentNotesManager --> RecentNotesScanner
+    RecentNotesManager --> RecentNotesUpdater
+    RecentNotesManager --> PluginConfig
+    
+    RecentNotesScanner --> NoteProcessor
+    RecentNotesScanner --> NoteInfo
+    
+    RecentNotesUpdater --> PluginConfig
+    
+    NoteProcessor --> AssetsProcessor
+    NoteProcessor --> FrontmatterManager
+    NoteProcessor --> NoteInfo
+    
+    FrontmatterManager --> MetadataRegistry
+    FrontmatterManager --> FrontmatterParser
 ```
 
 ### Core Components
@@ -61,7 +288,7 @@ The `MkdocsNotePlugin` class is the main entry point that integrates with MkDocs
 
   - `on_config()`: Configures MkDocs settings (TOC, slugify functions, assets processor)
 
-  - `on_files()`: Scans and processes note files
+  - `on_files()`: Processes recent notes using the new RecentNotesManager
 
   - `on_page_markdown()`: Inserts recent notes into index pages and processes asset paths
 
@@ -77,11 +304,17 @@ The `PluginConfig` class manages all plugin settings:
 
   - `enabled`: Enable/disable plugin
 
-  - `notes_dir`: Directory containing notes
+  - `recent_notes_enabled`: Enable/disable recent notes functionality
 
-  - `index_file`: Target index file for recent notes
+  - `recent_notes_scan_field`: Flexible scan field (directory, pattern, or metadata filter)
 
-  - `max_notes`: Maximum number of recent notes to display
+  - `recent_notes_index_file`: Target index file for recent notes
+
+  - `recent_notes_max_count`: Maximum number of recent notes to display
+
+  - `recent_notes_start_marker`: Start marker for notes insertion
+
+  - `recent_notes_end_marker`: End marker for notes insertion
 
   - `supported_extensions`: File types to include (`.md`, `.ipynb`)
 
@@ -89,13 +322,11 @@ The `PluginConfig` class manages all plugin settings:
 
   - `exclude_dirs`: Directories to skip during scanning
 
-  - `assets_dir`: Directory for storing note assets
-
   - `notes_template`: Template file for new notes
 
-#### 3. File Management (`core/file_manager.py`)
+#### 3. File Management (`utils/file_manager.py`)
 
-The `FileScanner` class handles file discovery and validation:
+The `NoteScanner` and `AssetScanner` classes handle file discovery and validation (deprecated in favor of RecentNotesManager):
 
 - **Responsibilities**:
 
@@ -107,21 +338,47 @@ The `FileScanner` class handles file discovery and validation:
 
   - Return list of valid note files
 
-#### 4. Note Processing (`core/note_manager.py`)
+#### 4. Recent Notes Management (`utils/notes/recent_notes_manager.py`) **NEW**
 
-Multiple classes handle note processing and management:
+The recent notes management system provides decoupled and flexible recent notes functionality:
+
+- **`RecentNotesManager`**: Main orchestrator class for recent notes processing
+  
+  - Coordinates scanning and updating operations
+  
+  - Provides unified interface for recent notes functionality
+  
+  - Handles configuration and error management
+
+- **`RecentNotesScanner`**: Flexible note scanning with multiple strategies
+  
+  - Supports directory scanning: `'docs/notes'`
+  
+  - Supports file pattern scanning: `'docs/**/*.md'`
+  
+  - Supports metadata filtering: `'metadata.publish=true'`
+  
+  - Supports combined strategies: `'docs/notes+metadata.publish=true'`
+  
+  - Delegates to `NoteProcessor` for metadata extraction
+
+- **`RecentNotesUpdater`**: Updates index files with recent notes
+  
+  - Generates HTML list from note information
+  
+  - Replaces content between markers in index files
+  
+  - Handles file I/O operations safely
+
+#### 5. Note Processing (`utils/notes/note_manager.py`)
+
+Simplified note processing with core functionality:
 
 - **`NoteInfo`**: Data class storing note metadata
 
 - **`NoteProcessor`**: Extracts title and metadata from files
 
-- **`CacheManager`**: Manages caching to avoid unnecessary updates
-
-- **`IndexUpdater`**: Updates index files with recent notes
-
-- **`RecentNotesUpdater`**: Main orchestrator class
-
-#### 5. Frontmatter Management (`core/frontmatter_manager.py`) **NEW**
+#### 6. Frontmatter Management (`utils/frontmatter/frontmatter_manager.py`)
 
 The frontmatter management system provides extensible metadata handling for notes:
 
@@ -189,7 +446,7 @@ author_field = MetadataField(
 register_field(author_field)
 ```
 
-#### 6. Assets Management (`core/assets_manager.py`)
+#### 7. Assets Management (`utils/assets/assets_manager.py`)
 
 The assets management system uses a tree-based structure to organize note assets:
 
@@ -244,7 +501,7 @@ notes/
 - Converted to `![](../../assets/dsa.assets/anal/iter/img.png)`
 - MkDocs resolves the path correctly relative to the note file
 
-#### 7. Note Creation (`core/note_creator.py`)
+#### 8. Note Creation (`utils/notes/note_creator.py`)
 
 The `NoteCreator` class handles creating new notes with proper asset structure:
 
@@ -256,7 +513,7 @@ The `NoteCreator` class handles creating new notes with proper asset structure:
 
 - Supports custom templates
 
-#### 8. Directory Initialization (`core/note_initializer.py`)
+#### 9. Directory Initialization (`utils/notes/note_initializer.py`)
 
 The `NoteInitializer` class manages directory structure:
 
@@ -304,13 +561,15 @@ The plugin execution follows this sequence:
 
 3. **File Processing Phase** (`on_files`)
 
-   - FileScanner scans notes directory
+   - RecentNotesManager processes recent notes functionality
+
+   - RecentNotesScanner scans notes using flexible strategies
 
    - NoteProcessor extracts metadata from each file
 
    - Notes sorted by modification time
 
-   - Recent notes list populated
+   - RecentNotesUpdater updates index file with recent notes
 
 4. **Page Rendering Phase** (`on_page_markdown`)
 
@@ -343,7 +602,9 @@ sequenceDiagram
     participant MkDocs as MkDocs Framework
     participant Plugin as MkdocsNotePlugin
     participant Config as PluginConfig
-    participant Scanner as NoteScanner
+    participant RNManager as RecentNotesManager
+    participant RNScanner as RecentNotesScanner
+    participant RNUpdater as RecentNotesUpdater
     participant Processor as NoteProcessor
     participant AssetsProc as AssetsProcessor
     participant Page as Page Content
@@ -353,6 +614,7 @@ sequenceDiagram
     activate Plugin
     Plugin->>Plugin: Create Logger
     Plugin->>Plugin: Initialize _recent_notes = []
+    Plugin->>Plugin: Initialize _recent_notes_manager = None
     deactivate Plugin
     
     Note over MkDocs,AssetsProc: 2. Configuration Phase
@@ -362,40 +624,46 @@ sequenceDiagram
     Config-->>Plugin: True/False
     Plugin->>Plugin: Store docs_dir
     Plugin->>AssetsProc: Initialize AssetsProcessor
-    Plugin->>Config: Setup TOC config
+    Plugin->>Config: Setup TOC configuration
     Plugin->>Config: Setup slugify function
-    Plugin-->>MkDocs: Updated config
+    Plugin-->>MkDocs: Updated configuration
     deactivate Plugin
     
-    Note over MkDocs,Processor: 3. File Processing Phase
+    Note over MkDocs,RNUpdater: 3. File Processing Phase
     MkDocs->>Plugin: on_files(files, config)
     activate Plugin
-    Plugin->>Scanner: scan_notes()
-    activate Scanner
-    Scanner->>Scanner: Scan notes directory
-    Scanner->>Scanner: Filter by extensions
-    Scanner->>Scanner: Exclude patterns
-    Scanner-->>Plugin: List[Path]
-    deactivate Scanner
+    Plugin->>Config: Check recent_notes_enabled
+    Config-->>Plugin: True/False
     
-    loop For each note file
-        Plugin->>Processor: process_note(file_path)
+    alt Recent notes enabled
+        Plugin->>RNManager: Initialize RecentNotesManager
+        activate RNManager
+        Plugin->>RNManager: process_recent_notes()
+        
+        RNManager->>RNScanner: scan_notes()
+        activate RNScanner
+        RNScanner->>RNScanner: Parse scan_field
+        RNScanner->>RNScanner: Apply scanning strategy
+        RNScanner->>Processor: process_note(file_path)
         activate Processor
-        Processor->>Processor: Extract title
-        Processor->>Processor: Get Git commit time (if enabled)
-        Processor->>Processor: Generate relative URL
+        Processor->>Processor: Extract title and metadata
         Processor->>AssetsProc: Extract assets
-        activate AssetsProc
-        AssetsProc->>AssetsProc: Find image references
-        AssetsProc->>AssetsProc: Calculate asset paths
-        AssetsProc-->>Processor: List[AssetsInfo]
-        deactivate AssetsProc
-        Processor-->>Plugin: NoteInfo
+        Processor-->>RNScanner: NoteInfo
         deactivate Processor
+        RNScanner-->>RNManager: List[NoteInfo]
+        deactivate RNScanner
+        
+        RNManager->>RNUpdater: update_index(notes)
+        activate RNUpdater
+        RNUpdater->>RNUpdater: Generate HTML list
+        RNUpdater->>RNUpdater: Replace content in index file
+        RNUpdater-->>RNManager: Success status
+        deactivate RNUpdater
+        
+        RNManager-->>Plugin: Success status
+        deactivate RNManager
     end
     
-    Plugin->>Plugin: Sort notes by modified_time
-    Plugin->>Plugin: Store recent_notes
     Plugin-->>MkDocs: Updated files
     deactivate Plugin
     
@@ -409,10 +677,8 @@ sequenceDiagram
             Plugin->>AssetsProc: update_markdown_content(markdown, page_path)
             activate AssetsProc
             AssetsProc->>AssetsProc: Find image patterns: ![](...)
-            AssetsProc->>AssetsProc: get_note_relative_path()
-            AssetsProc->>AssetsProc: Calculate depth & ../prefixes
-            AssetsProc->>AssetsProc: Add .assets suffix
-            AssetsProc->>AssetsProc: Replace paths
+            AssetsProc->>AssetsProc: Calculate relative paths
+            AssetsProc->>AssetsProc: Convert to co-located asset paths
             AssetsProc-->>Plugin: Updated markdown
             deactivate AssetsProc
         end
@@ -434,56 +700,7 @@ sequenceDiagram
 This diagram shows the CLI workflow for creating new notes:
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant CLI as cli.py
-    participant Config as PluginConfig
-    participant Creator as NoteCreator
-    participant Initializer as NoteInitializer
-    participant Scanner as NoteScanner
-    participant FS as File System
-    
-    User->>CLI: mkdocs-note new <file_path>
-    activate CLI
-    
-    CLI->>Config: Load configuration
-    Config-->>CLI: PluginConfig
-    
-    CLI->>Creator: create_new_note(file_path, template_path)
-    activate Creator
-    
-    Creator->>Initializer: validate_asset_tree_compliance()
-    activate Initializer
-    Initializer->>Scanner: scan_notes()
-    Scanner-->>Initializer: List[Path]
-    Initializer->>Initializer: _analyze_asset_tree()
-    Initializer->>Initializer: _check_compliance()
-    Initializer-->>Creator: (is_compliant, errors)
-    deactivate Initializer
-    
-    alt Not compliant
-        Creator-->>CLI: Error: Run 'mkdocs note init'
-        CLI-->>User: Error message
-    else Compliant
-        Creator->>FS: Check if file exists
-        FS-->>Creator: File status
-        
-        alt File exists
-            Creator-->>CLI: Error: File already exists
-            CLI-->>User: Error message
-        else File doesn't exist
-            Creator->>Creator: _generate_note_content()
-            Creator->>Creator: Replace template variables
-            Creator->>FS: Write note file
-            Creator->>Creator: _get_asset_directory()
-            Creator->>FS: Create asset directory
-            Creator-->>CLI: Success (0)
-            CLI-->>User: Success message
-        end
-    end
-    
-    deactivate Creator
-    deactivate CLI
+
 ```
 
 #### Sequence Diagram: Asset Path Processing
@@ -491,50 +708,7 @@ sequenceDiagram
 This diagram shows how asset paths are processed during page rendering:
 
 ```mermaid
-sequenceDiagram
-    participant Plugin as MkdocsNotePlugin
-    participant AssetsProc as AssetsProcessor
-    participant Helper as get_note_relative_path()
-    participant Markdown as Markdown Content
-    
-    Note over Plugin,Markdown: Processing note page: notes/dsa/anal/iter.md
-    
-    Plugin->>AssetsProc: update_markdown_content(content, note_file)
-    activate AssetsProc
-    
-    AssetsProc->>Markdown: Find pattern: ![alt](image.png)
-    Markdown-->>AssetsProc: Matches found
-    
-    loop For each image reference
-        AssetsProc->>AssetsProc: Check if external URL
-        
-        alt Is external URL
-            AssetsProc->>AssetsProc: Skip processing
-        else Is local reference
-            AssetsProc->>Helper: get_note_relative_path(note_file, notes_dir)
-            activate Helper
-            Helper->>Helper: Calculate relative path
-            Note over Helper: notes/dsa/anal/iter.md → dsa/anal/iter
-            Helper->>Helper: Add .assets suffix to first level
-            Note over Helper: dsa/anal/iter → dsa.assets/anal/iter
-            Helper-->>AssetsProc: "dsa.assets/anal/iter"
-            deactivate Helper
-            
-            AssetsProc->>AssetsProc: Calculate note depth
-            Note over AssetsProc: Depth = 2 (dsa/anal/)
-            
-            AssetsProc->>AssetsProc: Build relative path
-            Note over AssetsProc: ../../assets/dsa.assets/anal/iter/image.png
-            
-            AssetsProc->>Markdown: Replace path in content
-            Markdown-->>AssetsProc: Updated content
-        end
-    end
-    
-    AssetsProc-->>Plugin: Updated markdown content
-    deactivate AssetsProc
-    
-    Note over Plugin,Markdown: Result: ![alt](../../assets/dsa.assets/anal/iter/image.png)
+
 ```
 
 ### Data Flow
@@ -544,14 +718,14 @@ The plugin provides two main features with distinct data flows:
 #### Feature 1: Recent Notes Display
 
 ```
-Notes Directory
-    ↓ (NoteScanner)
-Valid Note Files
+Scan Field Configuration
+    ↓ (RecentNotesScanner)
+Flexible Scanning Strategy
     ↓ (NoteProcessor)
 NoteInfo Objects (with assets_list)
     ↓ (Sort by modified_time)
 Recent Notes List
-    ↓ (HTML Generation)
+    ↓ (RecentNotesUpdater)
 Index Page Content
 ```
 
@@ -593,33 +767,37 @@ The architecture supports several extension points:
 
 2. **Title Extraction**: Extend `NoteProcessor` for new file formats
 
-3. **Output Formatting**: Modify HTML generation in `_generate_notes_html()`
+3. **Output Formatting**: Modify HTML generation in `RecentNotesUpdater._generate_html_list()`
 
-4. **Caching Strategy**: Implement custom caching in `CacheManager`
+4. **Scanning Strategies**: Extend `RecentNotesScanner` for custom scanning logic
 
-5. **Filtering Logic**: Customize file filtering in `FileScanner`
+5. **Metadata Fields**: Register custom fields using `FrontmatterManager.register_field()`
 
 6. **Asset Path Calculation**: Extend `AssetsProcessor` for custom path schemes
 
 7. **CLI Commands**: Add new commands in `cli.py`
 
+8. **Recent Notes Processing**: Extend `RecentNotesManager` for custom processing logic
+
 ### Asset Management Design
 
 The asset management system follows these key principles:
 
-1. **Tree-Based Structure**: Assets mirror the notes directory hierarchy
+1. **Co-Located Structure**: Assets are placed next to their corresponding notes
    
    - Prevents naming conflicts between notes in different directories
    
-   - Example: `dsa/anal/intro.md` and `language/python/intro.md` can coexist
+   - Example: `dsa/anal/intro.md` → `dsa/anal/assets/intro/`
+   
+   - Example: `language/python/intro.md` → `language/python/assets/intro/`
 
-2. **First-Level Categorization**: Use `.assets` suffix for clarity
+2. **Simple Pattern**: For any note file, assets are stored in `assets/{note_stem}/` within the same directory
    
-   - `dsa/` → `assets/dsa.assets/`
+   - Note: `docs/usage/contributing.md` → Assets: `docs/usage/assets/contributing/`
    
-   - `language/` → `assets/language.assets/`
+   - Note: `docs/notes/python/intro.md` → Assets: `docs/notes/python/assets/intro/`
    
-   - Makes asset categories easily identifiable
+   - Note: `docs/notes/quickstart.md` → Assets: `docs/notes/assets/quickstart/`
 
 3. **Relative Path Conversion**: Paths are relative to note file location
    
@@ -627,7 +805,7 @@ The asset management system follows these key principles:
    
    - Ensures MkDocs can correctly resolve asset references
    
-   - Example: 2 levels deep → `../../assets/category.assets/path/`
+   - Example: 2 levels deep → `../../assets/note-name/`
 
 4. **Automatic Processing**: Markdown image references are automatically converted
    
@@ -704,13 +882,19 @@ To get started with local development, follow these steps:
     Install the project in editable mode along with the development dependencies.
 
     ```bash
-    uv sync
+    uv sync --extras dev
     ```
 
 4.  **Run Tests**
 
     To make sure everything is set up correctly, run the test suite:
 
+    ```bash
+    just t
+    ```
+
+    If you don't want to use [just](https://github.com/casey/just), you can use the test script directly:
+    
     ```bash
     ./tests/test.sh
     ```

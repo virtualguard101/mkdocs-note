@@ -5,9 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] (Breaking Changes)
+## 2.0.0 - 2025-10-14 (Breaking Changes)
 
 ### Changed
+
+- **Project Structure Refactoring**: Major architectural refactoring with improved modularity
+  
+  - **Module Reorganization**: Refactored from `core/` to `utils/` structure for better organization
+    
+    - `core/file_manager.py` → `utils/file_manager.py`
+    
+    - `core/note_manager.py` → `utils/notes/note_manager.py`
+    
+    - `core/assets_manager.py` → `utils/assets/assets_manager.py`
+    
+    - `core/frontmatter_manager.py` → `utils/frontmatter/frontmatter_manager.py`
+    
+    - `core/note_creator.py` → `utils/notes/note_creator.py`
+    
+    - `core/note_initializer.py` → `utils/notes/note_initializer.py`
+    
+    - `core/note_cleaner.py` → `utils/notes/note_cleaner.py`
+    
+    - `core/note_remover.py` → `utils/notes/note_remover.py`
+    
+    - `core/notes_mover.py` → `utils/notes/notes_mover.py`
+  
+  - **Recent Notes Architecture**: Decoupled and enhanced recent notes functionality
+    
+    - **New Classes**: `RecentNotesManager`, `RecentNotesScanner`, `RecentNotesUpdater`
+    
+    - **Flexible Configuration**: New `recent_notes_scan_field` option supports multiple scanning strategies
+    
+    - **Backward Compatibility**: Old configuration options automatically migrated to new ones
+    
+    - **Improved Separation**: Recent notes logic separated from general note processing
+
+- **Configuration System Overhaul**: Complete configuration system redesign
+  
+  - **New Configuration Options**:
+    
+    - `recent_notes_enabled`: Enable/disable recent notes functionality
+    
+    - `recent_notes_scan_field`: Flexible scan field (directory, pattern, or metadata filter)
+    
+    - `recent_notes_index_file`: Target index file for recent notes
+    
+    - `recent_notes_max_count`: Maximum number of recent notes to display
+    
+    - `recent_notes_start_marker`: Start marker for notes insertion
+    
+    - `recent_notes_end_marker`: End marker for notes insertion
+  
+  - **Deprecated Options**: Removed old configuration options for cleaner API
+    
+    - `notes_dir`: Replaced by `recent_notes_scan_field`
+    
+    - `index_file`: Replaced by `recent_notes_index_file`
+    
+    - `max_notes`: Replaced by `recent_notes_max_count`
+    
+    - `start_marker`: Replaced by `recent_notes_start_marker`
+    
+    - `end_marker`: Replaced by `recent_notes_end_marker`
+    
+    - `assets_dir`: No longer needed with co-located asset structure
 
 - **Asset Directory Structure**: Simplified asset directory organization from centralized to co-located structure
   
@@ -32,26 +94,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - ✅ Simpler: No dependency on `notes_dir` or `assets_dir` configuration
   
   - **Breaking Change**: Existing assets in centralized structure need migration
-  
-  - Updated components:
-    
-    - `NoteCreator._get_asset_directory()`: Simplified logic
-    
-    - `NoteRemover._get_asset_directory()`: Co-located pattern
-    
-    - `NoteMover._get_asset_directory()`: Co-located pattern
-    
-    - `NoteCleaner.find_orphaned_assets()`: Searches all `assets/` subdirectories
-    
-    - `NoteInitializer._analyze_asset_tree()`: Validates co-located structure
-
-- **Configuration Deprecation**: `assets_dir` configuration option is now deprecated
-  
-  - The option is kept for backward compatibility but no longer used
-  
-  - Assets are automatically placed using the co-located pattern
 
 ### Added
+
+- **Recent Notes Management System**: New decoupled architecture for recent notes functionality
+  
+  - **`RecentNotesManager`**: Main orchestrator class for recent notes processing
+    
+    - Coordinates scanning and updating operations
+    
+    - Provides unified interface for recent notes functionality
+    
+    - Handles configuration and error management
+  
+  - **`RecentNotesScanner`**: Flexible note scanning with multiple strategies
+    
+    - Supports directory scanning: `'docs/notes'`
+    
+    - Supports file pattern scanning: `'docs/**/*.md'`
+    
+    - Supports metadata filtering: `'metadata.publish=true'`
+    
+    - Supports combined strategies: `'docs/notes+metadata.publish=true'`
+    
+    - Delegates to `NoteProcessor` for metadata extraction
+  
+  - **`RecentNotesUpdater`**: Updates index files with recent notes
+    
+    - Generates HTML list from note information
+    
+    - Replaces content between markers in index files
+    
+    - Handles file I/O operations safely
+
+- **Flexible Scanning Configuration**: Enhanced scanning capabilities
+  
+  - **Multiple Scan Strategies**: Support for directory, pattern, and metadata-based scanning
+    
+    - Directory scanning: `'docs/notes'`
+    
+    - File pattern scanning: `'docs/**/*.md'`
+    
+    - Metadata filtering: `'metadata.publish=true'`
+    
+    - Combined strategies: `'docs/notes+metadata.publish=true'`
+  
+  - **Backward Compatibility**: Automatic migration from old configuration options
+  
+  - **Improved Performance**: Optimized scanning algorithms for better performance
 
 - **Frontmatter Metadata System** (#15): Implemented comprehensive frontmatter management system for notes
   
@@ -101,19 +191,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Details
 
-- **Extensibility**: Metadata system uses registration pattern for easy extension without modifying core code
+- **Architecture Improvements**: 
+  
+  - **Modular Design**: Better separation of concerns with dedicated modules for different functionalities
+  
+  - **Extensibility**: Metadata system uses registration pattern for easy extension without modifying core code
+  
+  - **Backward Compatibility**: Existing notes without frontmatter continue to work normally
+  
+  - **Type Safety**: Comprehensive type hints throughout the system
+  
+  - **Performance**: Optimized scanning and processing algorithms
 
-- **Backward Compatibility**: Existing notes without frontmatter continue to work normally
+- **Testing**: 
+  
+  - Added comprehensive unit tests for new RecentNotesManager system
+  
+  - Updated all existing tests to work with new architecture
+  
+  - All 242 tests passing with 100% success rate
+  
+  - Enhanced test coverage for new functionality
 
-- **Type Safety**: Comprehensive type hints throughout frontmatter system
-
-- **Testing**: Added 31 unit tests for frontmatter management system (all passing)
+- **Code Quality**:
+  
+  - Improved code organization and maintainability
+  
+  - Enhanced error handling and logging
+  
+  - Better separation of concerns
+  
+  - Comprehensive documentation updates
 
 ### Documentation
 
-- Enhanced code documentation with detailed docstrings
+- **Architecture Documentation**: 
+  
+  - Updated CONTRIBUTING.md with new project structure and UML diagrams
+  
+  - Enhanced component dependency diagrams
+  
+  - Updated class diagrams with new RecentNotesManager classes
+  
+  - Improved sequence diagrams for build process
 
-- Added inline examples for metadata registration usage
+- **User Documentation**: 
+  
+  - Updated README.md and README.zh-CN.md with new configuration options
+  
+  - Enhanced configuration examples and usage guides
+  
+  - Updated asset management documentation
+  
+  - Improved troubleshooting guides
+
+- **Code Documentation**: 
+  
+  - Enhanced code documentation with detailed docstrings
+  
+  - Added inline examples for metadata registration usage
+  
+  - Updated API documentation for new classes and methods
 
 ## 1.2.5 - 2025-10-13
 

@@ -231,10 +231,21 @@ class NoteInitializer:
             # Ensure parent directory exists
             template_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Create empty template file
+        # Create default template file with frontmatter
         if should_create:
-            template_path.write_text("", encoding='utf-8')
-            self.logger.debug(f"Created template file: {template_path}")
+            default_template_content = """---
+date: {{date}}
+title: {{title}}
+permalink: 
+publish: true
+---
+
+# {{title}}
+
+Start writing your note content...
+"""
+            template_path.write_text(default_template_content, encoding='utf-8')
+            self.logger.debug(f"Created default template file: {template_path}")
         else:
             self.logger.warning(
                 f"Template file not found and cannot be auto-created: {template_path}"
