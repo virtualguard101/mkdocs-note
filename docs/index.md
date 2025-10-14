@@ -1,17 +1,17 @@
-# Welcome to MkDocs
+---
+date: 2025-10-15 00:57:12
+title: Welcome
+permalink: 
+publish: true
+---
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+# Welcome
 
-## Commands
+## Mkdocs Note
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+**MkDocs Note** is a plugin for MkDocs that automatically manages documentations in your mkdocs-based sites. It's designed to create a unified note-taking and documentation experience.
 
-## Project layout
+## Recent New or Modified Documentations
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+<!-- recent_notes_start -->
+<!-- recent_notes_end -->

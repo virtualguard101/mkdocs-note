@@ -1,5 +1,6 @@
 alias t := test
 alias p:= publish
+alias s:= serve
 
 test OPTIONS="":
     ./tests/test.sh {{OPTIONS}}
@@ -9,3 +10,6 @@ publish VERSION:
     git pull origin main
     git tag -a {{VERSION}}
     git push --tags
+
+serve:
+    uv run mkdocs serve

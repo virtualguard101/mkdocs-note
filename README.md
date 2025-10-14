@@ -208,8 +208,8 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | bool | `true` | Enable or disable the plugin |
-| `notes_dir` | Path | `"docs/notes"` | Directory containing your notes |
-| `index_file` | Path | `"docs/notes/index.md"` | Index file where recent notes will be displayed |
+| `notes_dir` | Path | `"docs"` | Directory containing your notes |
+| `index_file` | Path | `"docs/index.md"` | Index file where recent notes will be displayed |
 | `max_notes` | int | `11` | Maximum number of recent notes to display (including index page, but display not including the index page itself) |
 | `start_marker` | str | `"<!-- recent_notes_start -->"` | Start marker for notes insertion |
 | `end_marker` | str | `"<!-- recent_notes_end -->"` | End marker for notes insertion |
