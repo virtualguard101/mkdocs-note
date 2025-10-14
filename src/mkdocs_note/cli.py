@@ -17,11 +17,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from mkdocs_note.config import PluginConfig, load_config_from_mkdocs_yml
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_initializer import NoteInitializer
-from mkdocs_note.core.note_creator import NoteCreator
-from mkdocs_note.core.note_remover import NoteRemover
-from mkdocs_note.core.note_cleaner import NoteCleaner
-from mkdocs_note.core.notes_mover import NoteMover
+from mkdocs_note.utils.notes.note_initializer import NoteInitializer
+from mkdocs_note.utils.notes.note_creator import NoteCreator
+from mkdocs_note.utils.notes.note_remover import NoteRemover
+from mkdocs_note.utils.notes.note_cleaner import NoteCleaner
+from mkdocs_note.utils.notes.notes_mover import NoteMover
 
 
 @click.group()
@@ -177,7 +177,7 @@ def validate_notes(ctx, path: Optional[str] = None):
         mkdocs-note validate
         mkdocs-note validate --path docs/notes
     """
-    from mkdocs_note.core.file_manager import NoteScanner
+    from mkdocs_note.utils.file_manager import NoteScanner
     
     config = ctx.obj['config']
     logger = ctx.obj['logger']

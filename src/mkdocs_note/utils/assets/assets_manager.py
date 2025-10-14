@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Tuple
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+from mkdocs_note.utils.data_models import NoteInfo, AssetsInfo
 
 
 def get_note_relative_path(note_file: Path, notes_dir: Path, use_assets_suffix: bool = True) -> str:
@@ -143,9 +143,14 @@ class AssetsManager:
     def __init__(self, config: PluginConfig, logger: Logger):
         self.config = config
         self.logger = logger
+        
+        # Use legacy assets_dir and notes_dir for backward compatibility
+        assets_dir = getattr(config, 'assets_dir', 'docs/notes/assets')
+        notes_dir = getattr(config, 'notes_dir', 'docs/notes')
+        
         self.catalog_tree = AssetsCatalogTree(
-            Path(config.assets_dir), 
-            Path(config.notes_dir)
+            Path(assets_dir), 
+            Path(notes_dir)
         )
 
     def catalog_generator(self, assets_list: List[AssetsInfo], note_info: NoteInfo) -> str:
@@ -158,9 +163,11 @@ class AssetsManager:
         Returns:
             str: The catalog of assets
         """
+        # Use legacy notes_dir for backward compatibility
+        notes_dir = getattr(self.config, 'notes_dir', 'docs/notes')
         note_relative_path = get_note_relative_path(
             note_info.file_path, 
-            Path(self.config.notes_dir)
+            Path(notes_dir)
         )
         self.catalog_tree.add_node(note_relative_path, assets_list)
         

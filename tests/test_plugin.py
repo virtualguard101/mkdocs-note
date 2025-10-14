@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 from mkdocs_note.plugin import MkdocsNotePlugin
 from mkdocs_note.config import PluginConfig
-from mkdocs_note.core.data_models import NoteInfo
+from mkdocs_note.utils.data_models import NoteInfo
 import click
 
 
@@ -141,28 +141,16 @@ class TestMkdocsNotePlugin(unittest.TestCase):
         
         self.assertEqual(result, mock_files)
 
-    @patch('mkdocs_note.plugin.Logger')
-    @patch('mkdocs_note.plugin.NoteScanner')
-    @patch('mkdocs_note.plugin.NoteProcessor')
-    def test_on_files_success(self, mock_processor_class, mock_scanner_class, mock_logger):
+    @patch('mkdocs_note.plugin.RecentNotesManager')
+    def test_on_files_success(self, mock_manager_class):
         """Test successful on_files processing."""
         self.plugin.config.enabled = True
-        self.plugin.config.max_notes = 5
+        self.plugin.config.recent_notes_enabled = True
         
-        # Mock scanner and processor
-        mock_scanner = Mock()
-        mock_scanner_class.return_value = mock_scanner
-        mock_scanner.scan_notes.return_value = [Path('/test/note1.md'), Path('/test/note2.md')]
-        
-        mock_processor = Mock()
-        mock_processor_class.return_value = mock_processor
-        
-        # Mock note info
-        note1 = Mock()
-        note1.modified_time = 1705311000.0
-        note2 = Mock()
-        note2.modified_time = 1705310000.0
-        mock_processor.process_note.side_effect = [note1, note2]
+        # Mock RecentNotesManager
+        mock_manager = Mock()
+        mock_manager_class.return_value = mock_manager
+        mock_manager.process_recent_notes.return_value = True
         
         mock_files = Mock()
         mock_config = Mock()
@@ -171,37 +159,38 @@ class TestMkdocsNotePlugin(unittest.TestCase):
             result = self.plugin.on_files(mock_files, mock_config)
         
         self.assertEqual(result, mock_files)
-        self.assertEqual(len(self.plugin._recent_notes), 2)
+        mock_manager.process_recent_notes.assert_called_once()
         mock_info.assert_called()
 
-    @patch('mkdocs_note.plugin.Logger')
-    @patch('mkdocs_note.plugin.NoteScanner')
-    def test_on_files_no_notes(self, mock_scanner_class, mock_logger):
+    @patch('mkdocs_note.plugin.RecentNotesManager')
+    def test_on_files_no_notes(self, mock_manager_class):
         """Test on_files when no notes found."""
         self.plugin.config.enabled = True
+        self.plugin.config.recent_notes_enabled = True
         
-        mock_scanner = Mock()
-        mock_scanner_class.return_value = mock_scanner
-        mock_scanner.scan_notes.return_value = []
+        # Mock RecentNotesManager
+        mock_manager = Mock()
+        mock_manager_class.return_value = mock_manager
+        mock_manager.process_recent_notes.return_value = True
         
         mock_files = Mock()
         mock_config = Mock()
         
-        with patch.object(self.plugin.logger, 'warning') as mock_warning:
-            result = self.plugin.on_files(mock_files, mock_config)
+        result = self.plugin.on_files(mock_files, mock_config)
         
         self.assertEqual(result, mock_files)
-        mock_warning.assert_called_once()
+        mock_manager.process_recent_notes.assert_called_once()
 
-    @patch('mkdocs_note.plugin.Logger')
-    @patch('mkdocs_note.plugin.NoteScanner')
-    def test_on_files_exception(self, mock_scanner_class, mock_logger):
+    @patch('mkdocs_note.plugin.RecentNotesManager')
+    def test_on_files_exception(self, mock_manager_class):
         """Test on_files with exception."""
         self.plugin.config.enabled = True
+        self.plugin.config.recent_notes_enabled = True
         
-        mock_scanner = Mock()
-        mock_scanner_class.return_value = mock_scanner
-        mock_scanner.scan_notes.side_effect = Exception("Test error")
+        # Mock RecentNotesManager
+        mock_manager = Mock()
+        mock_manager_class.return_value = mock_manager
+        mock_manager.process_recent_notes.side_effect = Exception("Test error")
         
         mock_files = Mock()
         mock_config = Mock()

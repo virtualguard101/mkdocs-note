@@ -47,7 +47,7 @@ class TestLogger(unittest.TestCase):
         # Verify formatter was created with correct format
         mock_formatter.assert_called_once()
         call_args = mock_formatter.call_args[0]
-        self.assertIn('%(log_color)s%(asctime)s - %(levelname)s - %(message)s', call_args)
+        self.assertIn('%(levelname)s    - %(message)s', call_args)
 
     def test_debug_method(self):
         """Test debug logging method."""

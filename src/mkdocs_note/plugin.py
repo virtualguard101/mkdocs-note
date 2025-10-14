@@ -12,10 +12,11 @@ from mkdocs.structure.pages import Page
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner, AssetScanner
-from mkdocs_note.core.note_manager import NoteProcessor
-from mkdocs_note.core.data_models import NoteInfo
-from mkdocs_note.core.assets_manager import AssetsProcessor
+from mkdocs_note.utils.file_manager import NoteScanner, AssetScanner
+from mkdocs_note.utils.notes.note_manager import NoteProcessor
+from mkdocs_note.utils.data_models import NoteInfo
+from mkdocs_note.utils.assets.assets_manager import AssetsProcessor
+from mkdocs_note.utils.notes.recent_notes_manager import RecentNotesManager
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):
@@ -31,6 +32,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         self._recent_notes: List[NoteInfo] = []
         self._assets_processor = None
         self._docs_dir = None
+        self._recent_notes_manager = None
 
     
     @property
@@ -98,34 +100,28 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             self.logger.debug("MkDocs-Note plugin is disabled.")
             return files
         
+        # Check if recent notes functionality is enabled
+        if not self.config.recent_notes_enabled:
+            self.logger.debug("Recent notes functionality is disabled.")
+            return files
+        
         self.logger.info("Processing files for recent notes...")
         
         try:
-            # Use FileScanner to scan note files
-            file_scanner = NoteScanner(self.config, self.logger)
-            note_files = file_scanner.scan_notes()
+            # Initialize recent notes manager
+            if self._recent_notes_manager is None:
+                self._recent_notes_manager = RecentNotesManager(self.config, self.logger)
             
-            if not note_files:
-                self.logger.warning("No note files found")
-                return files
+            # Process recent notes using the new manager
+            success = self._recent_notes_manager.process_recent_notes()
             
-            # Use NoteProcessor to process note files
-            note_processor = NoteProcessor(self.config, self.logger)
-            notes = []
-            
-            for file_path in note_files:
-                note_info = note_processor.process_note(file_path)
-                if note_info:
-                    notes.append(note_info)
-            
-            # Sort by modified time, get recent notes
-            notes.sort(key=lambda n: n.modified_time, reverse=True)
-            self._recent_notes = notes[:self.config.max_notes]
-            
-            self.logger.info(f"Found {len(self._recent_notes)} recent notes, include index page.")
+            if success:
+                self.logger.info("Recent notes processing completed successfully.")
+            else:
+                self.logger.error("Recent notes processing failed.")
             
         except Exception as e:
-            self.logger.error(f"Error processing notes: {e}")
+            self.logger.error(f"Error processing recent notes: {e}")
         
         return files
     

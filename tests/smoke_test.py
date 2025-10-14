@@ -20,10 +20,10 @@ def test_package_import():
     try:
         import mkdocs_note
         print("✅ mkdocs_note package imported successfully")
-        return True
+        assert True
     except ImportError as e:
         print(f"❌ Failed to import mkdocs_note: {e}")
-        return False
+        assert False, f"Failed to import mkdocs_note: {e}"
 
 
 def test_core_modules():
@@ -33,13 +33,13 @@ def test_core_modules():
     modules_to_test = [
         ('mkdocs_note.config', 'PluginConfig'),
         ('mkdocs_note.logger', 'Logger'),
-        ('mkdocs_note.core.file_manager', 'NoteScanner'),
-        ('mkdocs_note.core.file_manager', 'AssetScanner'),
-        ('mkdocs_note.core.data_models', 'NoteInfo'),
-        ('mkdocs_note.core.note_manager', 'NoteProcessor'),
-        ('mkdocs_note.core.note_creator', 'NoteCreator'),
-        ('mkdocs_note.core.note_initializer', 'NoteInitializer'),
-        ('mkdocs_note.core.assets_manager', 'AssetsProcessor'),
+        ('mkdocs_note.utils.file_manager', 'NoteScanner'),
+        ('mkdocs_note.utils.file_manager', 'AssetScanner'),
+        ('mkdocs_note.utils.data_models', 'NoteInfo'),
+        ('mkdocs_note.utils.notes.note_manager', 'NoteProcessor'),
+        ('mkdocs_note.utils.notes.note_creator', 'NoteCreator'),
+        ('mkdocs_note.utils.notes.note_initializer', 'NoteInitializer'),
+        ('mkdocs_note.utils.assets.assets_manager', 'AssetsProcessor'),
         ('mkdocs_note.plugin', 'MkdocsNotePlugin'),
     ]
     
@@ -54,7 +54,7 @@ def test_core_modules():
             print(f"❌ Failed to import {module_name}.{class_name}: {e}")
             all_passed = False
     
-    return all_passed
+    assert all_passed, "Some core modules failed to import"
 
 
 def test_basic_functionality():
@@ -86,7 +86,7 @@ def test_basic_functionality():
     
     # Test NoteScanner
     try:
-        from mkdocs_note.core.file_manager import NoteScanner
+        from mkdocs_note.utils.file_manager import NoteScanner
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -100,7 +100,7 @@ def test_basic_functionality():
     
     # Test data models
     try:
-        from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+        from mkdocs_note.utils.data_models import NoteInfo, AssetsInfo
         print("✅ Data models basic functionality works")
     except Exception as e:
         print(f"❌ Data models functionality failed: {e}")
@@ -108,7 +108,7 @@ def test_basic_functionality():
     
     # Test NoteProcessor
     try:
-        from mkdocs_note.core.note_manager import NoteProcessor
+        from mkdocs_note.utils.notes.note_manager import NoteProcessor
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -135,7 +135,7 @@ def test_basic_functionality():
     
     # Test NoteCreator
     try:
-        from mkdocs_note.core.note_creator import NoteCreator
+        from mkdocs_note.utils.notes.note_creator import NoteCreator
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -149,7 +149,7 @@ def test_basic_functionality():
     
     # Test NoteInitializer
     try:
-        from mkdocs_note.core.note_initializer import NoteInitializer
+        from mkdocs_note.utils.notes.note_initializer import NoteInitializer
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -163,7 +163,7 @@ def test_basic_functionality():
     
     # Test AssetsProcessor
     try:
-        from mkdocs_note.core.assets_manager import AssetsProcessor
+        from mkdocs_note.utils.assets.assets_manager import AssetsProcessor
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -175,7 +175,7 @@ def test_basic_functionality():
         print(f"❌ AssetsProcessor functionality failed: {e}")
         all_passed = False
     
-    return all_passed
+    assert all_passed, "Basic functionality tests failed"
 
 
 def test_package_metadata():
@@ -198,10 +198,10 @@ def test_package_metadata():
         else:
             print("⚠️  Package author not found")
         
-        return True
+        assert True
     except Exception as e:
         print(f"❌ Package metadata test failed: {e}")
-        return False
+        assert False, f"Package metadata test failed: {e}"
 
 
 def main():

@@ -17,26 +17,6 @@ class PluginConfig(Config):
     """The root path of the project.
     """
 
-    notes_dir = config_opt.Dir(exists=False, default='docs/notes')
-    """The directory of the notes.
-    """
-
-    index_file = config_opt.File(exists=False, default='docs/notes/index.md')
-    """The index file of the notes.
-    """
-    
-    start_marker = config_opt.Type(str, default='<!-- recent_notes_start -->')
-    """The start marker of the recent notes.
-    """
-    
-    end_marker = config_opt.Type(str, default='<!-- recent_notes_end -->')
-    """The end marker of the recent notes.
-    """
-    
-    max_notes = config_opt.Type(int, default=11)
-    """The maximum number of recent notes, include the index page.
-    """
-    
     git_date_format = config_opt.Type(str, default='%a %b %d %H:%M:%S %Y %z')
     """The date format of the git.
     """
@@ -77,6 +57,77 @@ class PluginConfig(Config):
     timestamp_zone = config_opt.Type(str, default='UTC+0')
     """The timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5').
     This ensures consistent timestamp display across different deployment environments.
+    """
+
+    # ============================================================================
+    # Recent Notes Configuration (New Architecture)
+    # ============================================================================
+    
+    recent_notes_enabled = config_opt.Type(bool, default=True)
+    """Whether to enable the recent notes functionality.
+    """
+    
+    recent_notes_scan_field = config_opt.Type(str, default='docs/notes')
+    """Scan field for recent notes. Supports multiple formats:
+    - Directory path: 'docs/notes' (scan specified directory)
+    - File pattern: 'docs/**/*.md' (scan files matching pattern)
+    - Metadata filter: 'metadata.publish=true' (filter by metadata)
+    - Combined: 'docs/notes+metadata.publish=true' (directory + metadata filter)
+    """
+    
+    recent_notes_index_file = config_opt.File(exists=False, default='docs/notes/index.md')
+    """Target file for recent notes insertion.
+    """
+    
+    recent_notes_max_count = config_opt.Type(int, default=10)
+    """Maximum number of recent notes to display.
+    """
+    
+    recent_notes_start_marker = config_opt.Type(str, default='<!-- recent_notes_start -->')
+    """Start marker for recent notes insertion.
+    """
+    
+    recent_notes_end_marker = config_opt.Type(str, default='<!-- recent_notes_end -->')
+    """End marker for recent notes insertion.
+    """
+    
+    # ============================================================================
+    # Legacy Configuration (Deprecated - for backward compatibility)
+    # ============================================================================
+    
+    # Legacy notes_dir - will be migrated to recent_notes_scan_field
+    notes_dir = config_opt.Dir(exists=False, default='docs/notes')
+    """[DEPRECATED] Notes directory. Use 'recent_notes_scan_field' instead.
+    This option is kept for backward compatibility and will be automatically
+    migrated to 'recent_notes_scan_field' when used.
+    """
+    
+    # Legacy index_file - will be migrated to recent_notes_index_file
+    index_file = config_opt.File(exists=False, default='docs/notes/index.md')
+    """[DEPRECATED] Index file. Use 'recent_notes_index_file' instead.
+    This option is kept for backward compatibility and will be automatically
+    migrated to 'recent_notes_index_file' when used.
+    """
+    
+    # Legacy max_notes - will be migrated to recent_notes_max_count
+    max_notes = config_opt.Type(int, default=11)
+    """[DEPRECATED] Maximum notes count. Use 'recent_notes_max_count' instead.
+    This option is kept for backward compatibility and will be automatically
+    migrated to 'recent_notes_max_count' when used.
+    """
+    
+    # Legacy start_marker - will be migrated to recent_notes_start_marker
+    start_marker = config_opt.Type(str, default='<!-- recent_notes_start -->')
+    """[DEPRECATED] Start marker. Use 'recent_notes_start_marker' instead.
+    This option is kept for backward compatibility and will be automatically
+    migrated to 'recent_notes_start_marker' when used.
+    """
+    
+    # Legacy end_marker - will be migrated to recent_notes_end_marker
+    end_marker = config_opt.Type(str, default='<!-- recent_notes_end -->')
+    """[DEPRECATED] End marker. Use 'recent_notes_end_marker' instead.
+    This option is kept for backward compatibility and will be automatically
+    migrated to 'recent_notes_end_marker' when used.
     """
 
 
@@ -136,6 +187,53 @@ def load_config_from_mkdocs_yml(config_path: Optional[Path] = None) -> PluginCon
         for key, value in plugin_config_dict.items():
             if hasattr(config, key):
                 setattr(config, key, value)
+    
+    # Apply backward compatibility migration
+    config = _apply_backward_compatibility(config)
+    
+    return config
+
+
+def _apply_backward_compatibility(config: PluginConfig) -> PluginConfig:
+    """Apply backward compatibility migration for deprecated configuration options.
+    
+    Args:
+        config: PluginConfig instance to migrate
+        
+    Returns:
+        PluginConfig: Updated config with legacy options migrated
+    """
+    # Migration map: old_key -> new_key
+    migration_map = {
+        'notes_dir': 'recent_notes_scan_field',
+        'index_file': 'recent_notes_index_file', 
+        'max_notes': 'recent_notes_max_count',
+        'start_marker': 'recent_notes_start_marker',
+        'end_marker': 'recent_notes_end_marker'
+    }
+    
+    # Check if any legacy options are set and new options are not
+    for old_key, new_key in migration_map.items():
+        old_value = getattr(config, old_key, None)
+        new_value = getattr(config, new_key, None)
+        
+        # If legacy option has non-default value and new option has default value
+        old_default = getattr(config.__class__, old_key, None)
+        new_default = getattr(config.__class__, new_key, None)
+        
+        if old_value is not None and old_default is not None and old_value != old_default.default:
+            if new_default is not None and new_value == new_default.default:
+                # Migrate legacy option to new option
+                setattr(config, new_key, old_value)
+                
+                # Log migration (if logger is available)
+                try:
+                    from mkdocs_note.logger import Logger
+                    logger = Logger()
+                    logger.info(f"Migrated configuration '{old_key}' to '{new_key}'. "
+                               f"Please update your configuration file to use the new option.")
+                except:
+                    pass  # Logger not available, skip logging
     
     return config
 

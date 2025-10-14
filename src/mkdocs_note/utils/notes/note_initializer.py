@@ -8,8 +8,8 @@ from typing import List, Dict, Optional, Tuple
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.data_models import AssetTreeInfo
+from mkdocs_note.utils.file_manager import NoteScanner
+from mkdocs_note.utils.data_models import AssetTreeInfo
 
 
 class NoteInitializer:

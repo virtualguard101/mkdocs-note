@@ -13,7 +13,7 @@ class Logger:
         if not self.logger.handlers:
             handler = colorlog.StreamHandler()
             formatter = colorlog.ColoredFormatter(
-                '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
+                '%(levelname)s    - %(message)s',
                 log_colors={
                     'DEBUG': 'cyan',
                     'INFO': 'green',

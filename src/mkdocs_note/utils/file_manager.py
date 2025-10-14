@@ -4,16 +4,34 @@ from pathlib import Path
 from typing import List
 
 class NoteScanner:
-    """Note file scanner"""
+    """Note file scanner - Legacy class for backward compatibility.
+    
+    This class is deprecated and will be removed in future versions.
+    Use RecentNotesScanner from recent_notes_manager.py for new functionality.
+    """
     
     def __init__(self, config: PluginConfig, logger: Logger):
         self.config = config
         self.logger = logger
+        self.logger.warning("NoteScanner is deprecated. Use RecentNotesScanner instead.")
     
     def scan_notes(self) -> List[Path]:
-        """Scan notes directory, return all supported note files
+        """Scan notes directory, return all supported note files.
+        
+        This method is deprecated and maintained for backward compatibility.
         """
-        notes_dir = Path(self.config.notes_dir)
+        # Try to use recent_notes_scan_field if available, fallback to notes_dir
+        scan_field = getattr(self.config, 'recent_notes_scan_field', None)
+        if scan_field:
+            # Use the new recent notes scanner
+            from mkdocs_note.utils.notes.recent_notes_manager import RecentNotesScanner
+            new_scanner = RecentNotesScanner(self.config, self.logger)
+            return new_scanner.scan_recent_notes()
+        
+        # Fallback to old behavior for backward compatibility
+        notes_dir = getattr(self.config, 'notes_dir', 'docs/notes')
+        notes_dir = Path(notes_dir)
+        
         if not notes_dir.exists():
             self.logger.warning(f"Notes directory does not exist: {notes_dir}")
             return []
@@ -59,19 +77,33 @@ class NoteScanner:
         return True
 
 class AssetScanner:
-    """Asset scanner"""
+    """Asset scanner - Legacy class for backward compatibility.
+    
+    This class is deprecated and will be removed in future versions.
+    Assets are now managed using co-located structure.
+    """
     
     def __init__(self, config: PluginConfig, logger: Logger):
         self.config = config
         self.logger = logger
+        self.logger.warning("AssetScanner is deprecated. Assets now use co-located structure.")
     
     def scan_assets(self) -> List[Path]:
-        """Scan assets directory, return all assets files
+        """Scan assets directory, return all assets files.
+        
+        This method is deprecated and maintained for backward compatibility.
+        Assets are now managed using co-located structure.
 
         Returns:
             List[Path]: The list of valid asset files
         """
-        assets_dir = Path(self.config.assets_dir)
+        # Try to use assets_dir if available for backward compatibility
+        assets_dir_path = getattr(self.config, 'assets_dir', None)
+        if not assets_dir_path:
+            self.logger.warning("No assets directory configured. Assets now use co-located structure.")
+            return []
+        
+        assets_dir = Path(assets_dir_path)
         if not assets_dir.exists():
             self.logger.warning(f"Assets directory does not exist: {assets_dir}")
             return []

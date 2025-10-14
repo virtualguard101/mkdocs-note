@@ -9,13 +9,14 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo, NoteFrontmatter
-from mkdocs_note.core.assets_manager import AssetsProcessor
-from mkdocs_note.core.frontmatter_manager import FrontmatterManager
+from mkdocs_note.utils.file_manager import NoteScanner
+from mkdocs_note.utils.data_models import NoteInfo, AssetsInfo, NoteFrontmatter
+from mkdocs_note.utils.assets.assets_manager import AssetsProcessor
+from mkdocs_note.utils.frontmatter.frontmatter_manager import FrontmatterManager
 
 class NoteProcessor:
-    """Note processor
+    """Note processor, which serve as the center process unit
+    and act as a bridge between the file manager and the assets manager.
     """
     
     def __init__(self, config: PluginConfig, logger: Logger):
@@ -240,15 +241,28 @@ class NoteProcessor:
         Returns:
             str: The relative URL
         """
-        index_file = Path(self.config.index_file)
-        relpath = file_path.relative_to(index_file.parent)
-        relurl = relpath.with_suffix('').as_posix() + '/'
+        # Use recent_notes_index_file for backward compatibility, fallback to default
+        index_file_path = getattr(self.config, 'recent_notes_index_file', 'docs/notes/index.md')
+        index_file = Path(index_file_path)
         
-        # Process index file
-        if 'index' in relurl:
-            relurl = relurl.replace('index/', '')
-        
-        return relurl
+        try:
+            relpath = file_path.relative_to(index_file.parent)
+            relurl = relpath.with_suffix('').as_posix() + '/'
+            
+            # Process index file
+            if 'index' in relurl:
+                relurl = relurl.replace('index/', '')
+            
+            return relurl
+        except ValueError:
+            # If file is not under index file parent, generate relative to docs
+            docs_dir = Path('docs')
+            try:
+                relpath = file_path.relative_to(docs_dir)
+                return relpath.with_suffix('').as_posix() + '/'
+            except ValueError:
+                # Fallback to filename
+                return file_path.stem + '/'
     
     def _get_git_commit_time(self, file_path: Path) -> Optional[float]:
         """Get the last commit time for a file from Git
@@ -296,216 +310,3 @@ class NoteProcessor:
             return None
 
 
-class CacheManager:
-    """Cache manager
-    """
-    
-    def __init__(self, logger: Logger):
-        self.logger = logger
-        self._last_notes_hash: Optional[str] = None
-        self._last_content_hash: Optional[str] = None
-    
-    def should_update_notes(self, notes: List[NoteInfo]) -> bool:
-        """Check if notes list needs to be updated
-
-        Args:
-            notes (List[NoteInfo]): The list of notes to check
-
-        Returns:
-            bool: True if the notes list needs to be updated, False otherwise
-        """
-        current_hash = self._calculate_notes_hash(notes)
-        if self._last_notes_hash != current_hash:
-            self._last_notes_hash = current_hash
-            return True
-        return False
-    
-    def should_update_content(self, content: str) -> bool:
-        """Check if file content needs to be updated
-
-        Args:
-            content (str): The content to check
-
-        Returns:
-            bool: True if the file content needs to be updated, False otherwise
-        """
-        content_hash = hashlib.md5(content.encode()).hexdigest()
-        if self._last_content_hash != content_hash:
-            self._last_content_hash = content_hash
-            return True
-        return False
-    
-    def _calculate_notes_hash(self, notes: List[NoteInfo]) -> str:
-        """Calculate notes list hash
-
-        Args:
-            notes (List[NoteInfo]): The list of notes to calculate hash from
-
-        Returns:
-            str: The hash of the notes list
-        """
-        notes_info = []
-        for note in notes:
-            notes_info.append(f"{note.file_path.name}:{note.modified_time}:{note.file_size}")
-        return hashlib.md5('|'.join(notes_info).encode()).hexdigest()
-
-
-class IndexUpdater:
-    """Index file updater
-    """
-    
-    def __init__(self, config: PluginConfig, logger: Logger):
-        self.config = config
-        self.logger = logger
-    
-    def update_index(self, notes: List[NoteInfo]) -> bool:
-        """Update index file
-
-        Args:
-            notes (List[NoteInfo]): The list of notes to update index file
-
-        Returns:
-            bool: True if the index file is updated successfully, False otherwise
-        """
-        index_file = Path(self.config.index_file)
-        if not index_file.exists():
-            self.logger.error(f"Index file does not exist: {index_file}")
-            return False
-        
-        try:
-            # Read existing content
-            content = index_file.read_text(encoding='utf-8')
-            
-            # Generate new notes list HTML
-            new_section = self._generate_html_list(notes)
-            
-            # Replace content
-            updated_content = self._replace_section(content, new_section)
-            if updated_content is None:
-                return False
-            
-            # Write to file
-            index_file.write_text(updated_content, encoding='utf-8')
-            self.logger.debug(f"Updated index file with {len(notes) - 1} notes")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to update index file: {e}")
-            return False
-    
-    def _generate_html_list(self, notes: List[NoteInfo]) -> str:
-        """Generate HTML list
-
-        Args:
-            notes (List[NoteInfo]): The list of notes to generate HTML list from
-
-        Returns:
-            str: The HTML list
-        """
-        items = []
-        for note in notes:
-            items.append(
-                f'<li><div style="display:flex; justify-content:space-between; align-items:center;">'
-                f'<a href="{note.relative_url}">{note.title}</a>'
-                f'<span style="font-size:0.8em;">{note.modified_date}</span>'
-                '</div></li>'
-            )
-        
-        return '<ul>\n' + '\n'.join(items) + '\n</ul>'
-    
-    def _replace_section(self, content: str, new_section: str) -> Optional[str]:
-        """Replace content between specified markers
-
-        Args:
-            content (str): The content to replace
-            new_section (str): The new section to replace
-
-        Returns:
-            Optional[str]: The replaced content if successful, None otherwise
-        """
-        start_idx = content.find(self.config.start_marker)
-        end_idx = content.find(self.config.end_marker)
-        
-        if start_idx == -1 or end_idx == -1:
-            self.logger.error(
-                f"Markers not found. Please add {self.config.start_marker} "
-                f"and {self.config.end_marker} to the index file."
-            )
-            return None
-        
-        # Ensure end marker is after start marker
-        if end_idx <= start_idx:
-            self.logger.error("End marker found before start marker")
-            return None
-        
-        start_pos = start_idx + len(self.config.start_marker)
-        end_pos = end_idx
-        
-        return (
-            content[:start_pos] + 
-            '\n' + new_section + '\n' + 
-            content[end_pos:]
-        )
-
-
-class RecentNotesUpdater:
-    """Recent notes updater main class
-    """
-    
-    def __init__(self, config: Optional[PluginConfig] = None):
-        self.config = config or PluginConfig()
-        self.logger = Logger()
-        
-        # Initialize components
-        self.file_scanner = NoteScanner(self.config, self.logger)
-        self.note_processor = NoteProcessor(self.config, self.logger)
-        self.cache_manager = CacheManager(self.logger)
-        self.index_updater = IndexUpdater(self.config, self.logger)
-    
-    def update(self) -> bool:
-        """Execute update operation
-
-        Returns:
-            bool: True if the recent notes update is successful, False otherwise
-        """
-        self.logger.debug("Starting recent notes update...")
-        
-        try:
-            # Scan note files
-            note_files = self.file_scanner.scan_notes()
-            if not note_files:
-                self.logger.warning("No note files found")
-                return False
-            
-            # Process note files
-            notes = []
-            for file_path in note_files:
-                note_info = self.note_processor.process_note(file_path)
-                if note_info:
-                    notes.append(note_info)
-            
-            if not notes:
-                self.logger.warning("No valid notes found")
-                return False
-            
-            # Check cache
-            if not self.cache_manager.should_update_notes(notes):
-                self.logger.debug("Notes unchanged, skipping update")
-                return True
-            
-            # Sort by modified time
-            notes.sort(key=lambda n: n.modified_time, reverse=True)
-            recent_notes = notes[:self.config.max_notes]
-            
-            # Update index file
-            success = self.index_updater.update_index(recent_notes)
-            if success:
-                self.logger.debug(f"Successfully updated recent notes ({len(recent_notes) - 1} notes)")
-            else:
-                self.logger.error("Failed to update index file")
-            
-            return success
-            
-        except Exception as e:
-            self.logger.error(f"Unexpected error during update: {e}")
-            return False
