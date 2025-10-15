@@ -31,6 +31,7 @@ Issues = "https://github.com/virtualguard101/mkdocs-note/issues"
 
 [project.optional-dependencies]
 dev = [
+    "click==8.2.1",
     "pytest",
     "pytest-cov",
     "mkdocs-material>=9.6.4",
