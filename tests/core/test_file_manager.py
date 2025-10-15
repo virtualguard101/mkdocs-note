@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch, MagicMock
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
-from mkdocs_note.core.file_manager import NoteScanner, AssetScanner
+from mkdocs_note.utils.fileps.handlers import NoteScanner, AssetScanner
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 

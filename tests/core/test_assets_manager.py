@@ -9,13 +9,13 @@ import shutil
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
-from mkdocs_note.core.assets_manager import (
+from mkdocs_note.utils.assetps.handlers import (
     AssetsCatalogTree,
     AssetsManager,
     AssetsProcessor,
     get_note_relative_path,
 )
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+from mkdocs_note.utils.dataps.meta import NoteInfo, AssetsInfo
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 

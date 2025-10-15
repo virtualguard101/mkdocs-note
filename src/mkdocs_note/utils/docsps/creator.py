@@ -9,8 +9,8 @@ from datetime import datetime, timezone, timedelta
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_initializer import NoteInitializer
-from mkdocs_note.core.frontmatter_manager import FrontmatterManager
+from mkdocs_note.utils.docsps.initializer import NoteInitializer
+from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterManager
 
 
 class NoteCreator:

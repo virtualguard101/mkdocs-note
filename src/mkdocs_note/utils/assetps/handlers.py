@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Tuple
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+from mkdocs_note.utils.dataps.meta import NoteInfo, AssetsInfo
 
 
 def get_note_relative_path(note_file: Path, notes_dir: Path, use_assets_suffix: bool = True) -> str:

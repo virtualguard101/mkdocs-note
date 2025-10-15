@@ -33,13 +33,13 @@ def test_core_modules():
     modules_to_test = [
         ('mkdocs_note.config', 'PluginConfig'),
         ('mkdocs_note.logger', 'Logger'),
-        ('mkdocs_note.core.file_manager', 'NoteScanner'),
-        ('mkdocs_note.core.file_manager', 'AssetScanner'),
-        ('mkdocs_note.core.data_models', 'NoteInfo'),
-        ('mkdocs_note.core.note_manager', 'NoteProcessor'),
-        ('mkdocs_note.core.note_creator', 'NoteCreator'),
-        ('mkdocs_note.core.note_initializer', 'NoteInitializer'),
-        ('mkdocs_note.core.assets_manager', 'AssetsProcessor'),
+        ('mkdocs_note.utils.fileps.handlers', 'NoteScanner'),
+        ('mkdocs_note.utils.fileps.handlers', 'AssetScanner'),
+        ('mkdocs_note.utils.dataps.meta', 'NoteInfo'),
+        ('mkdocs_note.utils.docsps.handlers', 'NoteProcessor'),
+        ('mkdocs_note.utils.docsps.creator', 'NoteCreator'),
+        ('mkdocs_note.utils.docsps.initializer', 'NoteInitializer'),
+        ('mkdocs_note.utils.assetps.handlers', 'AssetsProcessor'),
         ('mkdocs_note.plugin', 'MkdocsNotePlugin'),
     ]
     
@@ -86,7 +86,7 @@ def test_basic_functionality():
     
     # Test NoteScanner
     try:
-        from mkdocs_note.core.file_manager import NoteScanner
+        from mkdocs_note.utils.fileps.handlers import NoteScanner
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -100,7 +100,7 @@ def test_basic_functionality():
     
     # Test data models
     try:
-        from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+        from mkdocs_note.utils.dataps.meta import NoteInfo, AssetsInfo
         print("✅ Data models basic functionality works")
     except Exception as e:
         print(f"❌ Data models functionality failed: {e}")
@@ -108,7 +108,7 @@ def test_basic_functionality():
     
     # Test NoteProcessor
     try:
-        from mkdocs_note.core.note_manager import NoteProcessor
+        from mkdocs_note.utils.docsps.handlers import NoteProcessor
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -135,7 +135,7 @@ def test_basic_functionality():
     
     # Test NoteCreator
     try:
-        from mkdocs_note.core.note_creator import NoteCreator
+        from mkdocs_note.utils.docsps.creator import NoteCreator
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -149,7 +149,7 @@ def test_basic_functionality():
     
     # Test NoteInitializer
     try:
-        from mkdocs_note.core.note_initializer import NoteInitializer
+        from mkdocs_note.utils.docsps.initializer import NoteInitializer
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         
@@ -163,7 +163,7 @@ def test_basic_functionality():
     
     # Test AssetsProcessor
     try:
-        from mkdocs_note.core.assets_manager import AssetsProcessor
+        from mkdocs_note.utils.assetps.handlers import AssetsProcessor
         from mkdocs_note.config import PluginConfig
         from mkdocs_note.logger import Logger
         

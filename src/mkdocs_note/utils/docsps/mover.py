@@ -6,7 +6,7 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner
+from mkdocs_note.utils.fileps.handlers import NoteScanner
 
 
 

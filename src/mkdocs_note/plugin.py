@@ -12,10 +12,10 @@ from mkdocs.structure.pages import Page
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner, AssetScanner
-from mkdocs_note.core.note_manager import NoteProcessor
-from mkdocs_note.core.data_models import NoteInfo
-from mkdocs_note.core.assets_manager import AssetsProcessor
+from mkdocs_note.utils.fileps.handlers import NoteScanner, AssetScanner
+from mkdocs_note.utils.docsps.handlers import NoteProcessor
+from mkdocs_note.utils.dataps.meta import NoteInfo
+from mkdocs_note.utils.assetps.handlers import AssetsProcessor
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):

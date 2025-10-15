@@ -9,8 +9,8 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_cleaner import NoteCleaner
-from mkdocs_note.core.notes_mover import NoteMover
+from mkdocs_note.utils.docsps.cleaner import NoteCleaner
+from mkdocs_note.utils.docsps.mover import NoteMover
 
 
 @pytest.fixture

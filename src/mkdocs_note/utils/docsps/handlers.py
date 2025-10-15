@@ -9,10 +9,10 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo, NoteFrontmatter
-from mkdocs_note.core.assets_manager import AssetsProcessor
-from mkdocs_note.core.frontmatter_manager import FrontmatterManager
+from mkdocs_note.utils.fileps.handlers import NoteScanner
+from mkdocs_note.utils.dataps.meta import NoteInfo, AssetsInfo, NoteFrontmatter
+from mkdocs_note.utils.assetps.handlers import AssetsProcessor
+from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterManager
 
 class NoteProcessor:
     """Note processor

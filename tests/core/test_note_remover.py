@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_remover import NoteRemover
+from mkdocs_note.utils.docsps.remover import NoteRemover
 
 
 @pytest.fixture

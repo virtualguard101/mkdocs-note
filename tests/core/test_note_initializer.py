@@ -9,8 +9,8 @@ import shutil
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
-from mkdocs_note.core.note_initializer import NoteInitializer
-from mkdocs_note.core.data_models import AssetTreeInfo
+from mkdocs_note.utils.docsps.initializer import NoteInitializer
+from mkdocs_note.utils.dataps.meta import AssetTreeInfo
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 
@@ -58,7 +58,7 @@ class TestNoteInitializer(unittest.TestCase):
         self.assertIs(self.initializer.config, self.config)
         self.assertIs(self.initializer.logger, self.logger)
 
-    @patch('mkdocs_note.core.note_initializer.NoteScanner')
+    @patch('mkdocs_note.utils.docsps.initializer.NoteScanner')
     def test_initialize_note_directory_new_directory(self, mock_file_scanner):
         """Test initializing a new directory."""
         mock_scanner = Mock()
@@ -72,7 +72,7 @@ class TestNoteInitializer(unittest.TestCase):
         self.assertTrue((self.temp_dir / "assets").exists())
         # Template directory is not created automatically
 
-    @patch('mkdocs_note.core.note_initializer.NoteScanner')
+    @patch('mkdocs_note.utils.docsps.initializer.NoteScanner')
     def test_initialize_note_directory_with_existing_notes(self, mock_file_scanner):
         """Test initializing directory with existing notes."""
         # Create mock note files
@@ -150,15 +150,23 @@ class TestNoteInitializer(unittest.TestCase):
 
     def test_ensure_template_file_exists(self):
         """Test template file check when template exists."""
-        # Create template file
-        template_path = Path(self.config.notes_template)
-        template_path.parent.mkdir(parents=True, exist_ok=True)
-        template_path.write_text("# Template content")
+        # Use a temporary template path instead of the real one
+        temp_template_path = self.temp_dir / "test_template.md"
+        temp_template_path.parent.mkdir(parents=True, exist_ok=True)
+        temp_template_path.write_text("# Template content")
         
-        self.initializer._ensure_template_file(self.temp_dir)
+        # Override config to use temp path
+        original_template = self.config.notes_template
+        self.config.notes_template = str(temp_template_path)
         
-        # Template should still exist
-        self.assertTrue(template_path.exists())
+        try:
+            self.initializer._ensure_template_file(self.temp_dir)
+            
+            # Template should still exist
+            self.assertTrue(temp_template_path.exists())
+        finally:
+            # Restore original config
+            self.config.notes_template = original_template
 
     def test_ensure_template_file_create_in_notes_dir(self):
         """Test template file creation when template is in notes directory."""
@@ -171,7 +179,10 @@ class TestNoteInitializer(unittest.TestCase):
         self.assertTrue(template_path.exists())
         
         content = template_path.read_text()
-        self.assertEqual(content, "")
+        # Template should have frontmatter
+        self.assertIn("---", content)
+        self.assertIn("{{date}}", content)
+        self.assertIn("{{title}}", content)
 
     def test_ensure_template_file_cannot_create_outside_notes_dir(self):
         """Test template file handling when template is outside notes directory."""
@@ -196,7 +207,7 @@ class TestNoteInitializer(unittest.TestCase):
         asset_dir = assets_dir / "test-note"
         asset_dir.mkdir()
         
-        with patch('mkdocs_note.core.note_initializer.NoteScanner') as mock_file_scanner:
+        with patch('mkdocs_note.utils.docsps.initializer.NoteScanner') as mock_file_scanner:
             mock_scanner = Mock()
             mock_scanner.scan_notes.return_value = [note_file]
             mock_file_scanner.return_value = mock_scanner
@@ -219,7 +230,7 @@ class TestNoteInitializer(unittest.TestCase):
         nested_dir = assets_dir / "old-structure" / "test-note"
         nested_dir.mkdir(parents=True)
         
-        with patch('mkdocs_note.core.note_initializer.NoteScanner') as mock_file_scanner:
+        with patch('mkdocs_note.utils.docsps.initializer.NoteScanner') as mock_file_scanner:
             mock_scanner = Mock()
             mock_scanner.scan_notes.return_value = [note_file]
             mock_file_scanner.return_value = mock_scanner

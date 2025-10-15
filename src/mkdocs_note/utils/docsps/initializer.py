@@ -8,8 +8,8 @@ from typing import List, Dict, Optional, Tuple
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.file_manager import NoteScanner
-from mkdocs_note.core.data_models import AssetTreeInfo
+from mkdocs_note.utils.fileps.handlers import NoteScanner
+from mkdocs_note.utils.dataps.meta import AssetTreeInfo
 
 
 class NoteInitializer:
@@ -231,9 +231,19 @@ class NoteInitializer:
             # Ensure parent directory exists
             template_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Create empty template file
+        # Create template file with default content
         if should_create:
-            template_path.write_text("", encoding='utf-8')
+            default_template_content = """---
+date: {{date}}
+title: {{title}}
+permalink: 
+publish: true
+---
+
+# {{title}}
+
+Start writing your note content..."""
+            template_path.write_text(default_template_content, encoding='utf-8')
             self.logger.debug(f"Created template file: {template_path}")
         else:
             self.logger.warning(

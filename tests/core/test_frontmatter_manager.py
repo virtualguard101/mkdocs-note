@@ -4,7 +4,7 @@ Tests for frontmatter management system.
 
 import pytest
 from pathlib import Path
-from mkdocs_note.core.frontmatter_manager import (
+from mkdocs_note.utils.dataps.frontmatter.handlers import (
     MetadataField,
     MetadataRegistry,
     FrontmatterParser,
@@ -12,7 +12,7 @@ from mkdocs_note.core.frontmatter_manager import (
     get_registry,
     register_field
 )
-from mkdocs_note.core.data_models import NoteFrontmatter
+from mkdocs_note.utils.dataps.meta import NoteFrontmatter
 
 
 class TestMetadataField:
