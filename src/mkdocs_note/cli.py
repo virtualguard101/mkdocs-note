@@ -27,6 +27,7 @@ from mkdocs_note.core.notes_mover import NoteMover
 @click.group()
 @click.option('--config', '-c', type=click.Path(exists=True), help='Path to mkdocs.yml config file')
 @click.pass_context
+@click.version_option(version=metadata.version("mkdocs-note"), package_name="mkdocs-note")
 def cli(ctx, config):
     """MkDocs-Note CLI - Manage notes and their asset structure."""
     # Load configuration
