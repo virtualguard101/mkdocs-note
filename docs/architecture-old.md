@@ -1,4 +1,4 @@
-# Architecture Introduction in Chinese
+# Architecture Introduction in Chinese (Before `v2.0.0`)
 
 本文档详细描述了 MkDocs-Note 插件的完整架构，包括特性、模块结构、数据流、工作流程和版本历史。
 
