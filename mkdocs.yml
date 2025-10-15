@@ -219,7 +219,7 @@ nav:
   - Changelog: changelog.md
   - Troubleshooting Guide: troubleshooting.md
   - Contributing Guide: contributing.md
-  - Old Architecture Intro in Chinese: architecture-old.md
+  - Architecture Documentation in Chinese: architecture.md
   - Credits: credits.md
 
 not_in_nav: |

@@ -1,4 +1,4 @@
-# Architecture Documentation (v2.0.0+)
+# Architecture Documentation in Chinese (v2.0.0+)
 
 本文档描述了 MkDocs-Note 插件在 v2.0.0+ 版本的完整架构，包括模块化重构、frontmatter 元数据系统和 co-located 资源管理。
 
