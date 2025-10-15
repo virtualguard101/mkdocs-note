@@ -24,8 +24,11 @@ MkDocs-Note 是一个 MkDocs 插件，专为使用 MkDocs 与 Material for MkDoc
 ### 1.2 核心设计理念
 
 - **模块化设计**：清晰的模块职责划分，易于维护和扩展
+
 - **Co-located 资源管理**：资源文件与笔记文件放置在一起，便于管理和移动
+
 - **元数据驱动**：基于 frontmatter 的元数据系统，支持扩展
+
 - **CLI 友好**：完善的命令行工具，支持笔记的全生命周期管理
 
 ---
@@ -35,20 +38,31 @@ MkDocs-Note 是一个 MkDocs 插件，专为使用 MkDocs 与 Material for MkDoc
 ### 2.1 核心特性
 
 #### 2.1.1 最近笔记展示
+
 - **功能**：在笔记索引页面自动展示最近修改的笔记列表
+
 - **排序方式**：
-  - 优先使用 Git 提交时间（确保跨环境一致性）
-  - 回退到文件系统修改时间
+
+    - 优先使用 Git 提交时间（确保跨环境一致性）
+
+    - 回退到文件系统修改时间
+
 - **时区支持**：可配置时区显示，确保不同环境下时间戳一致
 
 #### 2.1.2 多格式支持
+
 - **Markdown (.md)**：标准笔记格式
+
 - **Jupyter Notebook (.ipynb)**：支持交互式笔记
 
 #### 2.1.3 智能过滤
+
 - 排除索引文件（index.md）
+
 - 排除 README 文件
+
 - 自定义排除模式
+
 - 排除特定目录（如 `__pycache__`、`.git`、`node_modules`）
 
 #### 2.1.4 资源管理
@@ -62,68 +76,89 @@ docs/notes/dsa/anal/assets/iter/
 ```
 
 **特点**：
+
 - 资源目录与笔记文件同级放置
+
 - 自动路径转换：`![image](diagram.png)` → `assets/iter/diagram.png`
+
 - 无命名冲突风险
+
 - 易于移动和管理
 
 #### 2.1.5 模板系统
 
-**模板变量**：
-- `{{title}}`：笔记标题（从文件名派生）
-- `{{date}}`：当前日期时间
-- `{{note_name}}`：原始笔记文件名
+- **模板变量**：
 
-**默认模板**：
-```markdown
----
-date: {{date}}
-title: {{title}}
-permalink: 
-publish: true
----
+    - `{{title}}`：笔记标题（从文件名派生）
 
-# {{title}}
+    - `{{date}}`：当前日期时间
 
-Start writing your note content...
-```
+    - `{{note_name}}`：原始笔记文件名
 
-**支持**：
-- 自定义模板
-- Frontmatter 元数据
-- 变量替换（仅在 frontmatter 部分）
+- **默认模板**：
+
+    ```markdown
+    ---
+    date: {{date}}
+    title: {{title}}
+    permalink: 
+    publish: true
+    ---
+
+    # {{title}}
+
+    Start writing your note content...
+    ```
+
+- **支持**：
+
+    - 自定义模板
+
+    - Frontmatter 元数据
+
+    - 变量替换（仅在 frontmatter 部分）
 
 #### 2.1.6 Frontmatter 元数据系统（v2.0.0+）
 
-**标准字段**：
-- `date`：创建或发布日期
-- `permalink`：自定义永久链接
-- `publish`：是否发布（布尔值）
+- **标准字段**：
 
-**扩展性**：
-- 支持自定义字段注册
-- 类型验证
-- 自定义验证器
+    - `date`：创建或发布日期
+
+    - `permalink`：自定义永久链接
+
+    - `publish`：是否发布（布尔值）
+
+- **扩展性**：
+
+    - 支持自定义字段注册
+
+    - 类型验证
+
+    - 自定义验证器
 
 #### 2.1.7 CLI 工具
 
-**命令列表**：
+- **命令列表**：
 
-| 命令 | 别名 | 功能 | 示例 |
-|------|------|------|------|
-| `init` | - | 初始化笔记目录结构 | `mkdocs-note init` |
-| `new` | - | 创建新笔记 | `mkdocs-note new docs/notes/test.md` |
-| `validate` | - | 验证资源树结构 | `mkdocs-note validate` |
-| `template` | - | 管理模板文件 | `mkdocs-note template --create` |
-| `remove` | `rm` | 删除笔记和资源 | `mkdocs-note rm docs/notes/test.md` |
-| `clean` | - | 清理孤立资源 | `mkdocs-note clean --dry-run` |
-| `move` | `mv` | 移动/重命名笔记 | `mkdocs-note mv old.md new.md` |
+    | 命令 | 别名 | 功能 | 示例 |
+    |------|------|------|------|
+    | `init` | - | 初始化笔记目录结构 | `mkdocs-note init` |
+    | `new` | - | 创建新笔记 | `mkdocs-note new docs/notes/test.md` |
+    | `validate` | - | 验证资源树结构 | `mkdocs-note validate` |
+    | `template` | - | 管理模板文件 | `mkdocs-note template --create` |
+    | `remove` | `rm` | 删除笔记和资源 | `mkdocs-note rm docs/notes/test.md` |
+    | `clean` | - | 清理孤立资源 | `mkdocs-note clean --dry-run` |
+    | `move` | `mv` | 移动/重命名笔记 | `mkdocs-note mv old.md new.md` |
 
-**CLI 特性**：
-- 自动加载 `mkdocs.yml` 配置
-- 交互式确认提示
-- 干运行模式（dry-run）
-- 彩色输出和 emoji 提示
+- **CLI 特性**：
+
+    - 自动加载 `mkdocs.yml` 配置
+
+    - 交互式确认提示
+
+    - 干运行模式（dry-run）
+
+    - 彩色输出和 emoji 提示
 
 ---
 
@@ -287,44 +322,49 @@ graph TB
 
 #### 4.3.1 plugin.py - MkdocsNotePlugin
 
-**主要职责**：MkDocs 插件系统的入口点，协调各个模块完成插件功能。
+- **主要职责**：MkDocs 插件系统的入口点，协调各个模块完成插件功能。
 
-**类图**：
-```mermaid
-classDiagram
-    class MkdocsNotePlugin {
-        -PluginConfig config
-        -Logger logger
-        -List~NoteInfo~ _recent_notes
-        -AssetsProcessor _assets_processor
-        -Path _docs_dir
-        
-        +bool plugin_enabled
-        +on_config(MkDocsConfig) MkDocsConfig
-        +on_files(Files, MkDocsConfig) Files
-        +on_page_markdown(str, Page, MkDocsConfig, Files) str
-        -_is_notes_index_page(Page) bool
-        -_is_note_page(Page) bool
-        -_insert_recent_notes(str) str
-        -_process_page_assets(str, Page) str
-        -_generate_notes_html() str
-    }
-```
+- **类图**：
+    ```mermaid
+    classDiagram
+        class MkdocsNotePlugin {
+            -PluginConfig config
+            -Logger logger
+            -List~NoteInfo~ _recent_notes
+            -AssetsProcessor _assets_processor
+            -Path _docs_dir
+            
+            +bool plugin_enabled
+            +on_config(MkDocsConfig) MkDocsConfig
+            +on_files(Files, MkDocsConfig) Files
+            +on_page_markdown(str, Page, MkDocsConfig, Files) str
+            -_is_notes_index_page(Page) bool
+            -_is_note_page(Page) bool
+            -_insert_recent_notes(str) str
+            -_process_page_assets(str, Page) str
+            -_generate_notes_html() str
+        }
+    ```
 
-**主要方法**：
+- **主要方法**：
 
-| 方法 | 功能 | 调用时机 |
-|------|------|----------|
-| `on_config()` | 初始化插件配置，设置 TOC slugify | MkDocs 加载配置时 |
-| `on_files()` | 扫描笔记文件，收集最近笔记 | MkDocs 处理文件列表时 |
-| `on_page_markdown()` | 处理页面 Markdown：插入笔记列表、转换资源路径 | 处理每个页面时 |
+    | 方法 | 功能 | 调用时机 |
+    |------|------|----------|
+    | `on_config()` | 初始化插件配置，设置 TOC slugify | MkDocs 加载配置时 |
+    | `on_files()` | 扫描笔记文件，收集最近笔记 | MkDocs 处理文件列表时 |
+    | `on_page_markdown()` | 处理页面 Markdown：插入笔记列表、转换资源路径 | 处理每个页面时 |
 
-**工作流程**：
-1. `on_config`：初始化 `AssetsProcessor`，配置 TOC
-2. `on_files`：扫描笔记文件 → 提取元数据 → 排序 → 保存最近笔记
-3. `on_page_markdown`：
-   - 如果是索引页：插入最近笔记列表
-   - 如果是笔记页：转换资源路径
+- **工作流程**：
+
+    1. `on_config`：初始化 `AssetsProcessor`，配置 TOC
+
+    2. `on_files`：扫描笔记文件 → 提取元数据 → 排序 → 保存最近笔记
+
+    3. `on_page_markdown`：
+
+        - 如果是索引页：插入最近笔记列表
+
+        - 如果是笔记页：转换资源路径
 
 #### 4.3.2 config.py - PluginConfig
 
@@ -1044,28 +1084,43 @@ sequenceDiagram
 **数据流说明**：
 
 1. **配置阶段**：
+
    - 输入：MkDocs 配置
+
    - 处理：初始化插件组件
+
    - 输出：更新的配置
 
 2. **文件扫描阶段**：
+
    - 输入：笔记目录
+
    - 处理：扫描、过滤、验证
+
    - 输出：笔记文件列表
 
 3. **元数据提取阶段**：
+
    - 输入：笔记文件
+
    - 处理：提取标题、时间戳、URL
+
    - 输出：NoteInfo 对象
 
 4. **索引更新阶段**：
+
    - 输入：NoteInfo 列表
+
    - 处理：排序、生成 HTML、替换标记
+
    - 输出：更新的索引页面
 
 5. **资源处理阶段**：
+
    - 输入：笔记 Markdown 内容
+
    - 处理：扫描图片引用、转换路径
+
    - 输出：更新的 Markdown 内容
 
 #### 6.1.2 新元数据系统（Frontmatter 流）
@@ -1118,18 +1173,27 @@ sequenceDiagram
 **元数据流说明**：
 
 1. **Frontmatter 解析**：
+
    - 输入：笔记文件内容
+
    - 处理：提取 YAML frontmatter 块
+
    - 输出：frontmatter 字典 + 正文
 
 2. **元数据验证**：
+
    - 输入：frontmatter 字典
+
    - 处理：类型检查、自定义验证
+
    - 输出：验证结果
 
 3. **对象构建**：
+
    - 输入：验证后的 frontmatter
+
    - 处理：构建 NoteFrontmatter 对象
+
    - 输出：包含元数据的 NoteInfo
 
 ### 6.2 CLI 命令工作流
@@ -1474,7 +1538,9 @@ docs/notes/
    ```
 
 2. **配置兼容性**：
+
    - `assets_dir` 配置选项保留但已弃用
+
    - 插件自动使用 co-located 模式，不再依赖 `assets_dir`
 
 3. **验证迁移**：
@@ -1487,15 +1553,21 @@ docs/notes/
 插件内部的兼容性处理：
 
 - **AssetsProcessor**：
+
   - `_process_image_reference()` 方法使用新的 co-located 路径计算
+
   - `update_markdown_content()` 自动转换路径格式
 
 - **NoteCreator/Remover/Mover**：
+
   - `_get_asset_directory()` 方法统一使用新模式
+
   - 不再依赖 `notes_dir` 和 `assets_dir` 的相对关系
 
 - **NoteCleaner**：
+
   - `find_orphaned_assets()` 方法扫描所有 `assets/` 子目录
+
   - 支持查找新旧两种结构中的孤立资源
 
 ### 7.2 Frontmatter 元数据系统（v2.0.0）
@@ -1503,7 +1575,9 @@ docs/notes/
 #### 7.2.1 向后兼容
 
 - **无 frontmatter 的笔记**：完全兼容，插件正常处理
+
 - **标题提取**：优先从 frontmatter 的 `title` 字段读取，回退到第一个 H1 标题
+
 - **模板系统**：同时支持新旧两种模板格式
 
 #### 7.2.2 模板兼容性
@@ -1536,8 +1610,11 @@ publish: true
 #### 7.3.1 配置加载
 
 CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
+
 1. 当前工作目录
+
 2. 上层目录（最多3层）
+
 3. `--config` 参数指定的路径
 
 #### 7.3.2 弃用配置选项
@@ -1559,9 +1636,13 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：开发中（hot-refactor 分支）
 
 **重大变更**：
+
 - ✨ **Co-located 资源结构**：资源目录与笔记文件放在一起
+
 - ✨ **Frontmatter 元数据系统**：完整的 YAML frontmatter 支持
+
 - ✨ **可扩展元数据注册**：通过注册接口添加自定义字段
+
 - ⚠️ **Breaking Change**：需要手动迁移现有资源到新位置
 
 **新增模块**：
@@ -1585,7 +1666,9 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 - 修复 `pyproject.toml` 中的依赖问题
 
 **变更**：
+
 - 移除 `setup.py` 和 `requirements.txt`
+
 - 统一使用 `pyproject.toml` 管理依赖
 
 #### v1.2.4 (2025-10-13)
@@ -1593,6 +1676,7 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月13日
 
 **修复**：
+
 - 添加 `mkdocs-material>=9.6.4` 依赖
 
 #### v1.2.3 (2025-10-13)
@@ -1600,10 +1684,15 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月13日
 
 **修复**：
+
 - 添加多个缺失的依赖：
+
   - `mkdocs-material>=9.6.14`
+
   - `mkdocs-jupyter>=0.25.1`
+
   - `mkdocs-minify-plugin>=0.8.0`
+
   - `mkdocs-git-revision-date-localized-plugin>=1.4.0`
 
 #### v1.2.2 (2025-10-13)
@@ -1611,6 +1700,7 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月13日
 
 **修复**：
+
 - 添加 `pyyaml>=6.0` 和 `pymdown-extensions>=10.15` 依赖
 
 #### v1.2.1 (2025-10-13)
@@ -1618,12 +1708,17 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月13日
 
 **修复** (#23)：
+
 - CLI 配置加载问题：CLI 命令现在正确读取 `mkdocs.yml` 中的自定义配置
+
 - 实现 `load_config_from_mkdocs_yml()` 函数
+
 - 自动发现当前和父目录中的 `mkdocs.yml`
+
 - 添加配置加载的完整单元测试
 
 **核心文件变更**：
+
 - `config.py`：新增配置加载函数
 
 #### v1.2.0 (2025-10-11)
@@ -1633,33 +1728,53 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **新增特性** (#19)：
 
 1. **CLI 笔记删除命令** (`mkdocs-note remove` / `rm`)：
+
    - 删除笔记文件和资源目录
+
    - `--keep-assets`：保留资源目录
+
    - `--yes` / `-y`：跳过确认提示
+   
    - 自动清理空父目录
 
 2. **CLI 孤立资源清理命令** (`mkdocs-note clean`)：
+
    - 扫描并清理无对应笔记的资源目录
+
    - `--dry-run`：预览模式
+
    - `--yes` / `-y`：跳过确认提示
 
 3. **CLI 笔记移动命令** (`mkdocs-note move` / `mv`)：
+
    - 移动/重命名笔记文件或整个目录
+
    - 模仿 shell `mv` 命令行为
+
    - 支持移动单个笔记或整个目录（包含所有笔记）
+
    - `--keep-source-assets`：保留源资源目录
+
    - `--yes` / `-y`：跳过确认提示
+
    - 自动创建必要的父目录
+
    - 带回滚机制
 
 **新增模块**：
+
 - `note_remover.py`：笔记删除功能
+
 - `note_cleaner.py`：孤立资源清理
+
 - `notes_mover.py`：笔记移动/重命名
 
 **用户体验改进**：
+
 - 添加 emoji 视觉反馈（✅, ❌, ⚠️, 📝, 📁, 🔍）
+
 - 清晰的确认提示
+
 - 改进错误消息和建议
 
 #### v1.1.4 (2025-10-09)
@@ -1667,8 +1782,11 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月9日
 
 **修复** (#14)：
+
 - 修复 `mkdocs-note new` 命令验证逻辑问题
+
 - `create_new_note()` 和 `validate_note_creation()` 现在使用统一的 `notes_dir`
+
 - 确保 `validate` 和 `new` 命令使用相同的验证逻辑
 
 #### v1.1.3 (2025-10-08)
@@ -1676,11 +1794,15 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月8日
 
 **新增**：
+
 - `timestamp_zone` 配置选项（默认：`UTC+0`）
+
 - 确保跨环境时间戳显示一致
+
 - 无效时区格式时自动回退到 UTC
 
 **修复**：
+
 - 时间戳显示问题：插件现在使用配置的时区
 
 #### v1.1.2 (2025-10-06)
@@ -1688,8 +1810,11 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月6日
 
 **修复**：
+
 - 修复 `mkdocs-note init` 命令，正确使用树状资源目录结构
+
 - 更新 `_check_compliance()` 方法，正确验证带 `.assets` 后缀的树状结构
+
 - 确保 `init` 和 `new` 命令创建一致的目录结构
 
 #### v1.1.1 (2025-10-06)
@@ -1697,18 +1822,27 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月6日
 
 **重大变更** ⚠️：
+
 - **树状路径结构**：资源按笔记的相对路径组织
+
 - 第一级子目录添加 `.assets` 后缀（如 `assets/dsa.assets/anal/intro/`）
+
 - 防止同名笔记在不同子目录中的冲突
 
 **更新模块**：
+
 - `AssetsCatalogTree`：支持层次化路径管理
+
 - `AssetsProcessor`：基于笔记相对位置计算资源路径
+
 - `NoteCreator`：使用新路径结构创建资源目录
+
 - Plugin：使用正确的相对路径进行资源路径转换
 
 **修复** (#10)：
+
 - 修复同名笔记的资源目录冲突
+
 - 修复笔记文件中的资源链接替换问题
 
 #### v1.1.0 (2025-10-05)
@@ -1718,65 +1852,105 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **新增特性**：
 
 1. **命令行界面**：
+
    - `mkdocs note init`：初始化笔记目录
+   
    - `mkdocs note new`：创建新笔记
+
    - `mkdocs note validate`：验证资源树结构
+
    - `mkdocs note template`：管理笔记模板
 
 2. **资源管理系统**：
+
    - 自动为每个笔记创建资源目录
+
    - 资源树结构验证和合规性检查
+
    - 构建时资源路径处理和链接
+ 
    - 支持图片引用和媒体文件
 
 3. **模板系统**：
+
    - 可配置的笔记模板，支持 `{{title}}`、`{{date}}` 和 `{{note_name}}` 变量
+   
    - 默认模板
+
    - CLI 自定义模板支持
+
    - 模板验证和创建工具
 
 4. **笔记初始化器**：
+
    - 资源树分析和合规性检查
+
    - 非合规目录的自动结构修复
+
    - 创建带有适当标记的索引文件
+
    - 模板文件管理
 
 5. **笔记创建器**：
+
    - 基于模板的笔记生成
+
    - 资源目录创建
+
    - 结构合规性验证
+
    - 自定义模板支持
 
 6. **增强配置**：
+
    - `assets_dir`：存储笔记资源的目录
+
    - `notes_template`：新笔记的模板文件
+
    - `cache_size`：性能优化缓存大小
 
 **变更**：
+
 - **资源集成**：无缝资源管理集成
+
   - Markdown 内容中的自动资源路径处理
+
   - 资源目录结构强制执行
+
   - 改进资源链接和组织
 
 - **模板处理**：增强的模板系统
+
   - 适当格式的变量替换
+
   - 回退模板支持
+
   - 模板验证和错误处理
 
 **修复**：
+
 - **测试覆盖率**：全面的测试套件改进
+
   - 修复模板内容生成测试
+  
   - 增强新组件的测试覆盖率
+
   - 提高测试可靠性和准确性
 
 - **文档**：完整的文档更新
+
   - 更新 README 以包含新功能
+
   - 添加 CLI 使用示例
+
   - 增强配置文档
+
   - 改进故障排除指南
 
 **核心文件**：
+
 - 新增：`note_initializer.py`、`note_creator.py`
+
 - 更新：`assets_manager.py`、`config.py`、`cli.py`
 
 #### v1.0.3 (2025-10-04)
@@ -1784,8 +1958,11 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月4日
 
 **新增**：
+
 - 添加 PyPI CI
+
 - 添加冒烟测试脚本
+
 - 添加发布脚本
 
 #### v1.0.2 (2025-10-03)
@@ -1793,20 +1970,29 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月3日
 
 **修复**：
+
 - 修复本地开发和远程部署环境之间的排序不一致
+
 - 解决已部署站点上笔记按字母顺序而不是修改时间排序的问题
 
 **新增**：
+
 - `use_git_timestamps` 配置选项（默认：`true`）用于一致排序
+
 - Git 不可用时自动回退到文件系统时间戳
+
 - 排序行为和部署考虑的完整文档
 
 **变更**：
+
 - 修改笔记处理逻辑，优先使用 Git 提交时间戳而非文件系统时间戳
+
 - 增强不同部署平台（Vercel、Netlify、GitHub Pages）的排序可靠性
+
 - 更新 README，详细说明排序行为和配置选项
 
 **核心文件**：
+
 - `note_manager.py`：添加 Git 时间戳支持
 
 #### v1.0.1 (2025-10-03)
@@ -1814,6 +2000,7 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月3日
 
 **修复**：
+
 - 修复配置验证问题 (#2)
 
 #### v1.0.0 (2025-10-02)
@@ -1821,24 +2008,35 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年10月2日
 
 **移除**：
+
 - 所有旧版本功能
 
 **变更**：
+
 - 重构底层文件管理和笔记管理逻辑
+
 - 重构笔记管理的调用逻辑和数据流
+
 - 现在只实现了一个功能：在笔记本目录的索引页面插入最近笔记
+
 - 所有功能将逐步恢复
 
 **修复**：
+
 - 记录常见配置问题，特别是导致"无效配置选项"错误的 YAML 缩进错误
 
 **新增**：
+
 - 添加全面的[故障排除指南](troubleshooting.md)用于常见配置问题
+
 - 在 README 文档中添加配置格式警告
+
 - 记录 Jupyter DeprecationWarning 说明（不是插件错误）
 
 **核心文件**：
+
 - 重写：`plugin.py`、`config.py`、`note_manager.py`、`file_manager.py`
+
 - 新增：`data_models.py`、`assets_manager.py`
 
 #### v0.0.1 (2025-09-05)
@@ -1846,8 +2044,11 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 **发布日期**：2025年9月5日
 
 **新增**：
+
 - 项目初始化
+
 - 初始框架基于 [stalomeow/note](https://github.com/stalomeow/note/blob/5fa56a9fdfa4c9b6511c5dc0c3d3620ae0aa04c3/scripts/obsidian.py)
+
 - 然而，对于我来说，框架和功能过于冗余，无法独立继续开发和维护
 
 ---
