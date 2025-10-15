@@ -6,6 +6,7 @@ This module provides command-line interface for note management
 independent of MkDocs plugin system.
 """
 
+import importlib
 import sys
 import os
 from pathlib import Path
@@ -13,8 +14,10 @@ from typing import Optional
 import click
 from importlib import metadata
 
+import importlib.metadata as metadata
+
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from mkdocs_note.config import PluginConfig, load_config_from_mkdocs_yml
 from mkdocs_note.logger import Logger
@@ -25,13 +28,15 @@ from mkdocs_note.core.note_cleaner import NoteCleaner
 from mkdocs_note.core.notes_mover import NoteMover
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+
 @click.option(
     "--config",
     "-c",
     type=click.Path(exists=True),
     help="Path to mkdocs.yml config file",
 )
+
 @click.pass_context
 @click.version_option(
     version=metadata.version("mkdocs-note"), package_name="mkdocs-note"
@@ -610,6 +615,7 @@ def mv_note(
         keep_source_assets=keep_source_assets,
         yes=yes,
     )
+
 
 
 if __name__ == "__main__":
