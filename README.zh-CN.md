@@ -206,7 +206,7 @@ mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
 | `notes_template` | Path | `"docs/templates/default.md"` | 新笔记的模板文件。支持变量：`{{title}}`、`{{date}}`、`{{note_name}}` |
 | `cache_size` | int | `256` | 性能优化的缓存大小 |
 
-<!-- ### 模板系统
+### 模板系统
 
 插件支持灵活的带 frontmatter 的新笔记模板系统：
 
@@ -237,6 +237,8 @@ publish: true
 开始编写你的笔记内容...
 ```
 
+但注意，上面的这个模板文件需要手动创建，才会被插件自动应用。
+
 #### Frontmatter 支持
 
 笔记支持使用 YAML frontmatter 进行元数据管理：
@@ -253,19 +255,11 @@ publish: true
 
 - **元数据注册**：插件提供元数据注册接口，无需修改核心代码即可添加新字段
 
-#### 自定义模板
-
-创建笔记时可以使用自定义模板：
-
-```bash
-mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
-```
-
-**模板类型**：
+#### 模板类型
 
 - **Frontmatter 模板**（推荐）：包含带变量的 YAML frontmatter 部分
 
-- **传统模板**：不带 frontmatter 的简单 markdown（仍然支持） -->
+- **传统模板**：不带 frontmatter 的简单 markdown（仍然支持）
 
 ### 资产管理
 

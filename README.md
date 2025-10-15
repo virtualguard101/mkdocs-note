@@ -23,6 +23,8 @@
 > Since `v2.0.0`, the plugin uses a co-located asset structure instead of the old unified tree structure, where assets are stored next to their notes. This makes it easier to manage and move notes with their assets together. 
 >
 > However, you need to manually move your existing assets to the new location.
+>
+> By the way, I think the plugin after `v2.0.0` can not only as a "notebook manager", but also an efficient document manager because of it powerful and flexible asset management system.
 
 ## Features
 
@@ -222,7 +224,7 @@ The plugin supports the following configuration options in your `mkdocs.yml`:
 | `notes_template` | Path | `"overrides/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
 
-<!-- ### Template System
+### Template System
 
 The plugin supports a flexible template system with frontmatter support for creating new notes:
 
@@ -253,6 +255,8 @@ publish: true
 Start writing your note content...
 ```
 
+But notice that the template file above should be created manually by yourself in order to make the plugin automatically apply it.
+
 #### Frontmatter Support
 
 Notes support YAML frontmatter for metadata management:
@@ -269,19 +273,11 @@ Notes support YAML frontmatter for metadata management:
 
 - **Metadata Registry**: The plugin provides a metadata registration interface for adding new fields without modifying core code
 
-#### Custom Templates
-
-You can use custom templates when creating notes:
-
-```bash
-mkdocs-note new docs/notes/my-note.md --template path/to/custom-template.md
-```
-
-**Template Types**:
+#### Template Types
 
 - **Frontmatter Templates** (Recommended): Include YAML frontmatter section with variables
 
-- **Legacy Templates**: Simple markdown without frontmatter (still supported) -->
+- **Legacy Templates**: Simple markdown without frontmatter (still supported)
 
 ### Asset Management
 
