@@ -3,7 +3,7 @@ import colorlog
 
 class Logger:
     
-    def __init__(self, name: str = __name__):
+    def __init__(self, name: str = "mkdocs.plugins"):
         self.logger = colorlog.getLogger(name)
         self._setup_logger()
     
