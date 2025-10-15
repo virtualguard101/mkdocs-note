@@ -64,7 +64,7 @@ To get started with local development, follow these steps:
     ./tests/test.sh
     ```
 
-    Or use `pytest`:
+    Or use `pytest` directly:
 
     ```bash
     uv run pytest
