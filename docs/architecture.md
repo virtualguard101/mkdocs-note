@@ -1,4 +1,4 @@
-# MkDocs-Note 项目架构文档
+# Architecture Introduction in Chinese
 
 本文档详细描述了 MkDocs-Note 插件的完整架构，包括特性、模块结构、数据流、工作流程和版本历史。
 
@@ -1833,7 +1833,7 @@ CLI 工具自动加载 `mkdocs.yml` 配置，搜索路径：
 - 记录常见配置问题，特别是导致"无效配置选项"错误的 YAML 缩进错误
 
 **新增**：
-- 添加全面的[故障排除指南](TROUBLESHOOTING.md)用于常见配置问题
+- 添加全面的[故障排除指南](troubleshooting.md)用于常见配置问题
 - 在 README 文档中添加配置格式警告
 - 记录 Jupyter DeprecationWarning 说明（不是插件错误）
 
@@ -1992,8 +1992,8 @@ MkDocs-Note 已经发展成为一个功能完善的笔记管理插件，具备�
 - **PyPI 包**：https://pypi.org/project/mkdocs-note/
 - **文档站点**：https://wiki.virtualguard101.com/notes/
 - **问题反馈**：https://github.com/virtualguard101/mkdocs-note/issues
-- **贡献指南**：[CONTRIBUTING.md](../CONTRIBUTING.md)
-- **故障排除**：[TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
+- **贡献指南**：[CONTRIBUTING.md](contributing.md)
+- **故障排除**：[TROUBLESHOOTING.md](troubleshooting.md)
 
 ### C. 开发者资源
 

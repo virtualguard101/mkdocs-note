@@ -217,6 +217,9 @@ nav:
   - Blog:
     - blog/index.md
   - Credits: credits.md
+  - Troubleshooting Guide: troubleshooting.md
+  - Contributing Guide: contributing.md
+  - Architecture Intro in Chinese: architecture.md
 
 not_in_nav: |
   templates/
