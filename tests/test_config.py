@@ -35,7 +35,7 @@ class TestPluginConfig(unittest.TestCase):
         self.assertEqual(self.config.cache_size, 256)
         self.assertTrue(self.config.use_git_timestamps)
         self.assertEqual(self.config.assets_dir, 'docs/notes/assets')
-        self.assertEqual(self.config.notes_template, 'docs/templates/default.md')
+        self.assertEqual(self.config.notes_template, 'overrides/templates/default.md')
 
     def test_config_validation(self):
         """Test configuration validation."""
@@ -201,7 +201,7 @@ plugins:
         config = load_config_from_mkdocs_yml(config_path)
         
         # Should return default config
-        self.assertEqual(config.notes_dir, 'docs/notes')
+        self.assertEqual(config.notes_dir, 'docs')
         self.assertEqual(config.max_notes, 11)
 
     def test_load_config_with_plugin_no_options(self):
@@ -216,7 +216,7 @@ plugins:
         config = load_config_from_mkdocs_yml(config_path)
         
         # Should return default config
-        self.assertEqual(config.notes_dir, 'docs/notes')
+        self.assertEqual(config.notes_dir, 'docs')
         self.assertEqual(config.max_notes, 11)
 
     def test_load_config_invalid_file(self):
