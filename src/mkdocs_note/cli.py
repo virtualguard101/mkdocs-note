@@ -45,17 +45,19 @@ def cli(ctx, config):
     """MkDocs-Note CLI - Manage notes and their asset structure."""
     # Load configuration
     ctx.ensure_object(dict)
-    logger = Logger()
+    logger = Logger()  # Default level, will be updated after config loading
 
     try:
         if config:
             # Load config from specified file
             plugin_config = load_config_from_mkdocs_yml(Path(config))
+            logger.set_level(plugin_config.log_level)
             logger.debug(f"Loaded configuration from: {config}")
         else:
             # Try to find and load mkdocs.yml automatically
             plugin_config = load_config_from_mkdocs_yml()
             if plugin_config:
+                logger.set_level(plugin_config.log_level)
                 logger.debug("Automatically found and loaded mkdocs.yml configuration")
     except FileNotFoundError as e:
         logger.error(str(e))

@@ -454,7 +454,7 @@ class RecentNotesUpdater:
     
     def __init__(self, config: Optional[PluginConfig] = None):
         self.config = config or PluginConfig()
-        self.logger = Logger()
+        self.logger = Logger(level=self.config.log_level)
         
         # Initialize components
         self.file_scanner = NoteScanner(self.config, self.logger)
@@ -495,12 +495,12 @@ class RecentNotesUpdater:
             
             # Sort by modified time
             notes.sort(key=lambda n: n.modified_time, reverse=True)
-            recent_notes = notes[:self.config.max_notes]
+            recent_notes = notes[:self.config.max_notes + 1]
             
             # Update index file
             success = self.index_updater.update_index(recent_notes)
             if success:
-                self.logger.debug(f"Successfully updated recent notes ({len(recent_notes) - 1} notes)")
+                self.logger.debug(f"Successfully updated recent notes ({len(recent_notes)} notes)")
             else:
                 self.logger.error("Failed to update index file")
             

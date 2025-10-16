@@ -27,7 +27,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
     
     def __init__(self):
         super().__init__()
-        self.logger = Logger()
+        self.logger = Logger()  # Will be updated with config in on_config
         self._recent_notes: List[NoteInfo] = []
         self._assets_processor = None
         self._docs_dir = None
@@ -49,6 +49,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         Returns:
             MkDocsConfig | None: The updated MkDocs configuration
         """
+        # Update logger level based on configuration
+        self.logger.set_level(self.config.log_level)
+        
         if not self.plugin_enabled:
             self.logger.debug("MkDocs-Note plugin is disabled.")
             return config
@@ -80,7 +83,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         # Initialize assets processor
         self._assets_processor = AssetsProcessor(self.config, self.logger)
         
-        self.logger.info("MkDocs-Note plugin initialized successfully.")
+        self.logger.info("MkDocs Note plugin initialized successfully.")
         return config
     
     @event_priority(100)
@@ -122,7 +125,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             notes.sort(key=lambda n: n.modified_time, reverse=True)
             self._recent_notes = notes[:self.config.max_notes]
             
-            self.logger.info(f"Found {len(self._recent_notes)} recent notes, include index page.")
+            self.logger.info(f"Found {len(self._recent_notes)} recent notes.")
             
         except Exception as e:
             self.logger.error(f"Error processing notes: {e}")
@@ -237,7 +240,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             markdown[end_pos:]
         )
         
-        self.logger.info(f"Inserted {len(self._recent_notes) - 1} recent notes into index page")
+        self.logger.info(f"Inserted {len(self._recent_notes)} recent notes into index page")
         return updated_markdown
     
     def _generate_notes_html(self) -> str:
