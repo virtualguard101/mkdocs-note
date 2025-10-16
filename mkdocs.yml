@@ -111,7 +111,7 @@ plugins:
       enable_creation_date: true
   - mkdocs-note:
       timestamp_zone: "UTC+8"
-      log_level: debug
+      log_level: info
 
   # - redirects:
   #     redirect_maps:
@@ -216,10 +216,11 @@ nav:
 
   - User Guide:
     - usage/index.md
+    - Setup Timezone: usage/setup-timezone.md
 
   - Contributing Guide:
     - contributing/contributing.md
-    - Architecture Documentation: contributing/architecture.md
+    - Architecture Overview: contributing/architecture.md
 
   - API Reference:
     - references/index.md
