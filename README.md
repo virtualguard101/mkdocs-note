@@ -1,6 +1,6 @@
 <div align="center">
 
-# MkDocs-Note
+# MkDocs Note
 
 **A MkDocs plugin to add note boxes to your documentation.**
 
@@ -15,7 +15,7 @@
 </div>
 
 
-`MkDocs-Note` is a plugin for `MkDocs` that automatically manages notes in your documentation site. It's designed to work seamlessly with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme to create a unified note-taking and documentation experience.
+MkDocs Note is a plugin for [MkDocs](https://www.mkdocs.org/) that automatically manages notes in your documentation site. It's designed to work seamlessly with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme to create a unified note-taking and documentation experience.
 
 >[!IMPORTANT]
 > **Breaking Changes**
@@ -30,7 +30,7 @@
 
 - **Recent Notes Display**: Automatically displays a list of recent notes on your notes index page
 
-- **Multi-format Support**: Supports both Markdown (.md) and Jupyter Notebook (.ipynb) files
+<!-- - **Multi-format Support**: Supports both Markdown (.md) and Jupyter Notebook (.ipynb) files -->
 
 - **Smart Filtering**: Excludes index files and other specified patterns from the recent notes list
 

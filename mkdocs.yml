@@ -76,10 +76,10 @@ theme:
 
 ## Plugins
 plugins:
-  - blog:
-      post_excerpt: required
-      archive_date_format: MMMM yyyy
-      archive_url_date_format: yyyy/MM
+  # - blog:
+  #     post_excerpt: required
+  #     archive_date_format: MMMM yyyy
+  #     archive_url_date_format: yyyy/MM
   # - rss:
   #     match_path: blog/posts/.*
   #     date_from_meta:
@@ -212,13 +212,17 @@ extra:
 ## Page tree
 nav:
   - index.md
-        
-  - Blog:
-    - blog/index.md
-  - Changelog: changelog.md
-  - Troubleshooting Guide: troubleshooting.md
-  - Contributing Guide: contributing.md
-  - Architecture Documentation in Chinese: architecture.md
+  - Getting Started: getting-started/index.md
+
+  - User Guide:
+    - usage/index.md
+
+  - Contributing Guide:
+    - development/index.md
+
+  - API Reference:
+    - reference/index.md
+
   - Credits: credits.md
 
 not_in_nav: |
