@@ -331,11 +331,16 @@ class AssetsProcessor:
                 # Fallback: assume the parent directory is relative to docs
                 note_dir_relative = str(note_file.parent.name) if note_file.parent.name != 'docs' else ''
             
-            # Construct the asset path relative to docs directory
-            if note_dir_relative:
-                assets_path = f"{note_dir_relative}/assets/{note_stem}/{image_path}"
+            # Handle different image path formats
+            if image_path.startswith('./'):
+                # Remove the './' prefix
+                clean_image_path = image_path[2:]
             else:
-                assets_path = f"assets/{note_stem}/{image_path}"
+                clean_image_path = image_path
+            
+            # For co-located assets, the path should be relative to the current markdown file
+            # Format: assets/{note_stem}/{image_path}
+            assets_path = f"assets/{note_stem}/{clean_image_path}"
             
             self.logger.debug(f"Replacing image path: '{image_path}' -> '{assets_path}' in {note_file}")
             
@@ -346,7 +351,7 @@ class AssetsProcessor:
         updated_content = self.image_pattern.sub(replace_image_path, content)
         
         if original_content != updated_content:
-            self.logger.info(f"Updated asset paths in {note_file}")
+            self.logger.debug(f"Updated asset paths in {note_file}")
         else:
             self.logger.debug(f"No asset paths to update in {note_file}")
         
