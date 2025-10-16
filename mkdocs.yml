@@ -3,7 +3,7 @@ site_author: virtualguard101{}
 # site_description: >-
 #   Write your documentation in Markdown and create a professional static site in
 #   minutes – searchable, customizable, in 60+ languages, for all devices
-site_name: Mkdocs-Note
+site_name: Mkdocs Note
 site_url: https://blog.virtualguard101.com/mkdocs-note
 repo_url: https://github.com/virtualguard101/mkdocs-note
 repo_name: virtualguard101/mkdocs-note
@@ -212,18 +212,22 @@ extra:
 ## Page tree
 nav:
   - index.md
-  - Getting Started: getting-started/index.md
+  - Getting Started: getting-started.md
 
   - User Guide:
     - usage/index.md
 
   - Contributing Guide:
-    - development/index.md
+    - contributing/index.md
+    - Architecture Documentation: contributing/architecture.md
 
   - API Reference:
-    - reference/index.md
+    - references/index.md
 
-  - Credits: credits.md
+  - About:
+    - about/index.md
+    - Changelog: about/changelog.md
+    - Credits: about/credits.md
 
 not_in_nav: |
   templates/

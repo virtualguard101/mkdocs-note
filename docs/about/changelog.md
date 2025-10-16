@@ -629,7 +629,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added comprehensive [Troubleshooting Guide](troubleshooting.md) for common configuration issues
+<!-- - Added comprehensive [Troubleshooting Guide](troubleshooting.md) for common configuration issues -->
 
 - Added configuration format warnings in README documentation
 
