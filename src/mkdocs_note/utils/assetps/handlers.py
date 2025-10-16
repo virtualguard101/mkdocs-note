@@ -286,12 +286,12 @@ class AssetsProcessor:
         """Update markdown content to use correct asset paths.
         
         This method converts relative asset references to paths that MkDocs
-        can correctly resolve. With co-located assets, the path is simply
-        'assets/{note_stem}/{image_path}' relative to the note file.
+        can correctly resolve. With co-located assets, the path should be
+        relative to the docs directory, not the note file.
         
         Args:
             content (str): The original markdown content
-            note_file (Path): The note file path (absolute or relative to project root)
+            note_file (Path): The note file path (absolute path including docs_dir)
             
         Returns:
             str: The updated markdown content with corrected asset paths
@@ -305,9 +305,49 @@ class AssetsProcessor:
                 return match.group(0)
             
             # Co-located asset structure: assets are in the same directory as the note
-            # Path format: assets/{note_stem}/{image_path}
-            assets_path = f"assets/{note_file.stem}/{image_path}"
+            # We need to construct the path relative to docs directory
+            # For note file: docs/usage/recent-notes.md (passed as absolute path)
+            # Asset file: docs/usage/assets/recent-notes/recent_insert_demo.png
+            # MkDocs expects: usage/assets/recent-notes/recent_insert_demo.png
+            
+            # Extract the path relative to docs directory
+            # note_file is the absolute path, we need to get the relative part
+            note_stem = note_file.stem
+            
+            # Find the docs directory by looking for the pattern
+            # We need to get the path relative to docs directory
+            note_path_parts = note_file.parts
+            docs_index = -1
+            for i, part in enumerate(note_path_parts):
+                if part == 'docs':
+                    docs_index = i
+                    break
+            
+            if docs_index >= 0 and docs_index < len(note_path_parts) - 1:
+                # Get the path relative to docs directory
+                relative_parts = note_path_parts[docs_index + 1:-1]  # Exclude the filename
+                note_dir_relative = '/'.join(relative_parts) if relative_parts else ''
+            else:
+                # Fallback: assume the parent directory is relative to docs
+                note_dir_relative = str(note_file.parent.name) if note_file.parent.name != 'docs' else ''
+            
+            # Construct the asset path relative to docs directory
+            if note_dir_relative:
+                assets_path = f"{note_dir_relative}/assets/{note_stem}/{image_path}"
+            else:
+                assets_path = f"assets/{note_stem}/{image_path}"
+            
+            self.logger.debug(f"Replacing image path: '{image_path}' -> '{assets_path}' in {note_file}")
             
             return f"![{alt_text}]({assets_path})"
         
-        return self.image_pattern.sub(replace_image_path, content)
+        # Add debug logging
+        original_content = content
+        updated_content = self.image_pattern.sub(replace_image_path, content)
+        
+        if original_content != updated_content:
+            self.logger.info(f"Updated asset paths in {note_file}")
+        else:
+            self.logger.debug(f"No asset paths to update in {note_file}")
+        
+        return updated_content

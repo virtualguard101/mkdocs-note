@@ -216,7 +216,7 @@ nav:
 
   - User Guide:
     - usage/index.md
-    - Setup Timezone: usage/setup-timezone.md
+    - Recent Notes Insertion: usage/recent-notes.md
 
   - Contributing Guide:
     - contributing/contributing.md
