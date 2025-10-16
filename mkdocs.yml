@@ -12,7 +12,7 @@ edit_uri: blob/main/docs/
 ## Configuration
 theme:
   name: material
-  language: zh
+  language: en
   custom_dir: overrides
   # favicon: assets/logo.png
 

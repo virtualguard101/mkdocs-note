@@ -121,7 +121,7 @@ The plugin provides several CLI commands for note management.
 ```bash
 mkdocs-note init [--path PATH]
 ```
-- Creates the notes directory structure
+- Creates the docs and assets directory structure
 
 - Analyzes existing asset structures
 
