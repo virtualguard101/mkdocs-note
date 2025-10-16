@@ -339,7 +339,8 @@ class AssetsProcessor:
                 clean_image_path = image_path
             
             # For co-located assets, the path should be relative to the current markdown file
-            # Format: assets/{note_stem}/{image_path}
+            # This is always the same format regardless of notes_dir configuration:
+            # assets/{note_stem}/{image_path}
             assets_path = f"assets/{note_stem}/{clean_image_path}"
             
             self.logger.debug(f"Replacing image path: '{image_path}' -> '{assets_path}' in {note_file}")
