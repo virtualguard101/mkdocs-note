@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 import click
 from importlib import metadata
+from click.formatting import HelpFormatter
 
 import importlib.metadata as metadata
 
@@ -28,21 +29,89 @@ from mkdocs_note.utils.docsps.cleaner import NoteCleaner
 from mkdocs_note.utils.docsps.mover import NoteMover
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+class CustomGroup(click.Group):
+    """Custom Click group that formats commands with aliases on the same line."""
+    
+    def format_commands(self, ctx, formatter):
+        """Format commands section with aliases grouped together."""
+        commands = []
+        for subcommand in self.list_commands(ctx):
+            cmd = self.get_command(ctx, subcommand)
+            if cmd is None:
+                continue
+            if cmd.hidden:
+                continue
+            commands.append((subcommand, cmd))
 
+        if not commands:
+            return
+
+        # Group commands by their main command (excluding aliases)
+        command_groups = {}
+        alias_map = {
+            'rm': 'remove',
+            'mv': 'move'
+        }
+        
+        for name, command in commands:
+            if name in alias_map:
+                # This is an alias, group it with the main command
+                main_name = alias_map[name]
+                if main_name not in command_groups:
+                    command_groups[main_name] = {'main': None, 'aliases': []}
+                command_groups[main_name]['aliases'].append((name, command))
+            else:
+                # This is a main command
+                if name not in command_groups:
+                    command_groups[name] = {'main': None, 'aliases': []}
+                command_groups[name]['main'] = (name, command)
+
+        # Calculate max width for alignment
+        max_width = 0
+        formatted_commands = []
+        
+        for main_name in sorted(command_groups.keys()):
+            group = command_groups[main_name]
+            main_cmd = group['main']
+            aliases = group['aliases']
+            
+            if main_cmd:
+                name, command = main_cmd
+                # Create the command line with aliases
+                if aliases:
+                    alias_names = [alias[0] for alias in aliases]
+                    cmd_line = f"{', '.join(alias_names)}, {name}"
+                else:
+                    cmd_line = name
+                
+                # Get the first line of help text (full line, not truncated)
+                full_help = command.help or command.get_short_help_str()
+                # Extract only the first line to keep it concise
+                help_text = full_help.split('\n')[0] if full_help else ""
+                formatted_commands.append((cmd_line, help_text))
+                max_width = max(max_width, len(cmd_line))
+
+        # Write grouped commands with proper alignment
+        with formatter.section("Commands"):
+            for cmd_line, help_text in formatted_commands:
+                formatter.write(f"  {cmd_line:<{max_width}}  ")
+                formatter.write(help_text)
+                formatter.write("\n")
+
+
+@click.group(cls=CustomGroup, context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--config",
     "-c",
     type=click.Path(exists=True),
     help="Path to mkdocs.yml config file",
 )
-
 @click.pass_context
 @click.version_option(
     version=metadata.version("mkdocs-note"), package_name="mkdocs-note"
 )
 def cli(ctx, config):
-    """MkDocs-Note CLI - Manage notes and their asset structure."""
+    """MkDocs Note CLI - Manage docs and their assets structure."""
     # Load configuration
     ctx.ensure_object(dict)
     logger = Logger()  # Default level, will be updated after config loading
