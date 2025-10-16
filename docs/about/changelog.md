@@ -113,6 +113,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   
   - Assets are automatically placed using the co-located pattern
 
+
+### Security
+
+- **Inconsistency with exclude_patterns in Note Operations** (#40): Fixed bug where plugin commands could create or move notes to excluded filenames, causing asset management conflicts
+  
+  - **Root Cause**: `NoteCreator` and `NoteMover` didn't check `exclude_patterns` configuration, allowing operations on `index.md` and `README.md` files that would later be ignored by `NoteScanner`, causing their asset directories to be incorrectly identified as orphaned by `NoteCleaner`
+  
+  - **Solution**: Added `exclude_patterns` validation across multiple components to enforce consistent behavior
+  
+  - **Changes**:
+    
+    - **NoteCreator**: Added validation in `create_new_note()` and `validate_note_creation()` to reject creation of excluded files
+    
+    - **NoteMover**: Added validation in `move_note()` to prevent moving/renaming to excluded filenames
+    
+    - **CLI**: Added validation in `move_note` command (mv/move) to check destination filenames
+    
+    - **Config Documentation**: Improved `exclude_patterns` docstring to clarify comprehensive scope of exclusion
+    
+    - **Tests**: Added 6 new test cases (4 for creator, 2 for mover) to verify exclusion behavior
+  
+  - **Impact**: Ensures consistent behavior across all plugin components - files excluded from management cannot be created, moved, or renamed through plugin commands
+  
+  - **User Experience**: Clear error messages guide users when attempting operations with excluded files, suggesting either using different filenames or updating configuration
+
+- **CLI Error Message Clarity**: Improved contextual hints in `mkdocs-note new` command
+  
+  - **Issue**: The hint "Try running 'mkdocs-note init' first" was displayed for all validation errors, even when irrelevant (e.g., excluded filenames, file exists, unsupported extensions)
+  
+  - **Solution**: Made hints contextual - now only shows init suggestion when actually relevant (structure non-compliance, missing parent directory)
+  
+  - **Impact**: Users receive more relevant guidance based on the specific error they encounter
+
+
 ### Fixed
 
 - **Template File Degradation** (#39): Fixed critical bug where template file was corrupted by tests

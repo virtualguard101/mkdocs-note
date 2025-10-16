@@ -160,9 +160,13 @@ def new_note(ctx, file_path: str, template: Optional[str] = None):
     if not is_valid:
         # logger.error(f"Cannot create note: {error_msg}")
         click.echo(f"❌ Cannot create note: {error_msg}")
-        click.echo(
-            "💡 Try running 'mkdocs-note init' first to initialize the directory structure"
-        )
+        
+        # Provide contextual hints based on error type
+        if "Asset tree structure is not compliant" in error_msg or "Parent directory does not exist" in error_msg:
+            click.echo(
+                "💡 Try running 'mkdocs-note init' first to initialize the directory structure"
+            )
+        
         raise click.Abort()
 
     logger.info(f"Creating new note: {note_path}")
@@ -513,6 +517,14 @@ def move_note(
     if dest_path.exists():
         logger.error(f"Destination already exists: {dest_path}")
         click.echo(f"❌ Destination already exists: {dest_path}")
+        raise click.Abort()
+    
+    # Check if destination filename is in exclude_patterns (for file moves)
+    if source_path.is_file() and dest_path.name in config.exclude_patterns:
+        logger.error(f"Cannot move note to excluded filename: {dest_path.name}")
+        click.echo(f"❌ Cannot move note: '{dest_path.name}' is in exclude_patterns")
+        click.echo(f"   Files matching exclude_patterns ({', '.join(sorted(config.exclude_patterns))}) are not managed by the plugin")
+        click.echo("   Please use a different filename or update the exclude_patterns configuration")
         raise click.Abort()
 
     if source_path.is_dir():

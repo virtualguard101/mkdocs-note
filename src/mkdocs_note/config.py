@@ -63,11 +63,19 @@ class PluginConfig(Config):
     """
     
     exclude_patterns = config_opt.Type(set, default={'index.md', 'README.md'})
-    """The patterns to exclude from the notes.
+    """File name patterns to exclude from plugin management.
+    Files matching these patterns will not be:
+    - Scanned as notes
+    - Listed in recent notes
+    - Created via 'mkdocs-note new'
+    - Moved via 'mkdocs-note move'
+    - Managed by asset system
+    These patterns only apply within the notes_dir scope.
     """
     
     exclude_dirs = config_opt.Type(set, default={'__pycache__', '.git', 'node_modules'})
-    """The directories to exclude from the notes.
+    """Directory names to exclude from note scanning.
+    Any note files within these directories will be ignored.
     """
 
     cache_size = config_opt.Type(int, default=256)
@@ -88,7 +96,7 @@ class PluginConfig(Config):
     """
 
     assets_dir = config_opt.Dir(exists=False, default='docs/notes/assets')
-    """The directory of the assets.
+    """The directory of the assets. [Deprecated after v2.0.0]
     """
 
     notes_template = config_opt.Type(str, default='overrides/templates/default.md')

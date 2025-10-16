@@ -60,6 +60,13 @@ class NoteCreator:
         try:
             self.logger.debug(f"Creating new note: {file_path}")
             
+            # Check if file name is in exclude_patterns
+            if file_path.name in self.config.exclude_patterns:
+                self.logger.error(f"Cannot create note: '{file_path.name}' is in exclude_patterns")
+                self.logger.error(f"Files matching exclude_patterns ({', '.join(sorted(self.config.exclude_patterns))}) are not managed by the plugin")
+                self.logger.error("Please use a different filename or update the exclude_patterns configuration in mkdocs.yml")
+                return 1
+            
             # Validate asset tree compliance first
             # Use configured notes_dir instead of file_path.parent to ensure consistent validation
             notes_dir = Path(self.config.notes_dir)
@@ -301,6 +308,15 @@ class NoteCreator:
             Tuple[bool, str]: (is_valid, error_message)
         """
         try:
+            # Check if file name is in exclude_patterns
+            if file_path.name in self.config.exclude_patterns:
+                return False, (
+                    f"Cannot create note: '{file_path.name}' is in exclude_patterns. "
+                    f"Files matching exclude_patterns ({', '.join(sorted(self.config.exclude_patterns))}) "
+                    "are not managed by the plugin. "
+                    "Please use a different filename or update the exclude_patterns configuration."
+                )
+            
             # Check if file already exists
             if file_path.exists():
                 return False, f"File already exists: {file_path}"
