@@ -57,6 +57,22 @@ mkdocs-note = "mkdocs_note.plugin:MkdocsNotePlugin"
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.ruff]
+# Code formatting configuration
+line-length = 88
+[tool.ruff.format]
+# Indentation style - tab
+indent-style = "tab"
+# Line length limit
+# Quote style - double quotes
+quote-style = "double"
+
+# Per-file rule ignores
+[tool.ruff.lint.per-file-ignores]
+# 忽略 __init__.py 文件中的 F401 (导入未被使用)
+"__init__.py" = ["F401"]
+
+
 [tool.uv]
 package = true
 
