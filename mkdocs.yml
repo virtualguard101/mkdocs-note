@@ -69,7 +69,7 @@ theme:
   #   code: "'Cascadia Mono', 'LXGW WenKai Screen', 'Noto Sans SC', 'Microsoft YaHei', sans-serif"
   icon:
     repo: fontawesome/brands/github
-    logo: octicons/stack-24
+    logo: material/notebook-multiple
     edit: material/pencil
     # tag:
       # default: fontawesome/solid/hashtag
@@ -96,6 +96,7 @@ plugins:
   # - obsidian-interactive-graph
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - awesome-nav
   - minify:
       minify_html: true
       minify_js: true
@@ -209,28 +210,3 @@ extra:
       link: https://github.com/virtualguard101
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/virtualguardi01
-
-## Page tree
-nav:
-  - index.md
-  - Getting Started: getting-started.md
-
-  - User Guide:
-    - usage/index.md
-    - Recent Notes Insertion: usage/recent-notes.md
-
-  - Contributing Guide:
-    - contributing/contributing.md
-    - Architecture Overview: contributing/architecture.md
-
-  - API Reference:
-    - references/index.md
-
-  - About:
-    - about/index.md
-    - Changelog: about/changelog.md
-    - Credits: about/credits.md
-
-not_in_nav: |
-  templates/
-  drafts/

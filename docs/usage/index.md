@@ -7,4 +7,6 @@ publish: true
 
 # User Guide
 
-Start writing your note content...
+This is the user guide of the `mkdocs-note` plugin in detail. You can get more details about the usage and features of the plugin here.
+
+For the quick start, you can refer to the [Getting Started](../getting-started.md) guide.

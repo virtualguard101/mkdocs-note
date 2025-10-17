@@ -24,7 +24,7 @@ Or just using `pip`:
 pip install mkdocs-note
 ```
 
-For more details, please refer to the [Installation | User Guide]().
+For more details, please refer to the [Installation | User Guide](usage/installation.md).
 
 ## Configuration
 
@@ -56,7 +56,7 @@ plugins:
 
 In general, Mkdocs Note supports highly customizable configuration, you can configure the plugin to your own needs.
 
-Please refer to the [Configuration | User Guide]() for more details about the information of each configuration option.
+Please refer to the [Configuration Options | User Guide](usage/config.md) for more details about the information of each configuration options.
 
 ## Command Line Interface
 
@@ -130,7 +130,7 @@ mkdocs-note --config path/to/mkdocs.yml <command>
 
 ## Getting Help
 
-See the [User Guide]() for more details about the usage and features of the plugin.
+See the [User Guide](usage/index.md) for more details about the usage and features of the plugin.
 
 This project is still in its infancy stage, so any feedback or suggestions are welcome.
 

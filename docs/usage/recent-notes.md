@@ -121,4 +121,4 @@ plugins:
         - README.md
 ```
 
-The files who are in the `exclude_patterns` option will be globally ingored by `mkdocs-note`, including assets management and other operations, see more details in [Setup Exclusion]().
+The files who are in the `exclude_patterns` option will be globally ingored by `mkdocs-note`, including assets management and other operations, see more details in [Exclusion](exclusion.md).
