@@ -17,12 +17,9 @@ publish: true
 | `mkdocs-note new` | Create a new note file with template content |
 | `mkdocs-note validate` | Validate the asset tree structure |
 | `mkdocs-note template` | Manage the template file |
-| `mkdocs-note remove` | Remove a note file and its corresponding asset directory |
+| `mkdocs-note remove`/`rm` | Remove a note file and its corresponding asset directory |
 | `mkdocs-note clean` | Clean orphaned assets |
-| `mkdocs-note move` | Move or rename a note file or directory |
-| `mkdocs-note mv` | Alias for `mkdocs-note move` |
-| `mkdocs-note rm` | Alias for `mkdocs-note remove` |
-| `mkdocs-note mv` | Alias for `mkdocs-note move` |
+| `mkdocs-note move`/`mv` | Move or rename a note file or directory |
 
 For overview in command line, you can use the `--help/-h` option to get the help information of all commands.
 ```bash

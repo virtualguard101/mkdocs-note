@@ -50,7 +50,7 @@ If you want to contribute to the plugin, you can clone the repository and instal
 ```bash
 git clone https://github.com/virtualguard101/mkdocs-note.git
 cd mkdocs-note
-uv sync --extras dev
+uv sync --extra dev
 uv add -e .
 ```
 
