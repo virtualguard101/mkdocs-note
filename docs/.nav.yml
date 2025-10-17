@@ -17,6 +17,7 @@ nav:
   - Contributing Guide:
     - contributing/contributing.md
     - Architecture Overview: contributing/architecture.md
+    - Todo List: contributing/todo.md
 
   - API Reference:
     - references/index.md
