@@ -25,6 +25,7 @@ dependencies = [
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
+    "mkdocs-awesome-nav>=3.2.0",
 ]
 
 [project.urls]
@@ -40,7 +41,6 @@ dev = [
     "mkdocs-minify-plugin>=0.8.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
     "pymdown-extensions>=10.0",
-    "mkdocs-material==9.6.4"
 ]
 
 test = [

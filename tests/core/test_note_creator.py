@@ -283,6 +283,58 @@ class TestNoteCreator(unittest.TestCase):
         self.assertFalse(is_valid)
         self.assertIn("Unsupported file extension", error_msg)
     
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_validate_note_creation_excluded_pattern(self, mock_initializer):
+        """Test note creation validation with excluded pattern (index.md)."""
+        note_path = self.temp_dir / "index.md"
+        
+        is_valid, error_msg = self.creator.validate_note_creation(note_path)
+        
+        self.assertFalse(is_valid)
+        self.assertIn("index.md", error_msg)
+        self.assertIn("exclude_patterns", error_msg)
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_validate_note_creation_excluded_readme(self, mock_initializer):
+        """Test note creation validation with excluded pattern (README.md)."""
+        note_path = self.temp_dir / "README.md"
+        
+        is_valid, error_msg = self.creator.validate_note_creation(note_path)
+        
+        self.assertFalse(is_valid)
+        self.assertIn("README.md", error_msg)
+        self.assertIn("exclude_patterns", error_msg)
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_create_new_note_excluded_pattern(self, mock_initializer):
+        """Test note creation with excluded pattern should fail."""
+        # Mock the initializer to return compliant structure
+        mock_init = Mock()
+        mock_init.validate_asset_tree_compliance.return_value = (True, [])
+        self.creator.initializer = mock_init
+        
+        note_path = self.temp_dir / "index.md"
+        
+        result = self.creator.create_new_note(note_path)
+        
+        self.assertEqual(result, 1)
+        self.assertFalse(note_path.exists())
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_create_new_note_excluded_readme(self, mock_initializer):
+        """Test note creation with README.md should fail."""
+        # Mock the initializer to return compliant structure
+        mock_init = Mock()
+        mock_init.validate_asset_tree_compliance.return_value = (True, [])
+        self.creator.initializer = mock_init
+        
+        note_path = self.temp_dir / "README.md"
+        
+        result = self.creator.create_new_note(note_path)
+        
+        self.assertEqual(result, 1)
+        self.assertFalse(note_path.exists())
+    
     def test_parse_timezone_utc(self):
         """Test timezone parsing for UTC+0."""
         result = self.creator._parse_timezone('UTC+0')

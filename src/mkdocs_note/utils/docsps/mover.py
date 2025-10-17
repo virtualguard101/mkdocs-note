@@ -174,6 +174,15 @@ class NoteMover:
                 self.logger.error(f"Destination already exists: {dest_path}")
                 return 1
             
+            # Check if destination filename is in exclude_patterns
+            if dest_path.name in self.config.exclude_patterns:
+                self.logger.error(
+                    f"Cannot move note to excluded filename: {dest_path.name}. "
+                    f"Files matching exclude_patterns ({', '.join(sorted(self.config.exclude_patterns))}) "
+                    "are not managed by the plugin."
+                )
+                return 1
+            
             # Ensure destination parent directory exists
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             

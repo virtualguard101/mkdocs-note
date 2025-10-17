@@ -259,6 +259,40 @@ class TestNoteMover:
         assert source_file.exists()
         assert dest_file.exists()
     
+    def test_move_note_to_excluded_filename_index(self, temp_workspace, config, mover):
+        """Test moving a note to an excluded filename (index.md)."""
+        # Create test structure
+        notes_dir = temp_workspace / "notes"
+        notes_dir.mkdir(parents=True)
+        
+        source_file = notes_dir / "source.md"
+        source_file.write_text("# Source Note")
+        
+        dest_file = notes_dir / "index.md"
+        
+        result = mover.move_note(source_file, dest_file, move_assets=True)
+        
+        assert result == 1
+        assert source_file.exists()
+        assert not dest_file.exists()
+    
+    def test_move_note_to_excluded_filename_readme(self, temp_workspace, config, mover):
+        """Test moving a note to an excluded filename (README.md)."""
+        # Create test structure
+        notes_dir = temp_workspace / "notes"
+        notes_dir.mkdir(parents=True)
+        
+        source_file = notes_dir / "source.md"
+        source_file.write_text("# Source Note")
+        
+        dest_file = notes_dir / "README.md"
+        
+        result = mover.move_note(source_file, dest_file, move_assets=True)
+        
+        assert result == 1
+        assert source_file.exists()
+        assert not dest_file.exists()
+    
     def test_rename_note(self, temp_workspace, config, mover):
         """Test renaming a note (move within same directory)."""
         # Create test structure

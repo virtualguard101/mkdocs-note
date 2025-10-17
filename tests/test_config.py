@@ -26,7 +26,7 @@ class TestPluginConfig(unittest.TestCase):
         self.assertIsInstance(self.config.index_file, (Path, str))
         self.assertEqual(self.config.start_marker, '<!-- recent_notes_start -->')
         self.assertEqual(self.config.end_marker, '<!-- recent_notes_end -->')
-        self.assertEqual(self.config.max_notes, 11)
+        self.assertEqual(self.config.max_notes, 10)
         self.assertEqual(self.config.git_date_format, '%a %b %d %H:%M:%S %Y %z')
         self.assertEqual(self.config.output_date_format, '%Y-%m-%d %H:%M:%S')
         self.assertEqual(self.config.supported_extensions, {'.md', '.ipynb'})
@@ -202,7 +202,7 @@ plugins:
         
         # Should return default config
         self.assertEqual(config.notes_dir, 'docs')
-        self.assertEqual(config.max_notes, 11)
+        self.assertEqual(config.max_notes, 10)
 
     def test_load_config_with_plugin_no_options(self):
         """Test loading config when plugin is enabled with no custom options."""
@@ -217,7 +217,7 @@ plugins:
         
         # Should return default config
         self.assertEqual(config.notes_dir, 'docs')
-        self.assertEqual(config.max_notes, 11)
+        self.assertEqual(config.max_notes, 10)
 
     def test_load_config_invalid_file(self):
         """Test loading config from non-existent file."""
@@ -371,7 +371,7 @@ plugins:
         self.assertEqual(config.notes_dir, 'docs/custom')
         
         # Default values should be preserved
-        self.assertEqual(config.max_notes, 11)
+        self.assertEqual(config.max_notes, 10)
         self.assertEqual(config.start_marker, '<!-- recent_notes_start -->')
         self.assertEqual(config.end_marker, '<!-- recent_notes_end -->')
         self.assertTrue(config.use_git_timestamps)

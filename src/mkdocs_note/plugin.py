@@ -27,7 +27,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
     
     def __init__(self):
         super().__init__()
-        self.logger = Logger()
+        self.logger = Logger()  # Will be updated with config in on_config
         self._recent_notes: List[NoteInfo] = []
         self._assets_processor = None
         self._docs_dir = None
@@ -49,6 +49,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         Returns:
             MkDocsConfig | None: The updated MkDocs configuration
         """
+        # Update logger level based on configuration
+        self.logger.set_level(self.config.log_level)
+        
         if not self.plugin_enabled:
             self.logger.debug("MkDocs-Note plugin is disabled.")
             return config
@@ -80,7 +83,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         # Initialize assets processor
         self._assets_processor = AssetsProcessor(self.config, self.logger)
         
-        self.logger.info("MkDocs-Note plugin initialized successfully.")
+        self.logger.info("MkDocs Note plugin initialized successfully.")
         return config
     
     @event_priority(100)
@@ -122,7 +125,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             notes.sort(key=lambda n: n.modified_time, reverse=True)
             self._recent_notes = notes[:self.config.max_notes]
             
-            self.logger.info(f"Found {len(self._recent_notes)} recent notes, include index page.")
+            self.logger.info(f"Found {len(self._recent_notes)} recent notes.")
             
         except Exception as e:
             self.logger.error(f"Error processing notes: {e}")
@@ -149,7 +152,10 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
         
         # Process assets for note pages
         if self._is_note_page(page):
+            self.logger.debug(f"Processing assets for note page: {page.file.src_path}")
             markdown = self._process_page_assets(markdown, page)
+        else:
+            self.logger.debug(f"Skipping asset processing for non-note page: {page.file.src_path}")
         
         # Check if it is the index page of the notes directory
         if self._is_notes_index_page(page):
@@ -237,7 +243,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
             markdown[end_pos:]
         )
         
-        self.logger.info(f"Inserted {len(self._recent_notes) - 1} recent notes into index page")
+        self.logger.info(f"Inserted {len(self._recent_notes)} recent notes into index page")
         return updated_markdown
     
     def _generate_notes_html(self) -> str:
@@ -286,10 +292,17 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
                 else:
                     notes_relative = notes_dir_str
             
-            # Check if the page path starts with the notes directory
-            is_note_page = page_src_path.startswith(notes_relative) and not page_src_path.endswith('index.md')
+            # Handle the case where notes_dir is 'docs' (default)
+            # In this case, all pages under docs are considered note pages
+            self.logger.debug(f"notes_dir: '{notes_dir}', str(notes_dir): '{str(notes_dir)}'")
+            if str(notes_dir) == 'docs' or str(notes_dir) == '.' or notes_dir.name == 'docs':
+                # All pages are note pages except index.md files
+                is_note_page = not page_src_path.endswith('index.md')
+            else:
+                # Check if the page path starts with the notes directory
+                is_note_page = page_src_path.startswith(notes_relative) and not page_src_path.endswith('index.md')
             
-            self.logger.debug(f"Note page check: '{page_src_path}' starts with '{notes_relative}' = {is_note_page}")
+            self.logger.debug(f"Note page check: '{page_src_path}' -> is_note_page = {is_note_page}")
             return is_note_page
         except Exception as e:
             self.logger.error(f"Error in note page check: {e}")

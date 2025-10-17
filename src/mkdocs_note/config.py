@@ -5,6 +5,16 @@ from mkdocs.config import base, config_options as config_opt
 import yaml
 
 
+class UpperCaseChoice(config_opt.Choice):
+    """A Choice option that automatically converts input to uppercase."""
+    
+    def run_validation(self, value):
+        """Convert value to uppercase before validation."""
+        if isinstance(value, str):
+            value = value.upper()
+        return super().run_validation(value)
+
+
 
 class PluginConfig(Config):
     """Configuration class, managing all configuration parameters.
@@ -14,15 +24,18 @@ class PluginConfig(Config):
     """
 
     project_root = config_opt.Type(Path, default=Path(__file__).parent.parent)
-    """The root path of the project.
+    """The root path of the project, which is the absolute benchmark for the path system of the plugin.
+    Used for git operations (timestamp calculation) and relative path generation.
     """
 
     notes_dir = config_opt.Dir(exists=False, default='docs')
-    """The directory of the notes.
+    """The directory of the notes, which defines the plugin's working scope.
+    All note scanning, file operations, and asset management are limited to this directory.
     """
 
     index_file = config_opt.File(exists=False, default='docs/index.md')
-    """The index file of the notes.
+    """The index file of the notes, where recent notes will be inserted.
+    Also serves as the relative benchmark for MkDocs URL generation.
     """
     
     start_marker = config_opt.Type(str, default='<!-- recent_notes_start -->')
@@ -33,8 +46,8 @@ class PluginConfig(Config):
     """The end marker of the recent notes.
     """
     
-    max_notes = config_opt.Type(int, default=11)
-    """The maximum number of recent notes, include the index page.
+    max_notes = config_opt.Type(int, default=10)
+    """The maximum number of recent notes, excluding the index page.
     """
     
     git_date_format = config_opt.Type(str, default='%a %b %d %H:%M:%S %Y %z')
@@ -50,11 +63,19 @@ class PluginConfig(Config):
     """
     
     exclude_patterns = config_opt.Type(set, default={'index.md', 'README.md'})
-    """The patterns to exclude from the notes.
+    """File name patterns to exclude from plugin management.
+    Files matching these patterns will not be:
+    - Scanned as notes
+    - Listed in recent notes
+    - Created via 'mkdocs-note new'
+    - Moved via 'mkdocs-note move'
+    - Managed by asset system
+    These patterns only apply within the notes_dir scope.
     """
     
     exclude_dirs = config_opt.Type(set, default={'__pycache__', '.git', 'node_modules'})
-    """The directories to exclude from the notes.
+    """Directory names to exclude from note scanning.
+    Any note files within these directories will be ignored.
     """
 
     cache_size = config_opt.Type(int, default=256)
@@ -65,9 +86,17 @@ class PluginConfig(Config):
     """Whether to use Git commit timestamps for sorting instead of file system timestamps.
     This is recommended for consistent sorting across different deployment environments.
     """
+    
+    log_level = UpperCaseChoice(
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        default='INFO'
+    )
+    """The logging level for the plugin.
+    Controls the verbosity of log messages: DEBUG (most verbose) to CRITICAL (least verbose).
+    """
 
     assets_dir = config_opt.Dir(exists=False, default='docs/notes/assets')
-    """The directory of the assets.
+    """The directory of the assets. [Deprecated after v2.0.0]
     """
 
     notes_template = config_opt.Type(str, default='overrides/templates/default.md')

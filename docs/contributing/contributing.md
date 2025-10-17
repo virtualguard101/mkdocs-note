@@ -44,10 +44,6 @@ To get started with local development, follow these steps:
 
     It's strongly recommended to use a virtual environment, and recommended to use [uv](https://docs.astral.sh/uv/) to manage project configuration and virtual environment.
 
-    ```bash
-    uv init
-    ```
-
 3.  **Install Dependencies**
 
     Install the project in editable mode along with the development dependencies.
