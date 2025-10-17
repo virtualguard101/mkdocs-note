@@ -21,9 +21,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Set up Python
-        run: uv python install
-        with:
-          python-version-file: ".python-version"
+        run: uv python install --python-version-file .python-version
 
       - name: Install dependencies
         run: uv sync
