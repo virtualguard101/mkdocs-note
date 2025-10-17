@@ -78,3 +78,47 @@ plugins:
   - mkdocs-note:
       timestamp_zone: "UTC+8"
 ```
+
+By default, the timezone is `UTC+0`.
+
+### Format
+
+You can configure the format of the timestamp which will be displayed by setting the `output_date_format` option in `mkdocs.yml` as follows:
+
+```yaml
+plugins:
+  - mkdocs-note:
+      output_date_format: "%Y-%m-%d %H:%M:%S"
+```
+
+By default, the format of the timestamp is `%Y-%m-%d %H:%M:%S`.
+
+Some formats for reference:
+
+- `%Y-%m-%d`: Year-Month-Day
+
+- `%Y-%m-%d %H:%M:%S`: Year-Month-Day Hour:Minute:Second
+
+- `%Y-%m-%d %H:%M`: Year-Month-Day Hour:Minute
+
+- `%Y-%m-%d %H`: Year-Month-Day Hour
+
+- `%Y-%m-%d`: Year-Month-Day
+
+- `%Y-%m-%d`: Year-Month-Day
+
+## Something You Should Notice
+
+By default, if the filename of the documentation is `index.md`, the plugin will not insert the links of recent new or modified documentations to the file.
+
+What's more, the files will be ingored by `mkdocs-note` because is in the `exclude_patterns` option in `mkdocs.yml` by default. If you don't want to ignore them, you can configure the `exclude_patterns` option manually without `index.md` in it:
+
+```yaml
+plugins:
+  - mkdocs-note:
+      exclude_patterns:
+        # without `index.md`
+        - README.md
+```
+
+The files who are in the `exclude_patterns` option will be globally ingored by `mkdocs-note`, including assets management and other operations, see more details in [Setup Exclusion]().

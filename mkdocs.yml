@@ -110,6 +110,7 @@ plugins:
   - git-revision-date-localized:
       enable_creation_date: true
   - mkdocs-note:
+      max_notes: 5
       timestamp_zone: "UTC+8"
       log_level: info
 

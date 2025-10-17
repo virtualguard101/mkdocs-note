@@ -130,7 +130,7 @@ mkdocs-note --config path/to/mkdocs.yml <command>
 
 ## Getting Help
 
-See the [User Guide](user-guide.md) for more details about the usage and features of the plugin.
+See the [User Guide]() for more details about the usage and features of the plugin.
 
 This project is still in its infancy stage, so any feedback or suggestions are welcome.
 
