@@ -23,8 +23,6 @@ dependencies = [
     "mkdocs-jupyter>=0.25.1",
     "mkdocs-minify-plugin>=0.8.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
-    "pre-commit>=4.3.0",
-    "pytest>=8.4.2",
     "mkdocs-awesome-nav>=3.2.0",
 ]
 
@@ -35,7 +33,8 @@ Issues = "https://github.com/virtualguard101/mkdocs-note/issues"
 [project.optional-dependencies]
 dev = [
     "click==8.2.1",
-    "pytest",
+    "pytest>=8.4.2",
+    "pre-commit>=4.3.0",
     "pytest-cov",
     "mkdocs-material>=9.6.4",
     "mkdocs-minify-plugin>=0.8.0",
