@@ -3,7 +3,7 @@ site_author: virtualguard101{}
 # site_description: >-
 #   Write your documentation in Markdown and create a professional static site in
 #   minutes – searchable, customizable, in 60+ languages, for all devices
-site_name: Mkdocs-Note
+site_name: Mkdocs Note
 site_url: https://blog.virtualguard101.com/mkdocs-note
 repo_url: https://github.com/virtualguard101/mkdocs-note
 repo_name: virtualguard101/mkdocs-note
@@ -12,7 +12,7 @@ edit_uri: blob/main/docs/
 ## Configuration
 theme:
   name: material
-  language: zh
+  language: en
   custom_dir: overrides
   # favicon: assets/logo.png
 
@@ -69,17 +69,17 @@ theme:
   #   code: "'Cascadia Mono', 'LXGW WenKai Screen', 'Noto Sans SC', 'Microsoft YaHei', sans-serif"
   icon:
     repo: fontawesome/brands/github
-    logo: octicons/stack-24
+    logo: material/notebook-multiple
     edit: material/pencil
     # tag:
       # default: fontawesome/solid/hashtag
 
 ## Plugins
 plugins:
-  - blog:
-      post_excerpt: required
-      archive_date_format: MMMM yyyy
-      archive_url_date_format: yyyy/MM
+  # - blog:
+  #     post_excerpt: required
+  #     archive_date_format: MMMM yyyy
+  #     archive_url_date_format: yyyy/MM
   # - rss:
   #     match_path: blog/posts/.*
   #     date_from_meta:
@@ -92,10 +92,9 @@ plugins:
   #     cards_layout: default/only/image
   #     cards_layout_options:
   #       background_image: assets/images/beihai.jpg
-
-  # - obsidian-interactive-graph
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - awesome-nav
   - minify:
       minify_html: true
       minify_js: true
@@ -110,9 +109,9 @@ plugins:
   - git-revision-date-localized:
       enable_creation_date: true
   - mkdocs-note:
-      notes_dir: "docs/usage"
+      max_notes: 5
       timestamp_zone: "UTC+8"
-
+      log_level: info
 
   # - redirects:
   #     redirect_maps:
@@ -126,7 +125,6 @@ hooks:
   - scripts/hooks/rss.py
   - scripts/hooks/fancybox.py
   - scripts/hooks/copyright.py
-  # - src/mkdocs_note/plugin.py
   # - scripts/hooks/
 
 ## Extensions
@@ -209,15 +207,3 @@ extra:
       link: https://github.com/virtualguard101
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/virtualguardi01
-
-## Page tree
-nav:
-  - index.md
-        
-  - Blog:
-    - blog/index.md
-  - Credits: credits.md
-
-not_in_nav: |
-  templates/
-  drafts/

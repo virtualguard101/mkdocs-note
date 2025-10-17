@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_remover import NoteRemover
+from mkdocs_note.utils.docsps.remover import NoteRemover
 
 
 @pytest.fixture
@@ -103,8 +103,8 @@ def test_remove_note_nested_structure(temp_workspace, config, remover):
     note_file = nested_dir / "test.md"
     note_file.write_text("# Test Note")
     
-    # Create corresponding nested asset structure
-    asset_dir = temp_workspace / "notes" / "assets" / "category.assets" / "subcategory" / "test"
+    # Create corresponding co-located asset structure
+    asset_dir = nested_dir / "assets" / "test"
     asset_dir.mkdir(parents=True)
     (asset_dir / "image.png").write_text("fake image")
     
@@ -139,15 +139,16 @@ def test_remove_multiple_notes(temp_workspace, config, remover):
 
 def test_cleanup_empty_parent_dirs(temp_workspace, config, remover):
     """Test cleanup of empty parent directories."""
-    # Create nested empty directory structure
-    assets_dir = temp_workspace / "notes" / "assets"
-    nested_dir = assets_dir / "level1" / "level2" / "level3"
+    # Create nested empty directory structure within notes_dir
+    notes_dir = temp_workspace / "notes"
+    assets_dir = notes_dir / "category" / "assets"
+    nested_dir = assets_dir / "test" / "subdir"
     nested_dir.mkdir(parents=True)
     
-    # Cleanup from level3
+    # Cleanup from nested_dir
     remover._cleanup_empty_parent_dirs(nested_dir)
     
-    # All empty directories should be removed up to assets_dir
-    assert assets_dir.exists()
-    assert not (assets_dir / "level1").exists()
+    # All empty directories should be removed up to notes_dir
+    assert notes_dir.exists()
+    assert not (notes_dir / "category").exists()
 

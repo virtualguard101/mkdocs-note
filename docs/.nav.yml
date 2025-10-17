@@ -1,0 +1,33 @@
+## Page tree
+nav:
+  - index.md
+  - Getting Started: getting-started.md
+
+  - User Guide:
+    - usage/index.md
+    - Installation: usage/installation.md
+    - Recent Notes Insertion: usage/recent-notes.md
+    - Command Line Interface: usage/cli.md
+    - Asset Management: usage/asset-manager.md
+    - Templating System: usage/templating.md
+    - Exclusion: usage/exclusion.md
+    - Configuration Options: usage/config.md
+    - Some Security Considerations: usage/sec.md
+
+  - Contributing Guide:
+    - contributing/contributing.md
+    - Architecture Overview: contributing/architecture.md
+    - Todo List: contributing/todo.md
+
+  - API Reference:
+    - references/index.md
+
+  - About:
+    - about/index.md
+    - Changelog: about/changelog.md
+    - Credits: about/credits.md
+    - License: about/license.md
+
+not_in_nav: |
+  templates/
+  drafts/

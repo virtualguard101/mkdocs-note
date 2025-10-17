@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 from mkdocs_note.plugin import MkdocsNotePlugin
 from mkdocs_note.config import PluginConfig
-from mkdocs_note.core.data_models import NoteInfo
+from mkdocs_note.utils.dataps.meta import NoteInfo
 import click
 
 

@@ -25,10 +25,9 @@ run_tests() {
     if [ -z "$1" ]; then
         # Run all tests and generate a coverage report
         echo "Running all tests with coverage..."
-        echo "Test files:"
-        echo "  - test_config.py (PluginConfig tests)"
-        echo "  - test_logger.py (Logger tests)"
-        echo "  - core/test_file_manager.py (NoteScanner, AssetScanner tests)"
+echo "Test files:"
+echo "  - test_config.py (PluginConfig tests)"
+echo "  - core/test_file_manager.py (NoteScanner, AssetScanner tests)"
         echo "  - core/test_note_manager.py (NoteProcessor, CacheManager, IndexUpdater, RecentNotesUpdater tests)"
         echo "  - core/test_note_creator.py (NoteCreator tests)"
         echo "  - core/test_note_initializer.py (NoteInitializer tests)"
@@ -45,7 +44,7 @@ run_tests() {
 
 run_unit_tests() {
     echo "Running unit tests only..."
-    uv run pytest tests/test_config.py tests/test_logger.py tests/core/ tests/test_plugin.py -v
+    uv run pytest tests/test_config.py tests/core/ tests/test_plugin.py -v
 }
 
 run_smoke_tests() {

@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Tuple
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.data_models import NoteInfo, AssetsInfo
+from mkdocs_note.utils.dataps.meta import NoteInfo, AssetsInfo
 
 
 def get_note_relative_path(note_file: Path, notes_dir: Path, use_assets_suffix: bool = True) -> str:
@@ -253,20 +253,16 @@ class AssetsProcessor:
             Optional[AssetsInfo]: The asset information if valid, None otherwise
         """
         try:
-            # Get the note's relative path from notes_dir
-            notes_dir = Path(self.config.notes_dir)
-            note_relative_path = get_note_relative_path(note_file, notes_dir)
-            
-            # Determine the asset directory structure
-            assets_dir = Path(self.config.assets_dir)
-            note_assets_dir = assets_dir / note_relative_path
+            # Co-located asset directory structure
+            # Asset directory is: note_file.parent / "assets" / note_file.stem
+            note_assets_dir = note_file.parent / "assets" / note_file.stem
             
             # Construct the full asset file path
             asset_file = note_assets_dir / image_path
             
             # Construct the relative path for markdown references
-            # This should be relative to the notes directory
-            relative_path = f"assets/{note_relative_path}/{image_path}"
+            # Path is relative to note file: assets/{note_stem}/{image_path}
+            relative_path = f"assets/{note_file.stem}/{image_path}"
             
             # Check if file exists
             exists = asset_file.exists()
@@ -290,11 +286,12 @@ class AssetsProcessor:
         """Update markdown content to use correct asset paths.
         
         This method converts relative asset references to paths that MkDocs
-        can correctly resolve. The paths are relative to the note file's location.
+        can correctly resolve. With co-located assets, the path should be
+        relative to the docs directory, not the note file.
         
         Args:
             content (str): The original markdown content
-            note_file (Path): The note file path (absolute or relative to project root)
+            note_file (Path): The note file path (absolute path including docs_dir)
             
         Returns:
             str: The updated markdown content with corrected asset paths
@@ -307,26 +304,56 @@ class AssetsProcessor:
             if image_path.startswith(('http://', 'https://', '//', '/')):
                 return match.group(0)
             
-            # Get the note's relative path from notes_dir
-            notes_dir = Path(self.config.notes_dir)
-            note_relative_path = get_note_relative_path(note_file, notes_dir)
+            # Co-located asset structure: assets are in the same directory as the note
+            # We need to construct the path relative to docs directory
+            # For note file: docs/usage/recent-notes.md (passed as absolute path)
+            # Asset file: docs/usage/assets/recent-notes/recent_insert_demo.png
+            # MkDocs expects: usage/assets/recent-notes/recent_insert_demo.png
             
-            # Calculate the depth of the note file (how many levels deep from notes_dir)
-            # This determines how many "../" we need to go up
-            try:
-                note_file_abs = note_file.resolve() if not note_file.is_absolute() else note_file
-                notes_dir_abs = notes_dir.resolve() if not notes_dir.is_absolute() else notes_dir
-                relative_to_notes = note_file_abs.relative_to(notes_dir_abs)
-                depth = len(relative_to_notes.parent.parts)
-            except (ValueError, AttributeError):
-                # Fallback: count slashes in relative path
-                depth = note_relative_path.replace('.assets', '').count('/')
+            # Extract the path relative to docs directory
+            # note_file is the absolute path, we need to get the relative part
+            note_stem = note_file.stem
             
-            # Build the relative path from note file to assets directory
-            # Go up to notes_dir, then into assets directory
-            up_levels = '../' * depth if depth > 0 else ''
-            assets_path = f"{up_levels}assets/{note_relative_path}/{image_path}"
+            # Find the docs directory by looking for the pattern
+            # We need to get the path relative to docs directory
+            note_path_parts = note_file.parts
+            docs_index = -1
+            for i, part in enumerate(note_path_parts):
+                if part == 'docs':
+                    docs_index = i
+                    break
+            
+            if docs_index >= 0 and docs_index < len(note_path_parts) - 1:
+                # Get the path relative to docs directory
+                relative_parts = note_path_parts[docs_index + 1:-1]  # Exclude the filename
+                note_dir_relative = '/'.join(relative_parts) if relative_parts else ''
+            else:
+                # Fallback: assume the parent directory is relative to docs
+                note_dir_relative = str(note_file.parent.name) if note_file.parent.name != 'docs' else ''
+            
+            # Handle different image path formats
+            if image_path.startswith('./'):
+                # Remove the './' prefix
+                clean_image_path = image_path[2:]
+            else:
+                clean_image_path = image_path
+            
+            # For co-located assets, the path should be relative to the current markdown file
+            # This is always the same format regardless of notes_dir configuration:
+            # assets/{note_stem}/{image_path}
+            assets_path = f"assets/{note_stem}/{clean_image_path}"
+            
+            self.logger.debug(f"Replacing image path: '{image_path}' -> '{assets_path}' in {note_file}")
             
             return f"![{alt_text}]({assets_path})"
         
-        return self.image_pattern.sub(replace_image_path, content)
+        # Add debug logging
+        original_content = content
+        updated_content = self.image_pattern.sub(replace_image_path, content)
+        
+        if original_content != updated_content:
+            self.logger.debug(f"Updated asset paths in {note_file}")
+        else:
+            self.logger.debug(f"No asset paths to update in {note_file}")
+        
+        return updated_content

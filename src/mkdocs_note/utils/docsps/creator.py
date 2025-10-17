@@ -9,8 +9,8 @@ from datetime import datetime, timezone, timedelta
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_initializer import NoteInitializer
-from mkdocs_note.core.frontmatter_manager import FrontmatterManager
+from mkdocs_note.utils.docsps.initializer import NoteInitializer
+from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterManager
 
 
 class NoteCreator:
@@ -59,6 +59,13 @@ class NoteCreator:
         """
         try:
             self.logger.debug(f"Creating new note: {file_path}")
+            
+            # Check if file name is in exclude_patterns
+            if file_path.name in self.config.exclude_patterns:
+                self.logger.error(f"Cannot create note: '{file_path.name}' is in exclude_patterns")
+                self.logger.error(f"Files matching exclude_patterns ({', '.join(sorted(self.config.exclude_patterns))}) are not managed by the plugin")
+                self.logger.error("Please use a different filename or update the exclude_patterns configuration in mkdocs.yml")
+                return 1
             
             # Validate asset tree compliance first
             # Use configured notes_dir instead of file_path.parent to ensure consistent validation
@@ -266,9 +273,10 @@ class NoteCreator:
     def _get_asset_directory(self, note_file_path: Path) -> Path:
         """Get the asset directory path for a note file.
         
-        This method calculates the asset directory using the note's relative path
-        from the notes directory, ensuring that notes in different subdirectories
-        with the same name don't conflict.
+        This method calculates the asset directory based on the note file's location.
+        The asset directory is always placed in an 'assets' subdirectory within the
+        same directory as the note file, using the note's stem (filename without extension)
+        as the final directory name.
         
         Args:
             note_file_path (Path): The path of the note file
@@ -277,19 +285,18 @@ class NoteCreator:
             Path: The asset directory path
             
         Examples:
-            For note: docs/notes/python/intro.md
-            Returns: docs/notes/assets/python/intro/
+            For note: docs/usage/contributing.md
+            Returns: docs/usage/assets/contributing/
             
-            For note: docs/notes/javascript/intro.md
-            Returns: docs/notes/assets/javascript/intro/
+            For note: docs/notes/python/intro.md
+            Returns: docs/notes/python/assets/intro/
+            
+            For note: docs/notes/python/advanced/oop.md
+            Returns: docs/notes/python/advanced/assets/oop/
         """
-        from mkdocs_note.core.assets_manager import get_note_relative_path
-        
-        notes_dir = Path(self.config.notes_dir)
-        note_relative_path = get_note_relative_path(note_file_path, notes_dir)
-        
-        assets_dir = Path(self.config.assets_dir)
-        return assets_dir / note_relative_path
+        # Asset directory is in the same directory as the note file
+        # Structure: note_file.parent / "assets" / note_file.stem
+        return note_file_path.parent / "assets" / note_file_path.stem
     
     def validate_note_creation(self, file_path: Path) -> Tuple[bool, str]:
         """Validate if a note can be created at the given path.
@@ -301,6 +308,15 @@ class NoteCreator:
             Tuple[bool, str]: (is_valid, error_message)
         """
         try:
+            # Check if file name is in exclude_patterns
+            if file_path.name in self.config.exclude_patterns:
+                return False, (
+                    f"Cannot create note: '{file_path.name}' is in exclude_patterns. "
+                    f"Files matching exclude_patterns ({', '.join(sorted(self.config.exclude_patterns))}) "
+                    "are not managed by the plugin. "
+                    "Please use a different filename or update the exclude_patterns configuration."
+                )
+            
             # Check if file already exists
             if file_path.exists():
                 return False, f"File already exists: {file_path}"

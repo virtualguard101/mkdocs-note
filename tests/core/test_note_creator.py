@@ -10,7 +10,7 @@ from datetime import timezone, timedelta
 # Add src to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
-from mkdocs_note.core.note_creator import NoteCreator
+from mkdocs_note.utils.docsps.creator import NoteCreator
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
 
@@ -51,7 +51,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertIs(self.creator.config, self.config)
         self.assertIs(self.creator.logger, self.logger)
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_create_new_note_success(self, mock_initializer):
         """Test successful note creation."""
         # Mock the initializer to return compliant structure
@@ -75,7 +75,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertIn("new-note", content.lower())  # Title should be processed
         self.assertIn("2025", content)  # Date should be included
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_create_new_note_non_compliant_structure(self, mock_initializer):
         """Test note creation with non-compliant structure."""
         # Mock the initializer to return non-compliant structure
@@ -90,7 +90,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertEqual(result, 1)
         self.assertFalse(note_path.exists())
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_create_new_note_file_exists(self, mock_initializer):
         """Test note creation when file already exists."""
         # Mock the initializer to return compliant structure
@@ -105,7 +105,7 @@ class TestNoteCreator(unittest.TestCase):
         
         self.assertEqual(result, 1)
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_create_new_note_with_template(self, mock_initializer):
         """Test note creation with custom template."""
         # Mock the initializer to return compliant structure
@@ -130,7 +130,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertIn("# Custom Note", content)
         self.assertIn("Custom template content for custom-note", content)
     
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_create_new_note_nested(self, mock_initializer):
         """Test note creation in nested subdirectory."""
         # Mock the initializer to return compliant structure
@@ -148,8 +148,8 @@ class TestNoteCreator(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertTrue(note_path.exists())
         
-        # Check asset directory is created with .assets suffix on first level
-        expected_asset_dir = Path(self.config.assets_dir) / "dsa.assets" / "anal" / "iter"
+        # Check asset directory is created in co-located structure
+        expected_asset_dir = subdir / "assets" / "iter"
         self.assertTrue(expected_asset_dir.exists())
         
         # Check content
@@ -215,7 +215,7 @@ class TestNoteCreator(unittest.TestCase):
     
     def test_get_asset_directory_nested(self):
         """Test asset directory path generation for nested notes."""
-        # Test with nested note (should have .assets suffix on first level)
+        # Test with nested note (co-located structure)
         subdir = self.temp_dir / "dsa" / "anal"
         subdir.mkdir(parents=True, exist_ok=True)
         note_path = subdir / "intro.md"
@@ -223,11 +223,11 @@ class TestNoteCreator(unittest.TestCase):
         
         asset_dir = self.creator._get_asset_directory(note_path)
         
-        # First level should have .assets suffix
-        expected = Path(self.config.assets_dir) / "dsa.assets" / "anal" / "intro"
+        # Asset directory should be next to the note file
+        expected = subdir / "assets" / "intro"
         self.assertEqual(asset_dir, expected)
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_validate_note_creation_valid(self, mock_initializer):
         """Test note creation validation for valid path."""
         # Mock the initializer to return compliant structure
@@ -242,7 +242,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertTrue(is_valid)
         self.assertEqual(error_msg, "")
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_validate_note_creation_file_exists(self, mock_initializer):
         """Test note creation validation when file exists."""
         note_path = self.temp_dir / "existing-note.md"
@@ -253,7 +253,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertFalse(is_valid)
         self.assertIn("File already exists", error_msg)
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_validate_note_creation_non_compliant(self, mock_initializer):
         """Test note creation validation with non-compliant structure."""
         # Mock the initializer to return non-compliant structure
@@ -268,7 +268,7 @@ class TestNoteCreator(unittest.TestCase):
         self.assertFalse(is_valid)
         self.assertIn("Asset tree structure is not compliant", error_msg)
 
-    @patch('mkdocs_note.core.note_creator.NoteInitializer')
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
     def test_validate_note_creation_unsupported_extension(self, mock_initializer):
         """Test note creation validation with unsupported extension."""
         # Mock the initializer to return compliant structure
@@ -282,6 +282,58 @@ class TestNoteCreator(unittest.TestCase):
         
         self.assertFalse(is_valid)
         self.assertIn("Unsupported file extension", error_msg)
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_validate_note_creation_excluded_pattern(self, mock_initializer):
+        """Test note creation validation with excluded pattern (index.md)."""
+        note_path = self.temp_dir / "index.md"
+        
+        is_valid, error_msg = self.creator.validate_note_creation(note_path)
+        
+        self.assertFalse(is_valid)
+        self.assertIn("index.md", error_msg)
+        self.assertIn("exclude_patterns", error_msg)
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_validate_note_creation_excluded_readme(self, mock_initializer):
+        """Test note creation validation with excluded pattern (README.md)."""
+        note_path = self.temp_dir / "README.md"
+        
+        is_valid, error_msg = self.creator.validate_note_creation(note_path)
+        
+        self.assertFalse(is_valid)
+        self.assertIn("README.md", error_msg)
+        self.assertIn("exclude_patterns", error_msg)
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_create_new_note_excluded_pattern(self, mock_initializer):
+        """Test note creation with excluded pattern should fail."""
+        # Mock the initializer to return compliant structure
+        mock_init = Mock()
+        mock_init.validate_asset_tree_compliance.return_value = (True, [])
+        self.creator.initializer = mock_init
+        
+        note_path = self.temp_dir / "index.md"
+        
+        result = self.creator.create_new_note(note_path)
+        
+        self.assertEqual(result, 1)
+        self.assertFalse(note_path.exists())
+    
+    @patch('mkdocs_note.utils.docsps.creator.NoteInitializer')
+    def test_create_new_note_excluded_readme(self, mock_initializer):
+        """Test note creation with README.md should fail."""
+        # Mock the initializer to return compliant structure
+        mock_init = Mock()
+        mock_init.validate_asset_tree_compliance.return_value = (True, [])
+        self.creator.initializer = mock_init
+        
+        note_path = self.temp_dir / "README.md"
+        
+        result = self.creator.create_new_note(note_path)
+        
+        self.assertEqual(result, 1)
+        self.assertFalse(note_path.exists())
     
     def test_parse_timezone_utc(self):
         """Test timezone parsing for UTC+0."""

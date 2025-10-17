@@ -9,8 +9,8 @@ from pathlib import Path
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
-from mkdocs_note.core.note_cleaner import NoteCleaner
-from mkdocs_note.core.notes_mover import NoteMover
+from mkdocs_note.utils.docsps.cleaner import NoteCleaner
+from mkdocs_note.utils.docsps.mover import NoteMover
 
 
 @pytest.fixture
@@ -133,12 +133,12 @@ class TestNoteCleaner:
         note_file = category_dir / "test.md"
         note_file.write_text("# Test Note")
         
-        # Create corresponding asset
-        asset_dir = temp_workspace / "notes" / "assets" / "category.assets" / "test"
+        # Create corresponding co-located asset
+        asset_dir = category_dir / "assets" / "test"
         asset_dir.mkdir(parents=True)
         
         # Create an orphaned asset in the same category
-        orphaned_dir = temp_workspace / "notes" / "assets" / "category.assets" / "orphaned"
+        orphaned_dir = category_dir / "assets" / "orphaned"
         orphaned_dir.mkdir(parents=True)
         
         orphaned = cleaner.find_orphaned_assets()
@@ -208,7 +208,8 @@ class TestNoteMover:
         source_file = notes_dir / "source.md"
         source_file.write_text("# Source Note")
         
-        source_asset_dir = temp_workspace / "notes" / "assets" / "source"
+        # Create co-located source asset
+        source_asset_dir = notes_dir / "assets" / "source"
         source_asset_dir.mkdir(parents=True)
         
         # Create destination subdirectory
@@ -224,7 +225,8 @@ class TestNoteMover:
         assert dest_file.exists()
         assert not source_asset_dir.exists()
         
-        dest_asset_dir = temp_workspace / "notes" / "assets" / "category.assets" / "destination"
+        # Asset should be co-located with destination note
+        dest_asset_dir = dest_dir / "assets" / "destination"
         assert dest_asset_dir.exists()
     
     def test_move_note_nonexistent_source(self, temp_workspace, config, mover):
@@ -256,6 +258,40 @@ class TestNoteMover:
         assert result == 1
         assert source_file.exists()
         assert dest_file.exists()
+    
+    def test_move_note_to_excluded_filename_index(self, temp_workspace, config, mover):
+        """Test moving a note to an excluded filename (index.md)."""
+        # Create test structure
+        notes_dir = temp_workspace / "notes"
+        notes_dir.mkdir(parents=True)
+        
+        source_file = notes_dir / "source.md"
+        source_file.write_text("# Source Note")
+        
+        dest_file = notes_dir / "index.md"
+        
+        result = mover.move_note(source_file, dest_file, move_assets=True)
+        
+        assert result == 1
+        assert source_file.exists()
+        assert not dest_file.exists()
+    
+    def test_move_note_to_excluded_filename_readme(self, temp_workspace, config, mover):
+        """Test moving a note to an excluded filename (README.md)."""
+        # Create test structure
+        notes_dir = temp_workspace / "notes"
+        notes_dir.mkdir(parents=True)
+        
+        source_file = notes_dir / "source.md"
+        source_file.write_text("# Source Note")
+        
+        dest_file = notes_dir / "README.md"
+        
+        result = mover.move_note(source_file, dest_file, move_assets=True)
+        
+        assert result == 1
+        assert source_file.exists()
+        assert not dest_file.exists()
     
     def test_rename_note(self, temp_workspace, config, mover):
         """Test renaming a note (move within same directory)."""
@@ -297,13 +333,12 @@ class TestNoteMover:
         note2 = source_dir / "note2.md"
         note2.write_text("# Note 2")
         
-        # Create assets for notes
-        assets_dir = temp_workspace / "notes" / "assets"
-        asset1_dir = assets_dir / "old_category.assets" / "note1"
+        # Create co-located assets for notes
+        asset1_dir = source_dir / "assets" / "note1"
         asset1_dir.mkdir(parents=True)
         (asset1_dir / "image1.png").write_text("image1")
         
-        asset2_dir = assets_dir / "old_category.assets" / "note2"
+        asset2_dir = source_dir / "assets" / "note2"
         asset2_dir.mkdir(parents=True)
         (asset2_dir / "image2.png").write_text("image2")
         
@@ -317,16 +352,13 @@ class TestNoteMover:
         assert (dest_dir / "note1.md").exists()
         assert (dest_dir / "note2.md").exists()
         
-        # Check assets moved
-        new_asset1_dir = assets_dir / "new_category.assets" / "note1"
-        new_asset2_dir = assets_dir / "new_category.assets" / "note2"
+        # Check assets moved (co-located)
+        new_asset1_dir = dest_dir / "assets" / "note1"
+        new_asset2_dir = dest_dir / "assets" / "note2"
         assert new_asset1_dir.exists()
         assert new_asset2_dir.exists()
         assert (new_asset1_dir / "image1.png").exists()
         assert (new_asset2_dir / "image2.png").exists()
-        
-        # Check old assets removed
-        assert not (assets_dir / "old_category.assets").exists()
     
     def test_move_directory_with_nested_notes(self, temp_workspace, config, mover):
         """Test moving a directory with nested subdirectories and notes."""
@@ -342,13 +374,12 @@ class TestNoteMover:
         note2 = subdir / "note2.md"
         note2.write_text("# Note 2")
         
-        # Create assets
-        assets_dir = temp_workspace / "notes" / "assets"
-        asset1_dir = assets_dir / "source.assets" / "note1"
+        # Create co-located assets
+        asset1_dir = source_dir / "assets" / "note1"
         asset1_dir.mkdir(parents=True)
         (asset1_dir / "image1.png").write_text("image1")
         
-        asset2_dir = assets_dir / "source.assets" / "subdir" / "note2"
+        asset2_dir = subdir / "assets" / "note2"
         asset2_dir.mkdir(parents=True)
         (asset2_dir / "image2.png").write_text("image2")
         
@@ -361,9 +392,9 @@ class TestNoteMover:
         assert (dest_dir / "note1.md").exists()
         assert (dest_dir / "subdir" / "note2.md").exists()
         
-        # Check assets moved with correct structure
-        new_asset1_dir = assets_dir / "destination.assets" / "note1"
-        new_asset2_dir = assets_dir / "destination.assets" / "subdir" / "note2"
+        # Check assets moved with co-located structure
+        new_asset1_dir = dest_dir / "assets" / "note1"
+        new_asset2_dir = dest_dir / "subdir" / "assets" / "note2"
         assert new_asset1_dir.exists()
         assert new_asset2_dir.exists()
         assert (new_asset1_dir / "image1.png").exists()
@@ -395,9 +426,8 @@ class TestNoteMover:
         note = source_dir / "test.md"
         note.write_text("# Test")
         
-        # Create assets
-        assets_dir = temp_workspace / "notes" / "assets"
-        asset_dir = assets_dir / "source.assets" / "test"
+        # Create co-located assets
+        asset_dir = source_dir / "assets" / "test"
         asset_dir.mkdir(parents=True)
         (asset_dir / "image.png").write_text("image")
         
@@ -413,8 +443,8 @@ class TestNoteMover:
         assert (dest_parent / "source" / "test.md").exists()
         assert not source_dir.exists()
         
-        # Check assets moved correctly
-        new_asset_dir = assets_dir / "destination.assets" / "source" / "test"
+        # Check assets moved correctly (co-located)
+        new_asset_dir = dest_parent / "source" / "assets" / "test"
         assert new_asset_dir.exists()
         assert (new_asset_dir / "image.png").exists()
     
@@ -427,9 +457,8 @@ class TestNoteMover:
         note = notes_dir / "test.md"
         note.write_text("# Test")
         
-        # Create assets
-        assets_dir = temp_workspace / "notes" / "assets"
-        asset_dir = assets_dir / "test"
+        # Create co-located assets
+        asset_dir = notes_dir / "assets" / "test"
         asset_dir.mkdir(parents=True)
         (asset_dir / "image.png").write_text("image")
         
@@ -445,8 +474,8 @@ class TestNoteMover:
         assert (dest_dir / "test.md").exists()
         assert not note.exists()
         
-        # Check assets moved correctly
-        new_asset_dir = assets_dir / "archive.assets" / "test"
+        # Check assets moved correctly (co-located)
+        new_asset_dir = dest_dir / "assets" / "test"
         assert new_asset_dir.exists()
         assert (new_asset_dir / "image.png").exists()
 
