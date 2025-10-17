@@ -13,8 +13,11 @@ MkDocs-Note is a note management plugin designed specifically for MkDocs and Mat
 ### 1.2 Core Design Philosophy
 
 - **Modular Layering**: Modules are divided by functional domains with clear responsibilities and easy extensibility
+
 - **Co-located Resources**: Resources are placed alongside note files for easy management and movement
+
 - **Metadata-driven**: Extensible metadata system based on frontmatter
+
 - **Interface-friendly**: Complete CLI tools and plugin API
 
 ---
@@ -23,22 +26,30 @@ MkDocs-Note is a note management plugin designed specifically for MkDocs and Mat
 
 ### 2.1 From v1.x to v2.0.0
 
-**v1.x Architecture Issues**:
-- Single `core/` directory containing all business logic
-- Unclear module responsibilities
-- Adding new features required modifying core code
+- **v1.x Architecture Issues**:
 
-**v2.0.0 Architecture Improvements**:
-- **Modular Refactoring**: Split `core/` by functional domains into `utils/` subpackages
-- **Clear Layering**: Separation of data layer, processing layer, and operation layer
-- **Open-Closed Principle**: Extend functionality through registration mechanism without modifying core
+    - Single `core/` directory containing all business logic
+
+    - Unclear module responsibilities
+
+    - Adding new features required modifying core code
+
+- **v2.0.0 Architecture Improvements**:
+
+    - **Modular Refactoring**: Split `core/` by functional domains into `utils/` subpackages
+
+    - **Clear Layering**: Separation of data layer, processing layer, and operation layer
+
+    - **Open-Closed Principle**: Extend functionality through registration mechanism without modifying core
 
 ### 2.2 Refactoring Motivation
 
 Based on [Issue #15](https://github.com/virtualguard101/mkdocs-note/issues/15), the following goals were achieved:
 
 1. ✅ Use frontmatter to manage note metadata
+
 2. ✅ Template variables are replaced only in frontmatter, keeping content clean
+
 3. ✅ Improve project extensibility and maintainability
 
 ---
@@ -277,10 +288,13 @@ classDiagram
     FrontmatterManager --> FrontmatterParser
 ```
 
-**Design Highlights**:
-- ✅ **Open-Closed Principle**: Extend fields through registration mechanism without modifying core code
-- ✅ **Type Safety**: Field definitions include type and validation
-- ✅ **Global Registry**: Unified management of all metadata fields
+- **Design Highlights**:
+
+    - ✅ **Open-Closed Principle**: Extend fields through registration mechanism without modifying core code
+
+    - ✅ **Type Safety**: Field definitions include type and validation
+
+    - ✅ **Global Registry**: Unified management of all metadata fields
 
 ### 4.2 docsps/ - Document Operations Layer
 
@@ -301,11 +315,15 @@ classDiagram
 
 **Responsibility**: Create new notes based on templates
 
-**Core Features**:
-- Template loading and variable substitution
-- Frontmatter template support
-- Automatic asset directory creation
-- Structure compliance validation
+- **Core Features**:
+
+    - Template loading and variable substitution
+
+    - Frontmatter template support
+
+    - Automatic asset directory creation
+
+    - Structure compliance validation
 
 **Template Processing Flow**:
 
@@ -414,10 +432,13 @@ def _get_asset_directory(note_file_path: Path) -> Path:
 
 **Status**: Reserved for extension, currently empty
 
-**Planned Usage**:
-- Path standardization
-- Relative path calculation
-- Cross-platform path processing
+- **Planned Usage**:
+
+    - Path standardization
+
+    - Relative path calculation
+
+    - Cross-platform path processing
 
 ---
 
@@ -673,23 +694,33 @@ sequenceDiagram
 
 ### 7.1 Modular Design
 
-**Separation of Concerns**:
-- `dataps/`: Data definition and metadata management
-- `docsps/`: Document-level business logic
-- `assetps/`: Asset processing logic
-- `fileps/`: Low-level file I/O
+- **Separation of Concerns**:
 
-**Advantages**:
-- ✅ Single Responsibility Principle
-- ✅ Easy unit testing
-- ✅ Reduced coupling
-- ✅ Easy extensibility
+    - `dataps/`: Data definition and metadata management
+
+    - `docsps/`: Document-level business logic
+
+    - `assetps/`: Asset processing logic
+
+    - `fileps/`: Low-level file I/O
+
+- **Advantages**:
+
+    - ✅ Single Responsibility Principle
+
+    - ✅ Easy unit testing
+
+    - ✅ Reduced coupling
+
+    - ✅ Easy extensibility
 
 ### 7.2 Open-Closed Principle
 
-**Implementation**:
-- `MetadataRegistry`: Add new fields through registration without modifying core
-- `FrontmatterManager`: Provides facade interface, hiding implementation details
+- **Implementation**:
+
+    - `MetadataRegistry`: Add new fields through registration without modifying core
+
+    - `FrontmatterManager`: Provides facade interface, hiding implementation details
 
 **Extension Example**:
 ```python
@@ -711,22 +742,31 @@ register_field(custom_field)
 
 ### 7.3 Dependency Inversion Principle
 
-**Implementation**:
-- High-level modules (`docsps/handlers.py`) depend on abstractions (data models)
-- Low-level modules (`fileps/handlers.py`) implement specific functionality
-- Decoupled through interfaces and data classes
+- **Implementation**:
+
+    - High-level modules (`docsps/handlers.py`) depend on abstractions (data models)
+
+    - Low-level modules (`fileps/handlers.py`) implement specific functionality
+
+    - Decoupled through interfaces and data classes
 
 ### 7.4 Test-First
 
-**Test Coverage**:
-- ✅ Unit tests: 227 tests, 100% pass rate
-- ✅ Smoke tests: Basic functionality verification
-- ✅ Integration tests: Complete workflow verification
+- **Test Coverage**:
 
-**Testing Principles**:
-- Use temporary files to avoid polluting project files
-- Mock external dependencies (Git, file system)
-- Independent and repeatable
+    - ✅ Unit tests: 227 tests, 100% pass rate
+
+    - ✅ Smoke tests: Basic functionality verification
+
+    - ✅ Integration tests: Complete workflow verification
+
+- **Testing Principles**:
+
+    - Use temporary files to avoid polluting project files
+
+    - Mock external dependencies (Git, file system)
+
+    - Independent and repeatable
 
 ---
 
@@ -734,20 +774,29 @@ register_field(custom_field)
 
 ### 8.1 Why Choose Modular Refactoring?
 
-**Problems**:
-- v1.x's `core/` directory contained all logic, making it difficult to maintain
-- Adding new features required modifying multiple core files
-- Unclear boundaries between modules
+- **Problems**:
 
-**Solution**:
-- Split by functional domains: assets, data, documents, files
-- Use `ps` suffix to establish naming convention
-- Each subpackage focuses on single responsibility
+    - v1.x's `core/` directory contained all logic, making it difficult to maintain
 
-**Benefits**:
-- Code is easier to understand and maintain
-- New feature development is faster
-- Tests are easier to write
+    - Adding new features required modifying multiple core files
+
+    - Unclear boundaries between modules
+
+- **Solution**:
+
+    - Split by functional domains: assets, data, documents, files
+
+    - Use `ps` suffix to establish naming convention
+
+    - Each subpackage focuses on single responsibility
+
+- **Benefits**:
+
+    - Code is easier to understand and maintain
+
+    - New feature development is faster
+
+    - Tests are easier to write
 
 ### 8.2 Why Adopt Co-located Resource Structure?
 
@@ -756,8 +805,11 @@ register_field(custom_field)
 docs/notes/assets/dsa.assets/anal/iter/  # Resources in centralized directory
 docs/notes/dsa/anal/iter.md              # Note in original location
 ```
+
 - Easy to miss resources when moving notes
+
 - Complex path calculation
+
 - Difficult to manage intuitively
 
 **v2.0.0 Solution** (Co-located):
@@ -765,23 +817,34 @@ docs/notes/dsa/anal/iter.md              # Note in original location
 docs/notes/dsa/anal/iter.md          # Note
 docs/notes/dsa/anal/assets/iter/     # Resources right next to it
 ```
+
 - ✅ Notes and resources are together, easy to see at a glance
+
 - ✅ Move together when relocating
+
 - ✅ Simple path calculation
+
 - ✅ Intuitive
 
 ### 8.3 Why Use Frontmatter?
 
-**Advantages**:
-- ✅ **Standard Format**: YAML frontmatter is the standard in Markdown ecosystem
-- ✅ **Extensible**: Add new fields through registration mechanism
-- ✅ **Type Safe**: Field definitions include type validation
-- ✅ **Separation of Concerns**: Metadata separated from content
+- **Advantages**:
 
-**Design**:
-- Variable substitution only occurs in frontmatter
-- Content body remains clean, free from template syntax
-- Supports legacy notes without frontmatter
+    - ✅ **Standard Format**: YAML frontmatter is the standard in Markdown ecosystem
+
+    - ✅ **Extensible**: Add new fields through registration mechanism
+
+    - ✅ **Type Safe**: Field definitions include type validation
+
+    - ✅ **Separation of Concerns**: Metadata separated from content
+
+- **Design**:
+
+    - Variable substitution only occurs in frontmatter
+
+    - Content body remains clean, free from template syntax
+
+    - Supports legacy notes without frontmatter
 
 ---
 
@@ -806,7 +869,9 @@ class CacheManager:
 ### 9.2 Git Timestamp Caching
 
 - Git commands have timeout protection (5 seconds)
+
 - Automatically falls back to file system time on failure
+
 - Avoids repeated Git calls
 
 ---
