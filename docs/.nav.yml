@@ -23,7 +23,6 @@ nav:
     - references/index.md
 
   - About:
-    - about/index.md
     - Changelog: about/changelog.md
     - Credits: about/credits.md
     - License: about/license.md
