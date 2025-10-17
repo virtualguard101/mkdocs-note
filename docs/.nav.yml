@@ -12,6 +12,7 @@ nav:
     - Templating System: usage/templating.md
     - Exclusion: usage/exclusion.md
     - Configuration Options: usage/config.md
+    - Some Security Considerations: usage/sec.md
 
   - Contributing Guide:
     - contributing/contributing.md

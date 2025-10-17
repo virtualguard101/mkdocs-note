@@ -11,7 +11,7 @@ publish: true
 
 And the exlcude patterns or directories is relative to the `notes_dir` option in `mkdocs.yml` which is the directory of the notes that defines the plugin's working scope. 
 
-For `notes_dir`, it's default to `docs`, see more details in [Working Scope and Behavior Boundaries]().
+For `notes_dir`, it's default to `docs`, see more details in [Working Scope and Behavior Boundaries](sec.md).
 
 ## Exclude Patterns
 

@@ -58,8 +58,6 @@ mkdocs-note init [--path PATH]
 
 - Fixes non-compliant asset trees
 
-- Creates an index file with proper markers
-
 ### Create New Note
 
 ```bash
@@ -131,6 +129,7 @@ mkdocs-note mv SOURCE DESTINATION [--keep-source-assets] [--yes]
 - **Mimics shell `mv` behavior**: 
 
     - If destination doesn't exist: rename source to destination
+
     - If destination exists and is a directory: move source into destination
 
 - Move or rename a note file or entire directory with its asset directories

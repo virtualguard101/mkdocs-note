@@ -71,6 +71,8 @@ The recent documentation inserting feature support putting the timestamp which r
 
 ### Timezone
 
+In order to ensure consistent timestamp display across different deployment environments (e.g., local development vs. remote CI/CD), we introduced timezone for timestamp system.
+
 For specified timezone, you can set the `timestamp_zone` option in `mkdocs.yml` as follows:
 
 ```yaml
@@ -80,6 +82,8 @@ plugins:
 ```
 
 By default, the timezone is `UTC+0`.
+
+This option is particularly useful when your local environment and remote deployment server are in different timezones. Without this configuration, timestamps might appear different between `mkdocs serve` (local) and the deployed site.
 
 ### Format
 

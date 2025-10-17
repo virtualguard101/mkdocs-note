@@ -46,7 +46,7 @@ For recommended configuration, you can add the following to your `mkdocs.yml`:
 ```yml
 plugins:
   - mkdocs-note:
-      notes_dir: "docs"
+      notes_dir: "docs/notes"
       index_file: "docs/index.md"
       start_marker: "<!-- recent_notes_start -->"
       end_marker: "<!-- recent_notes_end -->"
@@ -58,13 +58,32 @@ In general, Mkdocs Note supports highly customizable configuration, you can conf
 
 Please refer to the [Configuration Options | User Guide](usage/config.md) for more details about the information of each configuration options.
 
-## Command Line Interface
+## Create Your Note Boxes
+
+### Manual Setup
+
+1. Create the notes directory you have just configured above in your mkdocs project (e.g., `docs/notes`)
+
+2. Create an `index.md` file in your notes directory manually.
+
+3. Add the marker comments to your index file:
+
+```markdown
+# My Notes
+
+<!-- recent_notes_start -->
+<!-- recent_notes_end -->
+```
+
+For index files (`index.md`), the default configuration will not allow CLI tools to create it automatically, so you need to create it manually. See more details in [Exclusion](usage/exclusion.md) and [Something You Should Notice | Recent Notes Insertion](usage/recent-notes.md#Something-You-Should-Notice) about it.
+
+### Use CLI Commands
 
 The plugin provides several CLI commands for docs and their assets management.
 
 And first of all, this is a mkdocs-based plugin, so you need to have a mkdocs project first.
 
-### Validate Structure
+#### Validate Structure
 
 Use following command to validate the structure of your docs and assets:
 
@@ -76,7 +95,7 @@ This command will check if the structure of your docs and assets is compliant wi
 
 If there are any issues, it will report them to you.
 
-### Initialize Docs and Assets Structure
+#### Initialize Docs and Assets Structure
 
 Use following command to initialize your mkdocs-based docs and assets structure:
 
@@ -94,7 +113,7 @@ And take a look at the entire plugin in `v2.0.0`,there has no way to move the as
 
 By the way, if you're really don't want to move your existing assets to the new structure, you can puts them out of the config option `notes_dir` and use legency way to link them in order to avoid the plugin automatically managing them and cause some undefined events.
 
-### Create New Documentation
+#### Create New Documentation
 
 Use following command to create a new documentation:
 
@@ -104,7 +123,7 @@ mkdocs-note new FILE_PATH
 
 This command will create a new note file with the default template and the corresponding asset directory, which is a bit like [`hexo new`](https://hexo.io/zh-cn/docs/commands#new) command in Hexo.
 
-### Remove Existing Documentation
+#### Remove Existing Documentation
 
 Use following command to remove an existing documentation:
 
@@ -116,11 +135,11 @@ This command will remove the documentation file and its corresponding asset dire
 
 And you can use the alias `mkdocs-note rm` to do the same thing.
 
-### Other Commands
+#### Other Commands
 
 There are some other commands that are not mentioned here, you can use `mkdocs-note --help/-h` or `mkdocs-note <command> --help/-h` to get the full list of commands and their usage.
 
-### Configuration Auto-Loading
+#### Configuration Auto-Loading
 
 All CLI commands automatically load your custom configuration from `mkdocs.yml` in the current or parent directories. You can also specify a config file explicitly using `--config` or `-c` option:
 
