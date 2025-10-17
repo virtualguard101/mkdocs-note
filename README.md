@@ -24,7 +24,7 @@ MkDocs Note is a plugin for [MkDocs](https://www.mkdocs.org/) that automatically
 >
 > However, you need to manually move your existing assets to the new location.
 >
-> By the way, I think the plugin after `v2.0.0` can not only as a "notebook manager", but also an efficient document manager because of it powerful and flexible asset management system.
+> By the way, I think the plugin after `v2.0.0` can not only as a "notebook manager", but also an efficient documentations manager because of its powerful and flexible asset management system.
 
 ## Features
 

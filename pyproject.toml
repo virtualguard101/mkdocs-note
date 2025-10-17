@@ -27,7 +27,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/virtualguard101/mkdocs-note"
+Repository = "https://github.com/virtualguard101/mkdocs-note"
+Homepage = "https://blog.virtualguard101.com/mkdocs-note"
 Issues = "https://github.com/virtualguard101/mkdocs-note/issues"
 
 [project.optional-dependencies]
