@@ -36,6 +36,7 @@ dev = [
     "click==8.2.1",
     "pytest>=8.4.2",
     "pre-commit>=4.3.0",
+    "ruff>=0.14.1",
     "pytest-cov",
     "mkdocs-material>=9.6.4",
     "mkdocs-minify-plugin>=0.8.0",

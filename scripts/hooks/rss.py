@@ -8,14 +8,15 @@ import posixpath
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.structure.files import File, Files, InclusionLevel
 
-FILE_NAME = 'rss.xml'
+FILE_NAME = "rss.xml"
 
-log = logging.getLogger('mkdocs.plugins')
+log = logging.getLogger("mkdocs.plugins")
+
 
 def get_content(config: MkDocsConfig) -> str:
-    now = datetime.datetime.now(datetime.timezone.utc)
-    build_datetime = html.escape(email.utils.format_datetime(now))
-    return inspect.cleandoc(f'''
+	now = datetime.datetime.now(datetime.timezone.utc)
+	build_datetime = html.escape(email.utils.format_datetime(now))
+	return inspect.cleandoc(f'''
         <?xml version="1.0" encoding="UTF-8" ?>
         <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
         <channel>
@@ -33,7 +34,13 @@ def get_content(config: MkDocsConfig) -> str:
         </rss>
         ''')
 
+
 def on_files(files: Files, config: MkDocsConfig):
-    files.append(File.generated(config, FILE_NAME,
-        content=get_content(config),
-        inclusion=InclusionLevel.INCLUDED))
+	files.append(
+		File.generated(
+			config,
+			FILE_NAME,
+			content=get_content(config),
+			inclusion=InclusionLevel.INCLUDED,
+		)
+	)
