@@ -39,7 +39,22 @@ Start writing your note content...
 
 If you use `mkdocs-note new` of the [Command Line Interface](cli.md) in this plugin to create a new note, the template will be applied automatically.
 
-<!-- But notice that the template file above should be created manually by yourself in order to make the plugin automatically apply it. -->
+But notice that the template file above should be created manually by yourself in order to make the plugin automatically apply it.
+
+## Custom Template
+
+You can create a custom template by creating a new file in the `templates` directory.
+
+However, please notice that your template files should contain at least the following content so that the plugin can replace some metadata variables:
+
+```markdown
+---
+date: {{date}}
+title: {{title}}
+---
+
+# {{title}}
+```
 
 ## Frontmatter Support
 
