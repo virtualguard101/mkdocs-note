@@ -23,7 +23,24 @@ class GraphHandler:
 
 	def add_static_resources(self, config: MkDocsConfig):
 		"""Add static resources into mkdocs config for network graph."""
-		self.static_dir = os.path.join(os.path.dirname(__file__), "static")
+		# Use direct file system path for static files
+		# This is more reliable than importlib.resources in development
+		self.static_dir = Path(os.path.dirname(__file__)) / "static"
+
+		# Verify that the static directory exists
+		if not self.static_dir.exists():
+			logger.warning(f"Static directory not found: {self.static_dir}")
+			# Try alternative paths
+			possible_paths = [
+				Path(__file__).parent / "static",
+				Path(os.path.dirname(__file__)) / "static",
+			]
+			for path in possible_paths:
+				if path.exists():
+					self.static_dir = path
+					break
+			else:
+				logger.error("Could not find static directory for graph resources")
 
 		config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
 
@@ -67,14 +84,14 @@ class GraphHandler:
 		logger.debug("Copying static assets...")
 		try:
 			# Copy JS
-			js_output_dir = os.path.join(config["site_dir"], "js")
-			os.makedirs(js_output_dir, exist_ok=True)
-			shutil.copy(os.path.join(self.static_dir, "graph.js"), js_output_dir)
+			js_output_dir = Path(config["site_dir"]) / "js"
+			js_output_dir.mkdir(parents=True, exist_ok=True)
+			shutil.copy(self.static_dir / "graph.js", js_output_dir)
 
 			# Copy CSS
-			css_output_dir = os.path.join(config["site_dir"], "css")
-			os.makedirs(css_output_dir, exist_ok=True)
-			shutil.copy(os.path.join(self.static_dir, "graph.css"), css_output_dir)
+			css_output_dir = Path(config["site_dir"]) / "css"
+			css_output_dir.mkdir(parents=True, exist_ok=True)
+			shutil.copy(self.static_dir / "graph.css", css_output_dir)
 		except (IOError, OSError) as e:
 			logger.error(f"Error copying static assets: {e}")
 

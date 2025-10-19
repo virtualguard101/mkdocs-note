@@ -20,10 +20,10 @@ def test_package_import():
 		import mkdocs_note  # noqa: F401
 
 		print("✅ mkdocs_note package imported successfully")
-		return True
+		assert True
 	except ImportError as e:
 		print(f"❌ Failed to import mkdocs_note: {e}")
-		return False
+		assert False, f"Failed to import mkdocs_note: {e}"
 
 
 def test_core_modules():
@@ -40,10 +40,10 @@ def test_core_modules():
 		("mkdocs_note.utils.docsps.creator", "NoteCreator"),
 		("mkdocs_note.utils.docsps.initializer", "NoteInitializer"),
 		("mkdocs_note.utils.assetps.handlers", "AssetsProcessor"),
+		("mkdocs_note.utils.graphps.handlers", "GraphHandler"),
+		("mkdocs_note.utils.graphps.graph", "Graph"),
 		("mkdocs_note.plugin", "MkdocsNotePlugin"),
 	]
-
-	all_passed = True
 
 	for module_name, class_name in modules_to_test:
 		try:
@@ -52,16 +52,12 @@ def test_core_modules():
 			print(f"✅ {module_name}.{class_name} imported successfully")
 		except (ImportError, AttributeError) as e:
 			print(f"❌ Failed to import {module_name}.{class_name}: {e}")
-			all_passed = False
-
-	return all_passed
+			assert False, f"Failed to import {module_name}.{class_name}: {e}"
 
 
 def test_basic_functionality():
 	"""Test basic functionality of key components."""
 	print("Testing basic functionality...")
-
-	all_passed = True
 
 	# Test PluginConfig
 	try:
@@ -73,7 +69,7 @@ def test_basic_functionality():
 		print("✅ PluginConfig basic functionality works")
 	except Exception as e:
 		print(f"❌ PluginConfig functionality failed: {e}")
-		all_passed = False
+		assert False, f"PluginConfig functionality failed: {e}"
 
 	# Test Logger
 	try:
@@ -84,7 +80,7 @@ def test_basic_functionality():
 		print("✅ Logger basic functionality works")
 	except Exception as e:
 		print(f"❌ Logger functionality failed: {e}")
-		all_passed = False
+		assert False, f"Logger functionality failed: {e}"
 
 	# Test NoteScanner
 	try:
@@ -98,14 +94,14 @@ def test_basic_functionality():
 		print("✅ NoteScanner basic functionality works")
 	except Exception as e:
 		print(f"❌ NoteScanner functionality failed: {e}")
-		all_passed = False
+		assert False, f"NoteScanner functionality failed: {e}"
 
 	# Test data models
 	try:
 		print("✅ Data models basic functionality works")
 	except Exception as e:
 		print(f"❌ Data models functionality failed: {e}")
-		all_passed = False
+		assert False, f"Data models functionality failed: {e}"
 
 	# Test NoteProcessor
 	try:
@@ -119,7 +115,7 @@ def test_basic_functionality():
 		print("✅ NoteProcessor basic functionality works")
 	except Exception as e:
 		print(f"❌ NoteProcessor functionality failed: {e}")
-		all_passed = False
+		assert False, f"NoteProcessor functionality failed: {e}"
 
 	# Test MkdocsNotePlugin
 	try:
@@ -132,7 +128,7 @@ def test_basic_functionality():
 		print("✅ MkdocsNotePlugin basic functionality works")
 	except Exception as e:
 		print(f"❌ MkdocsNotePlugin functionality failed: {e}")
-		all_passed = False
+		assert False, f"MkdocsNotePlugin functionality failed: {e}"
 
 	# Test NoteCreator
 	try:
@@ -146,7 +142,7 @@ def test_basic_functionality():
 		print("✅ NoteCreator basic functionality works")
 	except Exception as e:
 		print(f"❌ NoteCreator functionality failed: {e}")
-		all_passed = False
+		assert False, f"NoteCreator functionality failed: {e}"
 
 	# Test NoteInitializer
 	try:
@@ -160,7 +156,7 @@ def test_basic_functionality():
 		print("✅ NoteInitializer basic functionality works")
 	except Exception as e:
 		print(f"❌ NoteInitializer functionality failed: {e}")
-		all_passed = False
+		assert False, f"NoteInitializer functionality failed: {e}"
 
 	# Test AssetsProcessor
 	try:
@@ -174,9 +170,31 @@ def test_basic_functionality():
 		print("✅ AssetsProcessor basic functionality works")
 	except Exception as e:
 		print(f"❌ AssetsProcessor functionality failed: {e}")
-		all_passed = False
+		assert False, f"AssetsProcessor functionality failed: {e}"
 
-	return all_passed
+	# Test GraphHandler
+	try:
+		from mkdocs_note.utils.graphps.handlers import GraphHandler
+		from mkdocs_note.config import PluginConfig
+
+		config = PluginConfig()
+		config.enable_network_graph = True
+		GraphHandler(config)  # Test instantiation
+		print("✅ GraphHandler basic functionality works")
+	except Exception as e:
+		print(f"❌ GraphHandler functionality failed: {e}")
+		assert False, f"GraphHandler functionality failed: {e}"
+
+	# Test Graph
+	try:
+		from mkdocs_note.utils.graphps.graph import Graph
+
+		graph_config = {"name": "title", "debug": False}
+		Graph(graph_config)  # Test instantiation
+		print("✅ Graph basic functionality works")
+	except Exception as e:
+		print(f"❌ Graph functionality failed: {e}")
+		assert False, f"Graph functionality failed: {e}"
 
 
 def test_package_metadata():
@@ -200,10 +218,10 @@ def test_package_metadata():
 		else:
 			print("⚠️  Package author not found")
 
-		return True
+		assert True
 	except Exception as e:
 		print(f"❌ Package metadata test failed: {e}")
-		return False
+		assert False, f"Package metadata test failed: {e}"
 
 
 def main():
