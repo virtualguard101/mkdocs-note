@@ -117,11 +117,6 @@ class PluginConfig(Config):
 		default={
 			"name": "title",  # Node naming strategy: "title" or "file_name"
 			"debug": False,  # Enable debug logging for graph generation
-			"show_on_index": True,  # Show graph on the notes index page
-			"max_nodes": 100,  # Maximum number of nodes to display
-			"layout": "force",  # Graph layout algorithm: "force", "hierarchical", "circular"
-			"show_assets": False,  # Include asset files as nodes
-			"link_threshold": 2,  # Minimum number of shared keywords to create links
 		},
 	)
 	"""Configuration for the network graph visualization.

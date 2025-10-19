@@ -104,8 +104,8 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		"""Initialize the graph data structure."""
 		# Add necessary configuration for Graph class
 		graph_config = {
-			"name": "title",  # Use title as node name
-			"debug": config.get("debug", False),
+			"name": self.config.graph_config.get("name", "title"),
+			"debug": self.config.graph_config.get("debug", False),
 		}
 		self._graph = Graph(graph_config)
 
