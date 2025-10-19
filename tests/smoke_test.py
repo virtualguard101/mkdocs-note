@@ -244,7 +244,10 @@ def main():
 
 	for test_name, test_func in tests:
 		print(f"\n--- {test_name} ---")
-		if not test_func():
+		try:
+			test_func()
+		except Exception as e:
+			print(f"❌ {test_name} failed: {e}")
 			all_passed = False
 
 	print("\n" + "=" * 50)
