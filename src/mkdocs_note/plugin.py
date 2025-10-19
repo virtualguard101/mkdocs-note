@@ -13,6 +13,7 @@ from mkdocs_note.utils.fileps.handlers import NoteScanner
 from mkdocs_note.utils.docsps.handlers import NoteProcessor
 from mkdocs_note.utils.dataps.meta import NoteInfo
 from mkdocs_note.utils.assetps.handlers import AssetsProcessor
+from mkdocs_note.utils.graphps.handlers import NetworkGraphManager
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):
@@ -27,6 +28,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		self.logger = Logger()  # Will be updated with config in on_config
 		self._recent_notes: List[NoteInfo] = []
 		self._assets_processor = None
+		self._network_graph_manager = None
 		self._docs_dir = None
 
 	@property
@@ -81,6 +83,13 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 
 		# Initialize assets processor
 		self._assets_processor = AssetsProcessor(self.config, self.logger)
+
+		# Initialize network graph manager
+		self._network_graph_manager = NetworkGraphManager(self.config, self.logger)
+
+		# Add static resources for network graph if enabled
+		if self.config.enable_network_graph:
+			self._add_static_resources(config)
 
 		self.logger.info("MkDocs Note plugin initialized successfully.")
 		return config
@@ -206,7 +215,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 			return False
 
 	def _insert_recent_notes(self, markdown: str) -> str:
-		"""Insert recent notes list into markdown content.
+		"""Insert recent notes list and network graph into markdown content.
 
 		Args:
 		    markdown (str): The markdown content to insert recent notes into
@@ -219,6 +228,20 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 
 		# Generate HTML list for recent notes
 		notes_html = self._generate_notes_html()
+
+		# Generate network graph content if enabled
+		graph_content = ""
+		if self._network_graph_manager and self.config.enable_network_graph:
+			graph_content = self._network_graph_manager.process_notes_for_graph(
+				self._recent_notes
+			)
+			if graph_content:
+				self.logger.info("Generated network graph content")
+
+		# Combine notes and graph content
+		combined_content = notes_html
+		if graph_content:
+			combined_content += "\n\n" + graph_content
 
 		# Replace content between markers
 		start_marker = self.config.start_marker
@@ -243,7 +266,7 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		end_pos = end_idx
 
 		updated_markdown = (
-			markdown[:start_pos] + "\n" + notes_html + "\n" + markdown[end_pos:]
+			markdown[:start_pos] + "\n" + combined_content + "\n" + markdown[end_pos:]
 		)
 
 		self.logger.info(
@@ -362,3 +385,27 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 				f"Error processing assets for page {page.file.src_path}: {e}"
 			)
 			return markdown
+
+	def _add_static_resources(self, config: MkDocsConfig) -> None:
+		"""Add static resources for network graph functionality.
+
+		Args:
+		    config: MkDocs configuration
+		"""
+		try:
+			# Add CSS for network graph
+			css_path = (
+				Path(__file__).parent / "static" / "stylesheet" / "network-graph.css"
+			)
+			if css_path.exists():
+				config.extra_css.append(str(css_path))
+				self.logger.debug("Added network graph CSS")
+
+			# Add JavaScript for network graph
+			js_path = Path(__file__).parent / "static" / "js" / "network-graph.js"
+			if js_path.exists():
+				config.extra_javascript.append(str(js_path))
+				self.logger.debug("Added network graph JavaScript")
+
+		except Exception as e:
+			self.logger.error(f"Error adding static resources: {e}")

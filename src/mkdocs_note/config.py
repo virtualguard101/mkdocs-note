@@ -106,6 +106,36 @@ class PluginConfig(Config):
     This ensures consistent timestamp display across different deployment environments.
     """
 
+	# Network Graph Configuration
+	enable_network_graph = config_opt.Type(bool, default=False)
+	"""Whether to enable the interactive network graph visualization.
+    When enabled, an interactive graph showing relationships between notes will be displayed.
+    """
+
+	graph_config = config_opt.Type(
+		dict,
+		default={
+			"name": "title",  # Node naming strategy: "title" or "file_name"
+			"debug": False,  # Enable debug logging for graph generation
+			"show_on_index": True,  # Show graph on the notes index page
+			"max_nodes": 100,  # Maximum number of nodes to display
+			"layout": "force",  # Graph layout algorithm: "force", "hierarchical", "circular"
+			"show_assets": False,  # Include asset files as nodes
+			"link_threshold": 2,  # Minimum number of shared keywords to create links
+		},
+	)
+	"""Configuration for the network graph visualization.
+    
+    Available options:
+    - name: Node naming strategy ("title" or "file_name")
+    - debug: Enable debug logging for graph generation
+    - show_on_index: Show graph on the notes index page
+    - max_nodes: Maximum number of nodes to display
+    - layout: Graph layout algorithm ("force", "hierarchical", "circular")
+    - show_assets: Include asset files as nodes
+    - link_threshold: Minimum number of shared keywords to create links
+    """
+
 
 def load_config_from_mkdocs_yml(config_path: Optional[Path] = None) -> PluginConfig:
 	"""Load plugin configuration from mkdocs.yml file.
