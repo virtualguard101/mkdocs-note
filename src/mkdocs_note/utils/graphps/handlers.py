@@ -1,3 +1,4 @@
+import os
 import json
 import shutil
 from pathlib import Path
@@ -21,8 +22,11 @@ class GraphHandler:
 		self._graph = Graph(graph_config)
 
 	def add_static_resources(self, config: MkDocsConfig):
-		"""Add static resources for network graph."""
+		"""Add static resources into mkdocs config for network graph."""
+		self.static_dir = os.path.join(os.path.dirname(__file__), "static")
+
 		config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
+
 		if "js/graph.js" not in config["extra_javascript"]:
 			config["extra_javascript"].append("js/graph.js")
 		if "css/graph.css" not in config["extra_css"]:
@@ -62,20 +66,15 @@ class GraphHandler:
 		"""Copy static assets to the site directory."""
 		logger.debug("Copying static assets...")
 		try:
-			# Get the plugin's static directory
-			plugin_static_dir = Path(__file__).parent.parent.parent / "static"
-
 			# Copy JS
-			js_output_dir = Path(config["site_dir"]) / "js"
-			js_output_dir.mkdir(parents=True, exist_ok=True)
-			shutil.copy2(plugin_static_dir / "js" / "graph.js", js_output_dir)
+			js_output_dir = os.path.join(config["site_dir"], "js")
+			os.makedirs(js_output_dir, exist_ok=True)
+			shutil.copy(os.path.join(self.static_dir, "graph.js"), js_output_dir)
 
 			# Copy CSS
-			css_output_dir = Path(config["site_dir"]) / "css"
-			css_output_dir.mkdir(parents=True, exist_ok=True)
-			shutil.copy2(plugin_static_dir / "stylesheet" / "graph.css", css_output_dir)
-
-			logger.debug("Copied network graph static assets to site directory")
+			css_output_dir = os.path.join(config["site_dir"], "css")
+			os.makedirs(css_output_dir, exist_ok=True)
+			shutil.copy(os.path.join(self.static_dir, "graph.css"), css_output_dir)
 		except (IOError, OSError) as e:
 			logger.error(f"Error copying static assets: {e}")
 
