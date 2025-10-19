@@ -92,6 +92,10 @@ mkdocs-note/
 │       │   ├── __init__.py
 │       │   └── handlers.py      # NoteScanner, AssetScanner - file scanning
 │       │
+│       ├── graphps/             # Graph Processors
+│       │   ├── __init__.py
+│       │   ├── graph.py         # Network graph underlying engine, which migrated from mkdocs-network-graph-plugin
+│       │   └── handlers.py      # GraphHandler - network graph management, configuration, static asset copying
 │       └── pathps/              # Path Processors
 │           └── __init__.py      # Path utilities (reserved)
 │
@@ -115,6 +119,7 @@ Module responsibility domains:
 | `dataps/` | Data processing | Data models, metadata management, frontmatter system |
 | `docsps/` | Document operations | Note processing, creation, deletion, movement, cleanup |
 | `fileps/` | File I/O | File scanning, validation |
+| `graphps/` | Graph processing | Network graph generation, link detection, visualization |
 | `pathps/` | Path processing | Path calculation, standardization (reserved for extension) |
 
 ### 3.3 Dependency Diagram
@@ -150,6 +155,11 @@ graph TB
             FrontmatterHandlers[frontmatter/handlers.py<br/>MetadataRegistry<br/>FrontmatterParser<br/>FrontmatterManager]
         end
         
+        subgraph "graphps/ - Graph Processing"
+            GraphHandlers[handlers.py<br/>GraphHandler]
+            Graph[graph.py<br/>Graph]
+        end
+        
         subgraph "fileps/ - File Processing"
             FileHandlers[handlers.py<br/>NoteScanner<br/>AssetScanner]
         end
@@ -160,6 +170,7 @@ graph TB
     Plugin --> FileHandlers
     Plugin --> DocsHandlers
     Plugin --> AssetsHandlers
+    Plugin --> GraphHandlers
     
     CLI --> Config
     CLI --> Logger
@@ -180,6 +191,9 @@ graph TB
     Cleaner --> FileHandlers
     Mover --> FileHandlers
     Initializer --> FileHandlers
+    
+    GraphHandlers --> Graph
+    GraphHandlers --> Meta
     
     AssetsHandlers --> Meta
     FrontmatterHandlers --> Meta
@@ -923,41 +937,5 @@ from mkdocs_note.utils.docsps.handlers import NoteProcessor
 from mkdocs_note.utils.dataps.meta import NoteInfo
 from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterManager
 ```
-
----
-
-## 11. Testing Architecture
-
-### 11.1 Test Organization
-
-```
-tests/
-├── core/                         # Core functionality tests
-│   ├── test_assets_manager.py   # Asset management tests (29 tests)
-│   ├── test_file_manager.py     # File scanning tests (18 tests)
-│   ├── test_frontmatter_manager.py  # Frontmatter tests (31 tests)
-│   ├── test_note_cleaner.py     # Cleanup functionality tests (16 tests)
-│   ├── test_note_creator.py     # Creation functionality tests (19 tests)
-│   ├── test_note_initializer.py # Initialization tests (13 tests)
-│   ├── test_note_manager.py     # Note processing tests (34 tests)
-│   └── test_note_remover.py     # Deletion functionality tests (6 tests)
-├── smoke_test.py                # Smoke tests (4 tests)
-├── test_config.py               # Configuration tests (23 tests)
-├── test_plugin.py               # Plugin tests (29 tests)
-└── test_help.py                 # Help command tests (5 tests)
-```
-
-**Total**: 227 tests, 100% pass rate
-
-### 11.2 Test Coverage
-
-| Module | Coverage | Description |
-|--------|----------|-------------|
-| `utils/dataps/meta.py` | 100% | Data models fully covered |
-| `utils/fileps/handlers.py` | 100% | File scanning fully covered |
-| `utils/assetps/handlers.py` | 97% | Asset processing high coverage |
-| `utils/dataps/frontmatter/handlers.py` | 91% | Frontmatter core coverage |
-| `utils/docsps/handlers.py` | 84% | Note processing coverage |
-| **Overall** | **71%** | Good test coverage |
 
 ---

@@ -112,6 +112,7 @@ plugins:
       max_notes: 5
       timestamp_zone: "UTC+8"
       log_level: info
+      enable_network_graph: true
 
   # - redirects:
   #     redirect_maps:
@@ -120,6 +121,7 @@ plugins:
 
 extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - https://d3js.org/d3.v7.min.js
 
 hooks:
   - scripts/hooks/rss.py
