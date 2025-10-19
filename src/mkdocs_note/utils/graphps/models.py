@@ -121,6 +121,7 @@ class GraphData:
 	def add_link(self, link: GraphLink) -> None:
 		"""Add a link to the graph."""
 		if not any(
-			l.source == link.source and l.target == link.target for l in self.links
+			existing_link.source == link.source and existing_link.target == link.target 
+			for existing_link in self.links
 		):
 			self.links.append(link)

@@ -394,18 +394,54 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		"""
 		try:
 			# Add CSS for network graph
-			css_path = (
-				Path(__file__).parent / "static" / "stylesheet" / "network-graph.css"
-			)
-			if css_path.exists():
-				config.extra_css.append(str(css_path))
-				self.logger.debug("Added network graph CSS")
+			config.extra_css.append("css/network-graph.css")
+			self.logger.debug("Added network graph CSS to extra_css")
 
 			# Add JavaScript for network graph
-			js_path = Path(__file__).parent / "static" / "js" / "network-graph.js"
-			if js_path.exists():
-				config.extra_javascript.append(str(js_path))
-				self.logger.debug("Added network graph JavaScript")
+			config.extra_javascript.append("js/network-graph.js")
+			self.logger.debug("Added network graph JavaScript to extra_javascript")
 
 		except Exception as e:
 			self.logger.error(f"Error adding static resources: {e}")
+
+	def on_post_build(self, config: MkDocsConfig) -> None:
+		"""Handle post-build tasks like copying static resources.
+		
+		Args:
+		    config: MkDocs configuration
+		"""
+		if not self.plugin_enabled or not self.config.enable_network_graph:
+			return
+		
+		try:
+			self._copy_static_resources(config)
+		except Exception as e:
+			self.logger.error(f"Error in post-build tasks: {e}")
+
+	def _copy_static_resources(self, config: MkDocsConfig) -> None:
+		"""Copy static resources to the site directory.
+		
+		Args:
+		    config: MkDocs configuration
+		"""
+		import shutil
+		
+		# Get the plugin's static directory
+		plugin_static_dir = Path(__file__).parent / "static"
+		site_dir = Path(config.site_dir)
+		
+		# Copy CSS file
+		css_source = plugin_static_dir / "stylesheet" / "network-graph.css"
+		if css_source.exists():
+			css_dest = site_dir / "css" / "network-graph.css"
+			css_dest.parent.mkdir(parents=True, exist_ok=True)
+			shutil.copy2(css_source, css_dest)
+			self.logger.debug("Copied network graph CSS to site directory")
+		
+		# Copy JavaScript file
+		js_source = plugin_static_dir / "js" / "network-graph.js"
+		if js_source.exists():
+			js_dest = site_dir / "js" / "network-graph.js"
+			js_dest.parent.mkdir(parents=True, exist_ok=True)
+			shutil.copy2(js_source, js_dest)
+			self.logger.debug("Copied network graph JavaScript to site directory")
