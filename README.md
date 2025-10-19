@@ -83,6 +83,14 @@ The usage and configuration details are available in the [Mkdocs-Based Documenta
 
 Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
 
+## References
+
+- [MkDocs](https://www.mkdocs.org/)
+
+- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
+
+- [MkDocs Network Graph Plugin](https://github.com/develmusa/mkdocs-network-graph-plugin)
+
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).

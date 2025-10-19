@@ -81,6 +81,5 @@ class GraphHandler:
 
 	def build_graph(self, files):
 		"""Build the graph from the file collection."""
-		logger.info("Building graph...")
 		self._graph = self._graph(files)
 		return self._graph

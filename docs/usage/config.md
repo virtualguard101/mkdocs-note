@@ -27,6 +27,8 @@ publish: true
 | `assets_dir` | Path | `"docs/notes/assets"` | Directory for storing note assets. Uses tree-based structure with `.assets` suffix on first-level subdirectories |
 | `notes_template` | Path | `"overrides/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
+| `enable_network_graph` | bool | `false` | Enable or disable the network graph |
+| `graph_config` | dict | `{"name": "title", "debug": false}` | Configuration for the network graph visualization. Available options: `name`: Node naming strategy ("title" or "file_name"), `debug`: Enable debug logging for graph generation |
 
 ## Configuration Options Details
 
@@ -73,3 +75,10 @@ publish: true
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `log_level` | str | `"INFO"` | Logging level for the plugin (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
+
+### Network Graph Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable_network_graph` | bool | `false` | Enable or disable the network graph |
+| `graph_config` | dict | `{"name": "title", "debug": false}` | Configuration for the network graph visualization. Available options: `name`: Node naming strategy ("title" or "file_name"), `debug`: Enable debug logging for graph generation |
