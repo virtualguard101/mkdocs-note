@@ -1,3 +1,7 @@
+/* 
+ *Migrated from [mkdocs-network-graph-plugin](https://github.com/develmusa/mkdocs-network-graph-plugin/blob/main/src/mkdocs_graph_plugin/graph.py).
+**/
+
 document$.subscribe(function() {
     const graphContainer = document.getElementById("graph");
     if (!graphContainer) {

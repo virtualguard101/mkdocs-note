@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import json
-import shutil
 from pathlib import Path
 from typing import List
-from urllib.parse import urlparse
 
 from mkdocs.structure.files import Files
 from mkdocs.config.defaults import MkDocsConfig
@@ -18,7 +15,7 @@ from mkdocs_note.utils.fileps.handlers import NoteScanner
 from mkdocs_note.utils.docsps.handlers import NoteProcessor
 from mkdocs_note.utils.dataps.meta import NoteInfo
 from mkdocs_note.utils.assetps.handlers import AssetsProcessor
-from mkdocs_note.utils.graphps.graph import Graph
+from mkdocs_note.utils.graphps.handlers import GraphHandler
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):
@@ -32,9 +29,11 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		super().__init__()
 		self.logger = Logger()  # Will be updated with config in on_config
 		self._recent_notes: List[NoteInfo] = []
+		self._graph_handler = None
 		self._assets_processor = None
 		self._network_graph_manager = None
 		self._docs_dir = None
+		self._files = None
 
 	@property
 	def plugin_enabled(self) -> bool:
@@ -53,6 +52,9 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		"""
 		# Update logger level based on configuration
 		self.logger.set_level(self.config.log_level)
+
+		# Initialize graph handler
+		self._graph_handler = GraphHandler(config)
 
 		if not self.plugin_enabled:
 			self.logger.debug("MkDocs-Note plugin is disabled.")
@@ -90,91 +92,66 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		self._assets_processor = AssetsProcessor(self.config, self.logger)
 
 		# Add static resources for network graph
-		self.static_dir = Path(__file__).parent / "static"
-		config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
-		if "js/graph.js" not in config["extra_javascript"]:
-			config["extra_javascript"].append("js/graph.js")
-		if "css/graph.css" not in config["extra_css"]:
-			config["extra_css"].append("css/graph.css")
+		self._graph_handler.add_static_resources(config)
 
 		self.logger.info("MkDocs Note plugin initialized successfully.")
 		return config
 
-	def on_pre_build(self, *, config, **kwargs):
-		"""Initialize the graph data structure."""
-		# Add necessary configuration for Graph class
-		graph_config = {
-			"name": self.config.graph_config.get("name", "title"),
-			"debug": self.config.graph_config.get("debug", False),
-		}
-		self._graph = Graph(graph_config)
-
 	def on_nav(self, nav: Nav, *, config: MkDocsConfig, files: Files) -> Nav:
-		"""Store the files collection for later use."""
+		"""
+		Handle the navigation for the plugin.
+
+		Args:
+		    nav (Nav): The navigation object
+		    config (MkDocsConfig): The MkDocs configuration
+		    files (Files): The files to check
+
+		Returns:
+		    Nav: The updated navigation object
+		"""
 		self.logger.info("Storing file collection")
 		self._files = files
 		return nav
 
-	def _write_graph_file(self, config):
-		"""Write the graph data to a file."""
-		self.logger.info("Writing graph data to file...")
-		output_dir = Path(config["site_dir"]) / "graph"
-		try:
-			output_dir.mkdir(parents=True, exist_ok=True)
-			graph_file = output_dir / "graph.json"
-			with open(graph_file, "w") as f:
-				json.dump(self._graph.to_dict(), f)
-		except (IOError, OSError) as e:
-			self.logger.error(f"Error writing graph file: {e}")
-
 	def on_post_page(self, output: str, *, page, config) -> str:
-		"""Inject the graph options script into the HTML page."""
-		site_url = config.get("site_url", "")
-		if site_url:
-			base_path = urlparse(site_url).path
-			# Ensure base_path ends with a slash
-			if not base_path.endswith("/"):
-				base_path += "/"
-		else:
-			base_path = "/"
+		"""
+		Handle the post page for the plugin.
 
-		options_script = (
-			"<script>"
-			f"window.graph_options = {{"
-			f"    debug: {str(config.get('debug', False)).lower()},"
-			f"    base_path: '{base_path}'"
-			f"}};"
-			"</script>"
-		)
+		Args:
+		    output (str): The output of the page
+		    page (Page): The page to check
+		    config (MkDocsConfig): The MkDocs configuration
+
+		Returns:
+		    str: The updated output
+		"""
+		# Inject the graph options script into the HTML page
+		options_script = self._graph_handler.inject_graph_options(config)
 		if "</body>" in output:
 			return output.replace("</body>", f"{options_script}</body>")
 		return output
 
 	def on_post_build(self, *, config, **kwargs):
-		"""Output the graph data and copy static assets."""
+		"""
+		Handle the post build for the plugin.
+
+		Args:
+		    config (MkDocsConfig): The MkDocs configuration
+		    **kwargs: Additional keyword arguments
+
+		Returns:
+		    None
+		"""
 		self.logger.info("Starting on_post_build event")
-		self._graph = self._graph(self._files)
-		self._write_graph_file(config)
-
-		# Copy static assets to the site_dir
-		# This is the correct way to include plugin assets
-		self.logger.info("Copying static assets...")
-		try:
-			# Copy JS
-			js_output_dir = Path(config["site_dir"]) / "js"
-			js_output_dir.mkdir(parents=True, exist_ok=True)
-			shutil.copy2(self.static_dir / "js" / "graph.js", js_output_dir)
-
-			# Copy CSS
-			css_output_dir = Path(config["site_dir"]) / "css"
-			css_output_dir.mkdir(parents=True, exist_ok=True)
-			shutil.copy2(self.static_dir / "stylesheet" / "graph.css", css_output_dir)
-		except (IOError, OSError) as e:
-			self.logger.error(f"Error copying static assets: {e}")
+		self._graph_handler.build_graph(self._files)
+		self._graph_handler._write_graph_file(config)
+		self._graph_handler.copy_static_assets(config)
+		self.logger.info("Static assets copied successfully")
 
 	@event_priority(100)
 	def on_files(self, files: Files, config: MkDocsConfig) -> Files | None:
-		"""Process files and collect recent notes.
+		"""
+		Handle the files for the plugin.
 
 		Args:
 		    files (Files): The files to check
