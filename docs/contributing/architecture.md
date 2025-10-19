@@ -115,6 +115,7 @@ Module responsibility domains:
 | `dataps/` | Data processing | Data models, metadata management, frontmatter system |
 | `docsps/` | Document operations | Note processing, creation, deletion, movement, cleanup |
 | `fileps/` | File I/O | File scanning, validation |
+| `graphps/` | Graph processing | Network graph generation, link detection, visualization |
 | `pathps/` | Path processing | Path calculation, standardization (reserved for extension) |
 
 ### 3.3 Dependency Diagram
@@ -150,6 +151,11 @@ graph TB
             FrontmatterHandlers[frontmatter/handlers.py<br/>MetadataRegistry<br/>FrontmatterParser<br/>FrontmatterManager]
         end
         
+        subgraph "graphps/ - Graph Processing"
+            GraphHandlers[handlers.py<br/>GraphHandler]
+            Graph[graph.py<br/>Graph]
+        end
+        
         subgraph "fileps/ - File Processing"
             FileHandlers[handlers.py<br/>NoteScanner<br/>AssetScanner]
         end
@@ -160,6 +166,7 @@ graph TB
     Plugin --> FileHandlers
     Plugin --> DocsHandlers
     Plugin --> AssetsHandlers
+    Plugin --> GraphHandlers
     
     CLI --> Config
     CLI --> Logger
@@ -180,6 +187,9 @@ graph TB
     Cleaner --> FileHandlers
     Mover --> FileHandlers
     Initializer --> FileHandlers
+    
+    GraphHandlers --> Graph
+    GraphHandlers --> Meta
     
     AssetsHandlers --> Meta
     FrontmatterHandlers --> Meta

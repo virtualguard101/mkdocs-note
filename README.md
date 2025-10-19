@@ -46,6 +46,8 @@ MkDocs Note is a plugin for [MkDocs](https://www.mkdocs.org/) that automatically
 
 - **Structure Validation**: Ensures compliant asset tree structure for consistent organization
 
+- **Network Graph Visualization**: Interactive network graph showing relationships between notes with automatic link detection
+
 ## Installation
 
 Recommended to use [uv](https://docs.astral.sh/uv/) to manage python virtual environment:

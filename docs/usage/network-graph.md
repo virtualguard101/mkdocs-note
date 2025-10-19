@@ -1,16 +1,16 @@
 # Network Graph Visualization
 
-The MkDocs Note plugin now includes an interactive network graph feature that visualizes the relationships between your notes. This feature helps you understand the structure and connections in your documentation.
+The MkDocs Note plugin includes an interactive network graph feature that visualizes the relationships between your notes. This feature helps you understand the structure and connections in your documentation.
 
 ## Overview
 
 The network graph feature provides:
 
-- **Interactive Visualization**: Drag, zoom, and explore your note relationships
-- **Multiple Layout Algorithms**: Force-directed, hierarchical, and circular layouts
-- **Smart Connections**: Automatic link generation based on keywords, hierarchy, and references
-- **Customizable Appearance**: Theme integration with Material for MkDocs
-- **Performance Optimized**: Efficient rendering for large note collections
+- **Interactive Visualization**: Drag, zoom, and explore your note relationships using D3.js
+- **Automatic Link Detection**: Finds connections between notes based on markdown links and wiki-style links
+- **Theme Integration**: Seamlessly integrates with Material for MkDocs theme
+- **Real-time Generation**: Automatically generates graph data during the build process
+- **Export Capabilities**: Export graph data in JSON format for further analysis
 
 ## Configuration
 
@@ -33,67 +33,40 @@ plugins:
       graph_config:
         name: "title"              # Node naming: "title" or "file_name"
         debug: false              # Enable debug logging
-        show_on_index: true       # Show graph on index page
-        max_nodes: 100            # Maximum nodes to display
-        layout: "force"           # Layout algorithm
-        show_assets: false        # Include asset files as nodes
-        link_threshold: 2         # Minimum shared keywords for links
 ```
 
 ### Configuration Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `name` | string | `"title"` | Node naming strategy: `"title"` or `"file_name"` |
+| `name` | string | `"title"` | Node naming strategy: `"title"` uses page title, `"file_name"` uses filename |
 | `debug` | boolean | `false` | Enable debug logging for graph generation |
-| `show_on_index` | boolean | `true` | Show graph on the notes index page |
-| `max_nodes` | integer | `100` | Maximum number of nodes to display |
-| `layout` | string | `"force"` | Graph layout algorithm: `"force"`, `"hierarchical"`, `"circular"` |
-| `show_assets` | boolean | `false` | Include asset files as nodes in the graph |
-| `link_threshold` | integer | `2` | Minimum number of shared keywords to create links |
 
 ## Usage
 
 ### Automatic Display
 
-When enabled, the network graph automatically appears on your notes index page between the recent notes markers:
+When enabled, the network graph automatically appears on your notes index page. The graph is generated during the MkDocs build process and includes:
 
-```markdown
-<!-- recent_notes_start -->
-<!-- Network graph will be inserted here -->
-<!-- recent_notes_end -->
-```
+1. **Interactive Graph**: Visual representation of note relationships
+2. **Graph Data**: JSON file containing nodes and edges information
+3. **Static Assets**: CSS and JavaScript files for rendering
 
-### CLI Commands
+### Generated Files
 
-#### Generate Graph Data
+When you build your documentation, the plugin creates:
 
-```bash
-# Generate graph data in JSON format
-mkdocs-note graph
+- `site/graph/graph.json` - Graph data in JSON format
+- `site/js/graph.js` - Interactive graph visualization script
+- `site/css/graph.css` - Graph styling
 
-# Export to file
-mkdocs-note graph --output graph.json
+### Integration
 
-# Show statistics
-mkdocs-note graph --stats
+The network graph integrates with the existing recent notes feature and appears automatically when:
 
-# Validate configuration
-mkdocs-note graph --validate
-```
-
-#### Export Formats
-
-```bash
-# JSON format (default)
-mkdocs-note graph --format json --output graph.json
-
-# HTML format
-mkdocs-note graph --format html --output graph.html
-
-# Markdown format
-mkdocs-note graph --format markdown --output graph.md
-```
+1. `enable_network_graph: true` is set in configuration
+2. The plugin processes your documentation files
+3. Links between notes are detected and visualized
 
 ## Customization
 
@@ -147,49 +120,46 @@ Override specific graph elements:
 
 The plugin automatically generates links between notes based on:
 
-### 1. Hierarchical Relationships
-- Notes in the same directory are connected
-- Parent-child directory relationships
+### 1. Markdown Links
+- Standard markdown links: `[link text](target.md)`
+- Relative path resolution from note location
+- Automatic detection of internal documentation links
 
-### 2. Keyword Similarity
-- Shared keywords extracted from note titles
-- Configurable threshold for minimum shared keywords
+### 2. Wiki-style Links
+- Wiki-style links: `[[target]]` or `[[target.md]]`
+- Automatic `.md` extension addition when needed
+- Path normalization and resolution
 
-### 3. Reference Links (Future)
-- Internal markdown links
-- Tag-based connections
-- Custom relationship definitions
+### 3. Link Processing
+- Links are normalized and resolved relative to the source note
+- Only links to other documentation pages are included
+- External links and anchors are filtered out
 
 ## Performance Considerations
 
 ### Large Note Collections
 
-For collections with many notes:
+The network graph automatically handles large collections by:
 
-1. **Limit Node Count**: Use `max_nodes` to limit displayed nodes
-2. **Disable Assets**: Set `show_assets: false` to reduce complexity
-3. **Adjust Threshold**: Increase `link_threshold` to reduce connections
+1. **Efficient Processing**: Only processes documentation pages, excluding assets and other files
+2. **Link Filtering**: Automatically filters out external links and invalid references
+3. **Memory Optimization**: Uses efficient data structures for node and edge storage
 
-### Example for Large Collections
+### Build Performance
 
-```yaml
-plugins:
-  - mkdocs-note:
-      enable_network_graph: true
-      graph_config:
-        max_nodes: 50
-        show_assets: false
-        link_threshold: 3
-        layout: "hierarchical"
-```
+The graph generation is integrated into the MkDocs build process and:
+
+- Runs during the `on_post_build` event
+- Processes only changed files (when using `--dirty` builds)
+- Generates graph data in parallel with other build tasks
 
 ## Troubleshooting
 
 ### Graph Not Appearing
 
-1. **Check Configuration**: Ensure `enable_network_graph: true`
-2. **Verify Markers**: Make sure index page has recent notes markers
-3. **Check Logs**: Enable debug mode to see generation logs
+1. **Check Configuration**: Ensure `enable_network_graph: true` is set
+2. **Verify Build Logs**: Check for errors during the build process
+3. **Enable Debug Mode**: Set `debug: true` to see detailed generation logs
 
 ```yaml
 plugins:
@@ -199,18 +169,20 @@ plugins:
         debug: true
 ```
 
-### Performance Issues
+### Missing Graph Files
 
-1. **Reduce Complexity**: Lower `max_nodes` and increase `link_threshold`
-2. **Disable Assets**: Set `show_assets: false`
-3. **Use Hierarchical Layout**: Set `layout: "hierarchical"`
+If graph files are not generated:
+
+1. **Check File Permissions**: Ensure the plugin can write to the site directory
+2. **Verify Static Resources**: Check that CSS and JS files are copied correctly
+3. **Review Build Output**: Look for error messages in the build log
 
 ### Browser Compatibility
 
 The network graph requires:
 - Modern browser with SVG support
 - JavaScript enabled
-- D3.js library (automatically included)
+- D3.js library (automatically included via CDN)
 
 ## Examples
 
@@ -237,27 +209,30 @@ plugins:
   - mkdocs-note:
       enable_network_graph: true
       graph_config:
-        name: "file_name"
-        max_nodes: 75
-        layout: "hierarchical"
-        show_assets: true
-        link_threshold: 1
-        debug: false
+        name: "file_name"  # Use filename instead of title
+        debug: false       # Disable debug logging
 ```
 
-### Custom Styling
+### Graph Data Structure
 
-```css
-/* extra.css */
-:root {
-  --md-graph-node-color: #e91e63;
-  --md-graph-link-color: #9c27b0;
-}
+The generated `graph.json` file contains:
 
-.network-graph-container {
-  border: 2px solid var(--md-primary-fg-color);
-  border-radius: 1rem;
-  padding: 2rem;
+```json
+{
+  "nodes": [
+    {
+      "id": "getting-started.md",
+      "path": "/path/to/getting-started.md",
+      "name": "Getting Started",
+      "url": "getting-started/"
+    }
+  ],
+  "edges": [
+    {
+      "source": "getting-started.md",
+      "target": "installation.md"
+    }
+  ]
 }
 ```
 
@@ -265,17 +240,31 @@ plugins:
 
 The network graph works seamlessly with other plugin features:
 
-- **Recent Notes**: Graph appears alongside recent notes list
-- **Asset Management**: Can include asset files as nodes
-- **Template System**: Respects note templates and frontmatter
-- **CLI Tools**: Full CLI support for graph generation and export
+- **Recent Notes**: Integrates with the existing recent notes functionality
+- **Asset Management**: Respects the plugin's asset handling
+- **Template System**: Works with note templates and frontmatter
+- **Build Process**: Automatically generates during MkDocs build
 
-## Future Enhancements
+## Technical Details
 
-Planned features include:
+### Implementation
 
-- **Interactive Filtering**: Filter nodes by type, date, or keywords
-- **Search Integration**: Highlight search results in the graph
-- **Export Options**: PNG, SVG, and PDF export
-- **Custom Relationships**: User-defined note connections
-- **Real-time Updates**: Live graph updates during development
+The network graph feature is implemented using:
+
+- **Backend**: Python-based graph generation and data processing
+- **Frontend**: D3.js for interactive visualization
+- **Integration**: MkDocs plugin hooks for seamless integration
+- **Architecture**: Modular design following the plugin's `graphps` pattern
+
+### File Structure
+
+```
+src/mkdocs_note/
+├── utils/graphps/
+│   ├── __init__.py
+│   ├── graph.py          # Graph data structure and processing
+│   └── handlers.py       # Graph handler for plugin integration
+└── static/
+    ├── js/graph.js       # Frontend visualization
+    └── stylesheet/graph.css  # Graph styling
+```

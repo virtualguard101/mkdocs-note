@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.0 - 2025-10-19 (Network Graph Feature)
+
+### Added
+
+- **Network Graph Visualization**: Interactive network graph showing relationships between notes
+  - Automatic link detection based on markdown links and wiki-style links
+  - D3.js-powered interactive visualization with drag, zoom, and pan
+  - Integration with Material for MkDocs theme
+  - Graph data export in JSON format
+  - Configurable node naming strategy (title or filename)
+  - Debug logging for graph generation process
+
+### Technical Details
+
+- **New Module**: `utils/graphps/` for graph processing functionality
+  - `graph.py`: Graph data structure and link detection
+  - `handlers.py`: Graph handler for plugin integration
+- **Static Assets**: Added `graph.js` and `graph.css` for frontend visualization
+- **Configuration**: Added `enable_network_graph` and `graph_config` options
+- **Build Integration**: Automatic graph generation during MkDocs build process
+
 ## 2.0.0 - 2025-10-17 (Structure-Breaking Changes)
 
 ### Changed
