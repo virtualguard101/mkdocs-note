@@ -50,6 +50,9 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 	def test_on_config_enabled(self, mock_logger):
 		"""Test on_config when plugin is enabled."""
 		self.plugin.config.enabled = True
+		self.plugin.config.enable_network_graph = (
+			False  # Disable network graph for this test
+		)
 		mock_config = Mock()
 		mock_config.mdx_configs = {}
 		mock_config.docs_dir = "docs"  # Add docs_dir for Path resolution
@@ -66,6 +69,9 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 	def test_on_config_with_existing_toc(self, mock_logger):
 		"""Test on_config with existing toc configuration."""
 		self.plugin.config.enabled = True
+		self.plugin.config.enable_network_graph = (
+			False  # Disable network graph for this test
+		)
 		mock_config = Mock()
 		mock_config.mdx_configs = {"toc": {"separator": "|", "slugify": lambda x: x}}
 		mock_config.docs_dir = "docs"  # Add docs_dir for Path resolution
@@ -466,6 +472,119 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 
 		self.assertEqual(result, markdown)  # Should return original content
 		mock_error.assert_called_once()
+
+	@patch("mkdocs_note.plugin.Logger")
+	@patch("mkdocs_note.plugin.GraphHandler")
+	def test_on_config_with_network_graph_enabled(
+		self, mock_graph_handler_class, mock_logger
+	):
+		"""Test on_config when network graph is enabled."""
+		self.plugin.config.enabled = True
+		self.plugin.config.enable_network_graph = True
+		mock_config = Mock()
+		mock_config.mdx_configs = {}
+		mock_config.docs_dir = "docs"
+
+		mock_graph_handler = Mock()
+		mock_graph_handler_class.return_value = mock_graph_handler
+
+		with patch.object(self.plugin.logger, "debug") as mock_debug:
+			result = self.plugin.on_config(mock_config)
+
+		self.assertEqual(result, mock_config)
+		mock_graph_handler_class.assert_called_once_with(self.plugin.config)
+		mock_graph_handler.add_static_resources.assert_called_once_with(mock_config)
+		mock_debug.assert_called_with("Graph Handler initialized")
+
+	@patch("mkdocs_note.plugin.Logger")
+	def test_on_config_with_network_graph_disabled(self, mock_logger):
+		"""Test on_config when network graph is disabled."""
+		self.plugin.config.enabled = True
+		self.plugin.config.enable_network_graph = False
+		mock_config = Mock()
+		mock_config.mdx_configs = {}
+		mock_config.docs_dir = "docs"
+
+		with patch.object(self.plugin.logger, "debug") as mock_debug:
+			result = self.plugin.on_config(mock_config)
+
+		self.assertEqual(result, mock_config)
+		self.assertIsNone(self.plugin._graph_handler)
+		mock_debug.assert_called_with("Graph Handler was disabled")
+
+	@patch("mkdocs_note.plugin.Logger")
+	def test_on_post_page_with_graph_handler(self, mock_logger):
+		"""Test on_post_page when graph handler is available."""
+		self.plugin._graph_handler = Mock()
+		self.plugin._graph_handler.inject_graph_options.return_value = (
+			"<script>graph_options</script>"
+		)
+
+		output = "<html><body>Content</body></html>"
+		page = Mock()
+		config = Mock()
+
+		result = self.plugin.on_post_page(output, page=page, config=config)
+
+		self.assertIn("<script>graph_options</script>", result)
+		self.plugin._graph_handler.inject_graph_options.assert_called_once_with(config)
+
+	@patch("mkdocs_note.plugin.Logger")
+	def test_on_post_page_without_graph_handler(self, mock_logger):
+		"""Test on_post_page when graph handler is not available."""
+		self.plugin._graph_handler = None
+
+		output = "<html><body>Content</body></html>"
+		page = Mock()
+		config = Mock()
+
+		result = self.plugin.on_post_page(output, page=page, config=config)
+
+		self.assertEqual(result, output)
+
+	@patch("mkdocs_note.plugin.Logger")
+	def test_on_post_page_without_body_tag(self, mock_logger):
+		"""Test on_post_page when body tag is not found."""
+		self.plugin._graph_handler = Mock()
+		self.plugin._graph_handler.inject_graph_options.return_value = (
+			"<script>graph_options</script>"
+		)
+
+		output = "<html><div>Content</div></html>"
+		page = Mock()
+		config = Mock()
+
+		result = self.plugin.on_post_page(output, page=page, config=config)
+
+		self.assertEqual(result, output)
+
+	@patch("mkdocs_note.plugin.Logger")
+	def test_on_post_build_with_graph_handler(self, mock_logger):
+		"""Test on_post_build when graph handler is available."""
+		self.plugin._graph_handler = Mock()
+		self.plugin._files = Mock()
+		config = Mock()
+
+		with patch.object(self.plugin.logger, "debug") as mock_debug:
+			self.plugin.on_post_build(config=config)
+
+		self.plugin._graph_handler.build_graph.assert_called_once_with(
+			self.plugin._files
+		)
+		self.plugin._graph_handler._write_graph_file.assert_called_once_with(config)
+		self.plugin._graph_handler.copy_static_assets.assert_called_once_with(config)
+		mock_debug.assert_called_with("Static assets copied successfully")
+
+	@patch("mkdocs_note.plugin.Logger")
+	def test_on_post_build_without_graph_handler(self, mock_logger):
+		"""Test on_post_build when graph handler is not available."""
+		self.plugin._graph_handler = None
+		config = Mock()
+
+		with patch.object(self.plugin.logger, "debug") as mock_debug:
+			self.plugin.on_post_build(config=config)
+
+		mock_debug.assert_called_with("Starting on_post_build event")
 
 
 if __name__ == "__main__":

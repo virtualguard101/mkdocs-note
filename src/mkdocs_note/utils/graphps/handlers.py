@@ -3,6 +3,7 @@ import json
 import shutil
 from pathlib import Path
 from urllib.parse import urlparse
+import importlib.resources
 
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs_note.logger import Logger
@@ -23,7 +24,34 @@ class GraphHandler:
 
 	def add_static_resources(self, config: MkDocsConfig):
 		"""Add static resources into mkdocs config for network graph."""
-		self.static_dir = os.path.join(os.path.dirname(__file__), "static")
+		# Use importlib.resources to get the correct path to static files
+		try:
+			# For Python 3.9+, use importlib.resources.files
+			if hasattr(importlib.resources, "files"):
+				static_package = importlib.resources.files(
+					"mkdocs_note.utils.graphps.static"
+				)
+				# Convert to Path object for proper path handling
+				# Handle MultiplexedPath objects by converting to string first
+				if hasattr(static_package, "__fspath__"):
+					self.static_dir = Path(static_package.__fspath__())
+				else:
+					self.static_dir = Path(str(static_package))
+			else:
+				# Fallback for older Python versions
+				import pkg_resources
+
+				self.static_dir = Path(
+					pkg_resources.resource_filename(
+						"mkdocs_note.utils.graphps", "static"
+					)
+				)
+		except Exception as e:
+			# Fallback to the old method if importlib.resources fails
+			logger.warning(
+				f"Failed to get static resources path using importlib.resources: {e}"
+			)
+			self.static_dir = Path(os.path.dirname(__file__)) / "static"
 
 		config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
 
@@ -67,14 +95,14 @@ class GraphHandler:
 		logger.debug("Copying static assets...")
 		try:
 			# Copy JS
-			js_output_dir = os.path.join(config["site_dir"], "js")
-			os.makedirs(js_output_dir, exist_ok=True)
-			shutil.copy(os.path.join(self.static_dir, "graph.js"), js_output_dir)
+			js_output_dir = Path(config["site_dir"]) / "js"
+			js_output_dir.mkdir(parents=True, exist_ok=True)
+			shutil.copy(self.static_dir / "graph.js", js_output_dir)
 
 			# Copy CSS
-			css_output_dir = os.path.join(config["site_dir"], "css")
-			os.makedirs(css_output_dir, exist_ok=True)
-			shutil.copy(os.path.join(self.static_dir, "graph.css"), css_output_dir)
+			css_output_dir = Path(config["site_dir"]) / "css"
+			css_output_dir.mkdir(parents=True, exist_ok=True)
+			shutil.copy(self.static_dir / "graph.css", css_output_dir)
 		except (IOError, OSError) as e:
 			logger.error(f"Error copying static assets: {e}")
 

@@ -40,6 +40,8 @@ def test_core_modules():
 		("mkdocs_note.utils.docsps.creator", "NoteCreator"),
 		("mkdocs_note.utils.docsps.initializer", "NoteInitializer"),
 		("mkdocs_note.utils.assetps.handlers", "AssetsProcessor"),
+		("mkdocs_note.utils.graphps.handlers", "GraphHandler"),
+		("mkdocs_note.utils.graphps.graph", "Graph"),
 		("mkdocs_note.plugin", "MkdocsNotePlugin"),
 	]
 
@@ -174,6 +176,30 @@ def test_basic_functionality():
 		print("✅ AssetsProcessor basic functionality works")
 	except Exception as e:
 		print(f"❌ AssetsProcessor functionality failed: {e}")
+		all_passed = False
+
+	# Test GraphHandler
+	try:
+		from mkdocs_note.utils.graphps.handlers import GraphHandler
+		from mkdocs_note.config import PluginConfig
+
+		config = PluginConfig()
+		config.enable_network_graph = True
+		GraphHandler(config)  # Test instantiation
+		print("✅ GraphHandler basic functionality works")
+	except Exception as e:
+		print(f"❌ GraphHandler functionality failed: {e}")
+		all_passed = False
+
+	# Test Graph
+	try:
+		from mkdocs_note.utils.graphps.graph import Graph
+
+		graph_config = {"name": "title", "debug": False}
+		Graph(graph_config)  # Test instantiation
+		print("✅ Graph basic functionality works")
+	except Exception as e:
+		print(f"❌ Graph functionality failed: {e}")
 		all_passed = False
 
 	return all_passed
