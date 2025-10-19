@@ -112,7 +112,7 @@ plugins:
       max_notes: 5
       timestamp_zone: "UTC+8"
       log_level: info
-      enable_network_graph: true
+      # enable_network_graph: true
 
   # - redirects:
   #     redirect_maps:

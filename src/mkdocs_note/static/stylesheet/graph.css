@@ -1,0 +1,100 @@
+.graph {
+  margin-top: 2.4em;
+  height:300px;
+  width: 100%;
+  position: relative;
+}
+
+.graph-header {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+}
+
+#modal_background {
+  background-color: rgba(0,0,0,0.5);
+  overflow: hidden;
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 99;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal_graph {
+  background-color: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  box-shadow: 0px 0px 10px var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  width: 80%;
+  height: 80%;
+  z-index: 100;
+}
+
+.nodes .node circle {
+    fill: var(--md-default-fg-color--lighter);
+}
+
+.links .link {
+    stroke: var(--md-default-fg-color--lighter);
+}
+
+.nodes .node text {
+    font-size: 10px;
+    fill: var(--md-default-fg-color--light);
+}
+
+
+
+.arrowhead path {
+    fill: var(--md-default-fg-color--lighter);
+}
+
+.nodes .node.current circle{
+    fill: var(--md-typeset-a-color);
+}
+.nodes .node.current text {
+    fill: var(--md-typeset-a-color);
+}
+
+.nodes .node.hover circle {
+    fill: var(--md-accent-fg-color);
+}
+
+.nodes .node.hover text {
+    fill: var(--md-accent-fg-color);
+}
+
+.icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    vertical-align: -0.2em;
+    fill: var(--md-default-fg-color--light);
+}
+
+
+
+.md-button:hover .icon {
+    fill: var(--md-accent-fg-color);
+}
+
+.hop-selector-container {
+    display: flex;
+    gap: 5px;
+}
+
+.hop-selector-container .md-button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+}

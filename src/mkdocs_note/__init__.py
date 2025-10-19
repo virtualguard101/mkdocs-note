@@ -8,12 +8,12 @@ __email__ = "virtualguard101@gmail.com"
 __copyright__ = f"Copyright {datetime.now().year} virtualguard101"
 
 try:
-    from ._version import __version__
+	from ._version import __version__
 except ImportError:
-    # Fallback for development installations without setuptools-scm
-    try:
-        from importlib.metadata import version
+	# Fallback for development installations without setuptools-scm
+	try:
+		from importlib.metadata import version
 
-        __version__ = version("mkdocs-network-graph-plugin")
-    except ImportError:
-        __version__ = "unknown"
+		__version__ = version("mkdocs-note")
+	except ImportError:
+		__version__ = "unknown"

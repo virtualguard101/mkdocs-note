@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from typing import List
+import json
+import shutil
 from pathlib import Path
+from typing import List
+from urllib.parse import urlparse
+
 from mkdocs.structure.files import Files
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import BasePlugin, event_priority
 from mkdocs.structure.pages import Page
+from mkdocs.structure.nav import Navigation as Nav
 
 from mkdocs_note.config import PluginConfig
 from mkdocs_note.logger import Logger
@@ -13,7 +18,7 @@ from mkdocs_note.utils.fileps.handlers import NoteScanner
 from mkdocs_note.utils.docsps.handlers import NoteProcessor
 from mkdocs_note.utils.dataps.meta import NoteInfo
 from mkdocs_note.utils.assetps.handlers import AssetsProcessor
-from mkdocs_note.utils.graphps.handlers import NetworkGraphManager
+from mkdocs_note.utils.graphps.graph import Graph
 
 
 class MkdocsNotePlugin(BasePlugin[PluginConfig]):
@@ -84,15 +89,88 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		# Initialize assets processor
 		self._assets_processor = AssetsProcessor(self.config, self.logger)
 
-		# Initialize network graph manager
-		self._network_graph_manager = NetworkGraphManager(self.config, self.logger)
-
-		# Add static resources for network graph if enabled
-		if self.config.enable_network_graph:
-			self._add_static_resources(config)
+		# Add static resources for network graph
+		self.static_dir = Path(__file__).parent / "static"
+		config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
+		if "js/graph.js" not in config["extra_javascript"]:
+			config["extra_javascript"].append("js/graph.js")
+		if "css/graph.css" not in config["extra_css"]:
+			config["extra_css"].append("css/graph.css")
 
 		self.logger.info("MkDocs Note plugin initialized successfully.")
 		return config
+
+	def on_pre_build(self, *, config, **kwargs):
+		"""Initialize the graph data structure."""
+		# Add necessary configuration for Graph class
+		graph_config = {
+			"name": "title",  # Use title as node name
+			"debug": config.get("debug", False),
+		}
+		self._graph = Graph(graph_config)
+
+	def on_nav(self, nav: Nav, *, config: MkDocsConfig, files: Files) -> Nav:
+		"""Store the files collection for later use."""
+		self.logger.info("Storing file collection")
+		self._files = files
+		return nav
+
+	def _write_graph_file(self, config):
+		"""Write the graph data to a file."""
+		self.logger.info("Writing graph data to file...")
+		output_dir = Path(config["site_dir"]) / "graph"
+		try:
+			output_dir.mkdir(parents=True, exist_ok=True)
+			graph_file = output_dir / "graph.json"
+			with open(graph_file, "w") as f:
+				json.dump(self._graph.to_dict(), f)
+		except (IOError, OSError) as e:
+			self.logger.error(f"Error writing graph file: {e}")
+
+	def on_post_page(self, output: str, *, page, config) -> str:
+		"""Inject the graph options script into the HTML page."""
+		site_url = config.get("site_url", "")
+		if site_url:
+			base_path = urlparse(site_url).path
+			# Ensure base_path ends with a slash
+			if not base_path.endswith("/"):
+				base_path += "/"
+		else:
+			base_path = "/"
+
+		options_script = (
+			"<script>"
+			f"window.graph_options = {{"
+			f"    debug: {str(config.get('debug', False)).lower()},"
+			f"    base_path: '{base_path}'"
+			f"}};"
+			"</script>"
+		)
+		if "</body>" in output:
+			return output.replace("</body>", f"{options_script}</body>")
+		return output
+
+	def on_post_build(self, *, config, **kwargs):
+		"""Output the graph data and copy static assets."""
+		self.logger.info("Starting on_post_build event")
+		self._graph = self._graph(self._files)
+		self._write_graph_file(config)
+
+		# Copy static assets to the site_dir
+		# This is the correct way to include plugin assets
+		self.logger.info("Copying static assets...")
+		try:
+			# Copy JS
+			js_output_dir = Path(config["site_dir"]) / "js"
+			js_output_dir.mkdir(parents=True, exist_ok=True)
+			shutil.copy2(self.static_dir / "js" / "graph.js", js_output_dir)
+
+			# Copy CSS
+			css_output_dir = Path(config["site_dir"]) / "css"
+			css_output_dir.mkdir(parents=True, exist_ok=True)
+			shutil.copy2(self.static_dir / "stylesheet" / "graph.css", css_output_dir)
+		except (IOError, OSError) as e:
+			self.logger.error(f"Error copying static assets: {e}")
 
 	@event_priority(100)
 	def on_files(self, files: Files, config: MkDocsConfig) -> Files | None:
@@ -385,63 +463,3 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 				f"Error processing assets for page {page.file.src_path}: {e}"
 			)
 			return markdown
-
-	def _add_static_resources(self, config: MkDocsConfig) -> None:
-		"""Add static resources for network graph functionality.
-
-		Args:
-		    config: MkDocs configuration
-		"""
-		try:
-			# Add CSS for network graph
-			config.extra_css.append("css/network-graph.css")
-			self.logger.debug("Added network graph CSS to extra_css")
-
-			# Add JavaScript for network graph
-			config.extra_javascript.append("js/network-graph.js")
-			self.logger.debug("Added network graph JavaScript to extra_javascript")
-
-		except Exception as e:
-			self.logger.error(f"Error adding static resources: {e}")
-
-	def on_post_build(self, config: MkDocsConfig) -> None:
-		"""Handle post-build tasks like copying static resources.
-		
-		Args:
-		    config: MkDocs configuration
-		"""
-		if not self.plugin_enabled or not self.config.enable_network_graph:
-			return
-		
-		try:
-			self._copy_static_resources(config)
-		except Exception as e:
-			self.logger.error(f"Error in post-build tasks: {e}")
-
-	def _copy_static_resources(self, config: MkDocsConfig) -> None:
-		"""Copy static resources to the site directory.
-		
-		Args:
-		    config: MkDocs configuration
-		"""
-		import shutil
-		
-		# Get the plugin's static directory
-		plugin_static_dir = Path(__file__).parent / "static"
-		site_dir = Path(config.site_dir)
-		
-		# Copy CSS file
-		css_source = plugin_static_dir / "stylesheet" / "network-graph.css"
-		if css_source.exists():
-			css_dest = site_dir / "css" / "network-graph.css"
-			css_dest.parent.mkdir(parents=True, exist_ok=True)
-			shutil.copy2(css_source, css_dest)
-			self.logger.debug("Copied network graph CSS to site directory")
-		
-		# Copy JavaScript file
-		js_source = plugin_static_dir / "js" / "network-graph.js"
-		if js_source.exists():
-			js_dest = site_dir / "js" / "network-graph.js"
-			js_dest.parent.mkdir(parents=True, exist_ok=True)
-			shutil.copy2(js_source, js_dest)
-			self.logger.debug("Copied network graph JavaScript to site directory")

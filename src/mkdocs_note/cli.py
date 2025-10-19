@@ -24,9 +24,7 @@ from mkdocs_note.utils.docsps.creator import NoteCreator
 from mkdocs_note.utils.docsps.remover import NoteRemover
 from mkdocs_note.utils.docsps.cleaner import NoteCleaner
 from mkdocs_note.utils.docsps.mover import NoteMover
-from mkdocs_note.utils.graphps.handlers import NetworkGraphManager
 from mkdocs_note.utils.fileps.handlers import NoteScanner
-from mkdocs_note.utils.docsps.handlers import NoteProcessor
 
 
 class CustomGroup(click.Group):
@@ -272,7 +270,6 @@ def validate_notes(ctx, path: Optional[str] = None):
 	    mkdocs-note validate
 	    mkdocs-note validate --path docs/notes
 	"""
-	from mkdocs_note.utils.fileps.handlers import NoteScanner
 
 	config = ctx.obj["config"]
 	logger = ctx.obj["logger"]
@@ -702,127 +699,3 @@ def mv_note(
 		keep_source_assets=keep_source_assets,
 		yes=yes,
 	)
-
-
-@cli.command("graph")
-@click.option(
-	"--output", "-o", type=click.Path(), help="Output file for graph data (JSON format)"
-)
-@click.option(
-	"--format",
-	"output_format",
-	type=click.Choice(["json", "html", "markdown"]),
-	default="json",
-	help="Output format for graph data",
-)
-@click.option("--stats", "show_stats", is_flag=True, help="Show graph statistics")
-@click.option(
-	"--validate", "validate_config", is_flag=True, help="Validate graph configuration"
-)
-def graph_command(
-	output: Optional[str], output_format: str, show_stats: bool, validate_config: bool
-):
-	"""Generate and manage network graph visualization.
-
-	This command generates interactive network graphs showing relationships
-	between your notes. The graph can be exported in various formats.
-	"""
-	config = load_config_from_mkdocs_yml()
-	logger = Logger()
-	logger.set_level(config.log_level)
-
-	# Initialize network graph manager
-	graph_manager = NetworkGraphManager(config, logger)
-
-	# Validate configuration if requested
-	if validate_config:
-		issues = graph_manager.validate_configuration()
-		if issues:
-			click.echo("❌ Configuration issues found:")
-			for issue in issues:
-				click.echo(f"  - {issue}")
-			sys.exit(1)
-		else:
-			click.echo("✅ Graph configuration is valid")
-			return
-
-	# Check if graph is enabled
-	if not config.enable_network_graph:
-		click.echo("❌ Network graph is disabled in configuration")
-		click.echo(
-			"Enable it by setting 'enable_network_graph: true' in your mkdocs.yml"
-		)
-		sys.exit(1)
-
-	# Scan and process notes
-	click.echo("📊 Generating network graph...")
-
-	try:
-		# Scan notes
-		file_scanner = NoteScanner(config, logger)
-		note_files = file_scanner.scan_notes()
-
-		if not note_files:
-			click.echo("❌ No notes found")
-			sys.exit(1)
-
-		# Process notes
-		note_processor = NoteProcessor(config, logger)
-		notes = []
-
-		for file_path in note_files:
-			note_info = note_processor.process_note(file_path)
-			if note_info:
-				notes.append(note_info)
-
-		# Generate graph data
-		graph_data = graph_manager.processor.generate_graph_data(notes)
-		if not graph_data:
-			click.echo("❌ Failed to generate graph data")
-			sys.exit(1)
-
-		# Show statistics if requested
-		if show_stats:
-			stats = graph_manager.get_graph_statistics(notes)
-			click.echo("\n📈 Graph Statistics:")
-			click.echo(f"  - Total Notes: {stats.get('nodes', 0)}")
-			click.echo(f"  - Total Connections: {stats.get('links', 0)}")
-			click.echo(
-				f"  - Generated: {stats.get('metadata', {}).get('generated_at', 'Unknown')}"
-			)
-
-		# Generate output based on format
-		if output_format == "json":
-			output_content = graph_manager.processor.get_graph_json(graph_data)
-		elif output_format == "html":
-			output_content = graph_manager.processor.renderer.render_to_html(graph_data)
-		elif output_format == "markdown":
-			output_content = graph_manager.processor.renderer.render_to_markdown(
-				graph_data
-			)
-		else:
-			click.echo(f"❌ Unsupported output format: {output_format}")
-			sys.exit(1)
-
-		# Write output
-		if output:
-			output_path = Path(output)
-			output_path.parent.mkdir(parents=True, exist_ok=True)
-			with open(output_path, "w", encoding="utf-8") as f:
-				f.write(output_content)
-			click.echo(f"✅ Graph data written to: {output_path}")
-		else:
-			click.echo("\n" + output_content)
-
-		click.echo(
-			f"✅ Generated graph with {len(graph_data.nodes)} nodes and {len(graph_data.links)} links"
-		)
-
-	except Exception as e:
-		logger.error(f"Error generating graph: {e}")
-		click.echo(f"❌ Error generating graph: {e}")
-		sys.exit(1)
-
-
-if __name__ == "__main__":
-	cli()
