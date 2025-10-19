@@ -124,11 +124,6 @@ class PluginConfig(Config):
     Available options:
     - name: Node naming strategy ("title" or "file_name")
     - debug: Enable debug logging for graph generation
-    - show_on_index: Show graph on the notes index page
-    - max_nodes: Maximum number of nodes to display
-    - layout: Graph layout algorithm ("force", "hierarchical", "circular")
-    - show_assets: Include asset files as nodes
-    - link_threshold: Minimum number of shared keywords to create links
     """
 
 

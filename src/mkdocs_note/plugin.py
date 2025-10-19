@@ -53,9 +53,6 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		# Update logger level based on configuration
 		self.logger.set_level(self.config.log_level)
 
-		# Initialize graph handler
-		self._graph_handler = GraphHandler(config)
-
 		if not self.plugin_enabled:
 			self.logger.debug("MkDocs-Note plugin is disabled.")
 			return config
@@ -91,8 +88,15 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		# Initialize assets processor
 		self._assets_processor = AssetsProcessor(self.config, self.logger)
 
-		# Add static resources for network graph
-		self._graph_handler.add_static_resources(config)
+		# Initialize graph handler only if network graph is enabled
+		if self.config.enable_network_graph:
+			self._graph_handler = GraphHandler(self.config)
+			self.logger.debug("Graph Handler initialized")
+			# Add static resources into the mkdocs config for network graph
+			self._graph_handler.add_static_resources(config)
+		else:
+			self.logger.debug("Graph Handler was disabled")
+			self._graph_handler = None
 
 		self.logger.info("MkDocs Note plugin initialized successfully.")
 		return config
@@ -125,10 +129,11 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		Returns:
 		    str: The updated output
 		"""
-		# Inject the graph options script into the HTML page
-		options_script = self._graph_handler.inject_graph_options(config)
-		if "</body>" in output:
-			return output.replace("</body>", f"{options_script}</body>")
+		# Inject the graph options script into the HTML page if graph is enabled
+		if self._graph_handler:
+			options_script = self._graph_handler.inject_graph_options(config)
+			if "</body>" in output:
+				return output.replace("</body>", f"{options_script}</body>")
 		return output
 
 	def on_post_build(self, *, config, **kwargs):
@@ -142,11 +147,12 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 		Returns:
 		    None
 		"""
-		self.logger.info("Starting on_post_build event")
-		self._graph_handler.build_graph(self._files)
-		self._graph_handler._write_graph_file(config)
-		self._graph_handler.copy_static_assets(config)
-		self.logger.info("Static assets copied successfully")
+		self.logger.debug("Starting on_post_build event")
+		if self._graph_handler:
+			self._graph_handler.build_graph(self._files)
+			self._graph_handler._write_graph_file(config)
+			self._graph_handler.copy_static_assets(config)
+			self.logger.debug("Static assets copied successfully")
 
 	@event_priority(100)
 	def on_files(self, files: Files, config: MkDocsConfig) -> Files | None:

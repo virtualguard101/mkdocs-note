@@ -60,7 +60,7 @@ class GraphHandler:
 
 	def copy_static_assets(self, config):
 		"""Copy static assets to the site directory."""
-		logger.info("Copying static assets...")
+		logger.debug("Copying static assets...")
 		try:
 			# Get the plugin's static directory
 			plugin_static_dir = Path(__file__).parent.parent.parent / "static"
