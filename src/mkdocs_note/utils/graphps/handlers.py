@@ -3,7 +3,6 @@ import json
 import shutil
 from pathlib import Path
 from urllib.parse import urlparse
-import importlib.resources
 
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs_note.logger import Logger
@@ -24,34 +23,24 @@ class GraphHandler:
 
 	def add_static_resources(self, config: MkDocsConfig):
 		"""Add static resources into mkdocs config for network graph."""
-		# Use importlib.resources to get the correct path to static files
-		try:
-			# For Python 3.9+, use importlib.resources.files
-			if hasattr(importlib.resources, "files"):
-				static_package = importlib.resources.files(
-					"mkdocs_note.utils.graphps.static"
-				)
-				# Convert to Path object for proper path handling
-				# Handle MultiplexedPath objects by converting to string first
-				if hasattr(static_package, "__fspath__"):
-					self.static_dir = Path(static_package.__fspath__())
-				else:
-					self.static_dir = Path(str(static_package))
-			else:
-				# Fallback for older Python versions
-				import pkg_resources
+		# Use direct file system path for static files
+		# This is more reliable than importlib.resources in development
+		self.static_dir = Path(os.path.dirname(__file__)) / "static"
 
-				self.static_dir = Path(
-					pkg_resources.resource_filename(
-						"mkdocs_note.utils.graphps", "static"
-					)
-				)
-		except Exception as e:
-			# Fallback to the old method if importlib.resources fails
-			logger.warning(
-				f"Failed to get static resources path using importlib.resources: {e}"
-			)
-			self.static_dir = Path(os.path.dirname(__file__)) / "static"
+		# Verify that the static directory exists
+		if not self.static_dir.exists():
+			logger.warning(f"Static directory not found: {self.static_dir}")
+			# Try alternative paths
+			possible_paths = [
+				Path(__file__).parent / "static",
+				Path(os.path.dirname(__file__)) / "static",
+			]
+			for path in possible_paths:
+				if path.exists():
+					self.static_dir = path
+					break
+			else:
+				logger.error("Could not find static directory for graph resources")
 
 		config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
 

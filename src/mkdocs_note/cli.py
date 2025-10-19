@@ -699,3 +699,7 @@ def mv_note(
 		keep_source_assets=keep_source_assets,
 		yes=yes,
 	)
+
+
+if __name__ == "__main__":
+	cli()
