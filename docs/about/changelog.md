@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.4 - 2025-10-28
+
+### Added
+
+- Added `enable_asset_fallback` configuration option to control asset path fallback behavior
+- Implemented asset path fallback mechanism: when processed asset files don't exist, the plugin now preserves original asset paths instead of replacing them with broken links
+
+### Enhanced
+
+- Improved asset processing robustness by adding existence checks for processed asset files
+- Enhanced logging to provide better feedback when asset fallback occurs
+
 ## 2.1.3 - 2025-10-19
 
 ### Fixed

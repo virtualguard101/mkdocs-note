@@ -25,6 +25,7 @@ publish: true
 | `use_git_timestamps` | bool | `true` | Use Git commit timestamps for sorting instead of file system timestamps |
 | `timestamp_zone` | str | `"UTC+0"` | Timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5'). Ensures consistent timestamp display across different deployment environments |
 | `assets_dir` | Path | `"docs/notes/assets"` | Directory for storing note assets. Uses tree-based structure with `.assets` suffix on first-level subdirectories |
+| `enable_asset_fallback` | bool | `true` | Whether to fallback to original asset paths when assets with processed uri are not found. When enabled, if a processed asset file doesn't exist, the original asset path will be preserved instead of being replaced |
 | `notes_template` | Path | `"overrides/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 | `cache_size` | int | `256` | Size of the cache for performance optimization |
 | `enable_network_graph` | bool | `false` | Enable or disable the network graph |
@@ -68,6 +69,7 @@ publish: true
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `assets_dir` | Path | `"docs/notes/assets"` | Directory for storing note assets. Uses tree-based structure with `.assets` suffix on first-level subdirectories |
+| `enable_asset_fallback` | bool | `true` | Whether to fallback to original asset paths when assets with processed uri are not found. When enabled, if a processed asset file doesn't exist, the original asset path will be preserved instead of being replaced |
 | `notes_template` | Path | `"overrides/templates/default.md"` | Template file for new notes. Supports variables: `{{title}}`, `{{date}}`, `{{note_name}}` |
 
 ### Logging Configuration
