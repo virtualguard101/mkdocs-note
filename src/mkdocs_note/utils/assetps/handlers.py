@@ -294,12 +294,40 @@ class AssetsProcessor:
 			self.logger.error(f"Failed to process image reference '{image_path}': {e}")
 			return None
 
+	def _get_processed_asset_path(self, image_path: str, note_file: Path) -> Path:
+		"""Get the processed asset file path for checking existence.
+
+		Args:
+		    image_path (str): The original image path from markdown
+		    note_file (Path): The note file path
+
+		Returns:
+		    Path: The processed asset file path
+		"""
+		# Co-located asset directory structure
+		# Asset directory is: note_file.parent / "assets" / note_file.stem
+		note_assets_dir = note_file.parent / "assets" / note_file.stem
+
+		# Handle different image path formats
+		if image_path.startswith("./"):
+			# Remove the './' prefix
+			clean_image_path = image_path[2:]
+		else:
+			clean_image_path = image_path
+
+		# Construct the full asset file path
+		return note_assets_dir / clean_image_path
+
 	def update_markdown_content(self, content: str, note_file: Path) -> str:
-		"""Update markdown content to use correct asset paths.
+		"""Update markdown content to use correct asset paths with fallback mechanism.
 
 		This method converts relative asset references to paths that MkDocs
 		can correctly resolve. With co-located assets, the path should be
 		relative to the docs directory, not the note file.
+
+		When enable_asset_fallback is True (default), if a processed asset file
+		doesn't exist, the original asset path will be preserved instead of
+		being replaced to prevent broken image links.
 
 		Args:
 		    content (str): The original markdown content
@@ -316,6 +344,19 @@ class AssetsProcessor:
 			# Skip external URLs and absolute paths
 			if image_path.startswith(("http://", "https://", "//", "/")):
 				return match.group(0)
+
+			# Check if fallback is enabled and processed asset exists
+			if self.config.enable_asset_fallback:
+				processed_asset_path = self._get_processed_asset_path(
+					image_path, note_file
+				)
+
+				if not processed_asset_path.exists():
+					self.logger.warning(
+						f"Processed asset not found: {processed_asset_path}, "
+						f"keeping original path: {image_path}"
+					)
+					return match.group(0)  # Keep original path
 
 			# Co-located asset structure: assets are in the same directory as the note
 			# We need to construct the path relative to docs directory

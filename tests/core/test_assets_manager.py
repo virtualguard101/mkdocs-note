@@ -461,8 +461,9 @@ class TestAssetsProcessor(unittest.TestCase):
 		note_file = self.temp_dir / "test-note.md"
 		note_file.touch()
 
-		# Update config to use temp_dir as notes_dir
+		# Update config to use temp_dir as notes_dir and disable fallback for this test
 		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = False
 
 		result = self.processor.update_markdown_content(content, note_file)
 
@@ -476,8 +477,9 @@ class TestAssetsProcessor(unittest.TestCase):
 		note_file = self.temp_dir / "test-note.md"
 		note_file.touch()
 
-		# Update config to use temp_dir as notes_dir
+		# Update config to use temp_dir as notes_dir and disable fallback for this test
 		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = False
 
 		result = self.processor.update_markdown_content(content, note_file)
 
@@ -494,8 +496,9 @@ class TestAssetsProcessor(unittest.TestCase):
 		note_file = subdir / "intro.md"
 		note_file.touch()
 
-		# Update config to use temp_dir as notes_dir
+		# Update config to use temp_dir as notes_dir and disable fallback for this test
 		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = False
 
 		content = "# Python Intro\n\n![Diagram](diagram.png)"
 		result = self.processor.update_markdown_content(content, note_file)
@@ -503,6 +506,112 @@ class TestAssetsProcessor(unittest.TestCase):
 		# Co-located structure: assets are in the same directory as the note
 		# Path: assets/{note_stem}/{image_path}
 		self.assertIn("![Diagram](assets/intro/diagram.png)", result)
+
+	def test_update_markdown_content_fallback_enabled_missing_asset(self):
+		"""Test fallback mechanism when processed asset doesn't exist and fallback is enabled."""
+		content = "# Test Note\n\n![Missing Image](missing.png)"
+		note_file = self.temp_dir / "test-note.md"
+		note_file.touch()
+
+		# Update config to use temp_dir as notes_dir and enable fallback
+		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = True
+
+		result = self.processor.update_markdown_content(content, note_file)
+
+		# Should keep original path when processed asset doesn't exist
+		self.assertIn("![Missing Image](missing.png)", result)
+		self.assertNotIn("assets/test-note/missing.png", result)
+
+	def test_update_markdown_content_fallback_enabled_existing_asset(self):
+		"""Test that fallback doesn't interfere when processed asset exists."""
+		content = "# Test Note\n\n![Existing Image](existing.png)"
+		note_file = self.temp_dir / "test-note.md"
+		note_file.touch()
+
+		# Create the processed asset directory and file
+		asset_dir = self.temp_dir / "assets" / "test-note"
+		asset_dir.mkdir(parents=True)
+		asset_file = asset_dir / "existing.png"
+		asset_file.touch()
+
+		# Update config to use temp_dir as notes_dir and enable fallback
+		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = True
+
+		result = self.processor.update_markdown_content(content, note_file)
+
+		# Should use processed path when asset exists
+		self.assertIn("![Existing Image](assets/test-note/existing.png)", result)
+		self.assertNotIn("![Existing Image](existing.png)", result)
+
+	def test_update_markdown_content_fallback_disabled_missing_asset(self):
+		"""Test behavior when fallback is disabled and processed asset doesn't exist."""
+		content = "# Test Note\n\n![Missing Image](missing.png)"
+		note_file = self.temp_dir / "test-note.md"
+		note_file.touch()
+
+		# Update config to use temp_dir as notes_dir and disable fallback
+		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = False
+
+		result = self.processor.update_markdown_content(content, note_file)
+
+		# Should still replace path even when asset doesn't exist (old behavior)
+		self.assertIn("![Missing Image](assets/test-note/missing.png)", result)
+		self.assertNotIn("![Missing Image](missing.png)", result)
+
+	def test_update_markdown_content_fallback_with_subdirectory_assets(self):
+		"""Test fallback mechanism with assets in subdirectories."""
+		content = "# Test Note\n\n![Subdir Image](images/photo.jpg)"
+		note_file = self.temp_dir / "test-note.md"
+		note_file.touch()
+
+		# Update config to use temp_dir as notes_dir and enable fallback
+		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = True
+
+		result = self.processor.update_markdown_content(content, note_file)
+
+		# Should keep original path when processed asset doesn't exist
+		self.assertIn("![Subdir Image](images/photo.jpg)", result)
+		self.assertNotIn("assets/test-note/images/photo.jpg", result)
+
+	def test_update_markdown_content_fallback_with_dot_prefix(self):
+		"""Test fallback mechanism with dot-prefixed image paths."""
+		content = "# Test Note\n\n![Dot Image](./dot-image.png)"
+		note_file = self.temp_dir / "test-note.md"
+		note_file.touch()
+
+		# Update config to use temp_dir as notes_dir and enable fallback
+		self.config.notes_dir = str(self.temp_dir)
+		self.config.enable_asset_fallback = True
+
+		result = self.processor.update_markdown_content(content, note_file)
+
+		# Should keep original path when processed asset doesn't exist
+		self.assertIn("![Dot Image](./dot-image.png)", result)
+		self.assertNotIn("assets/test-note/dot-image.png", result)
+
+	def test_get_processed_asset_path(self):
+		"""Test _get_processed_asset_path helper method."""
+		note_file = self.temp_dir / "test-note.md"
+		note_file.touch()
+
+		# Test normal path
+		result = self.processor._get_processed_asset_path("image.png", note_file)
+		expected = self.temp_dir / "assets" / "test-note" / "image.png"
+		self.assertEqual(result, expected)
+
+		# Test dot-prefixed path
+		result = self.processor._get_processed_asset_path("./image.png", note_file)
+		expected = self.temp_dir / "assets" / "test-note" / "image.png"
+		self.assertEqual(result, expected)
+
+		# Test subdirectory path
+		result = self.processor._get_processed_asset_path("images/photo.jpg", note_file)
+		expected = self.temp_dir / "assets" / "test-note" / "images" / "photo.jpg"
+		self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

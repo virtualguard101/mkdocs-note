@@ -126,6 +126,15 @@ class PluginConfig(Config):
     - debug: Enable debug logging for graph generation
     """
 
+	enable_asset_fallback = config_opt.Type(bool, default=True)
+	"""Whether to fallback to original asset paths when assets with processed uri are not found.
+    
+    When enabled (default: True), if a processed asset file doesn't exist, 
+    the original asset path will be preserved instead of being replaced.
+    This prevents broken image links when assets haven't been moved to the 
+    co-located asset directory structure yet.
+    """
+
 
 def load_config_from_mkdocs_yml(config_path: Optional[Path] = None) -> PluginConfig:
 	"""Load plugin configuration from mkdocs.yml file.
