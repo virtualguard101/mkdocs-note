@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.5 - 2025-10-30
+
+### Fixed
+
+- **[CRITICAL] Git Timestamp Inconsistency in Remote Deployments**: Fixed critical bug where timestamps were identical for all notes except the most recent one when deployed via Vercel or other CI/CD platforms (#TBD)
+  
+  - **Root Cause**: The `project_root` configuration was using `Path(__file__).parent.parent`, which pointed to the **plugin installation directory** (e.g., `site-packages/mkdocs_note/`) instead of the user's project root. This caused git commands to execute in the wrong directory, failing to retrieve correct commit timestamps.
+  
+  - **Why It Worked Locally But Failed in Deployment**:
+    - **Local Development**: When using `uv run` or development mode, `__file__` might point to the source code directory, which could work by coincidence
+    - **Remote Deployment**: The plugin is installed via pip into `site-packages`, making `project_root` point to the wrong location, causing all git operations to fail
+  
+  - **Solutions Implemented**:
+    
+    - **Critical Fix in `plugin.py`**: Modified `on_config()` to dynamically set `project_root` from MkDocs config file location instead of plugin installation path:
+      ```python
+      actual_project_root = Path(config.config_file_path).parent
+      self.config.project_root = actual_project_root
+      ```
+    
+    - **Vercel Build Script**: Updated `scripts/vercel-build.sh` to fetch full git history with `git fetch --unshallow` (additional safety measure)
+    
+    - **GitHub Actions**: Updated `.github/workflows/ghpg.yml` to include `fetch-depth: 0` in checkout step (additional safety measure)
+    
+    - **Enhanced Git Logic**: Improved `_get_git_commit_time()` method with:
+      - Shallow clone detection via `.git/shallow` file check
+      - Debug warnings when shallow clone is detected
+      - Timestamp validation to prevent future/invalid timestamps
+      - Better error handling and fallback to file system timestamps
+    
+    - **Documentation**: Added comprehensive CI/CD deployment guide in `docs/usage/config.md` with examples for Vercel, GitHub Actions, and GitLab CI
+  
+  - **Impact**: This fix ensures git timestamps work correctly in all deployment scenarios. The plugin now correctly identifies the user's project directory regardless of how it's installed.
+
+### Enhanced
+
+- **Dynamic Project Root Detection**: Plugin now automatically detects project root from MkDocs configuration instead of relying on plugin installation path
+- **Shallow Clone Detection**: Added `_is_shallow_clone()` helper method to detect when git repository is shallowly cloned
+- **Git Timestamp Validation**: Added validation to ensure git timestamps are reasonable and not in the future
+- **Deployment Documentation**: Added detailed CI/CD configuration examples for major platforms (Vercel, GitHub Actions, GitLab CI)
+- **Error Handling**: Improved error handling for project root detection with proper fallbacks
+
 ## 2.1.4 - 2025-10-28
 
 ### Added

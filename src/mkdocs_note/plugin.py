@@ -57,6 +57,33 @@ class MkdocsNotePlugin(BasePlugin[PluginConfig]):
 			self.logger.debug("MkDocs-Note plugin is disabled.")
 			return config
 
+		# Fix project_root: use MkDocs config file's parent directory instead of plugin installation path
+		# This is critical for git operations to work correctly in deployed environments
+		if hasattr(config, "config_file_path") and config.config_file_path:
+			try:
+				# Ensure config_file_path is a valid path (not a Mock or other test object)
+				config_path = str(config.config_file_path)
+				actual_project_root = Path(config_path).parent
+				self.config.project_root = actual_project_root
+				self.logger.debug(f"Set project_root to: {actual_project_root}")
+			except (TypeError, ValueError, OSError) as e:
+				# Fallback to current working directory if path conversion fails
+				self.logger.debug(
+					f"Failed to get project root from config file path: {e}"
+				)
+				actual_project_root = Path.cwd()
+				self.config.project_root = actual_project_root
+				self.logger.debug(
+					f"Set project_root to current working directory: {actual_project_root}"
+				)
+		else:
+			# Fallback to current working directory
+			actual_project_root = Path.cwd()
+			self.config.project_root = actual_project_root
+			self.logger.debug(
+				f"Set project_root to current working directory: {actual_project_root}"
+			)
+
 		# Ensure toc configuration exists
 		if "toc" not in config.mdx_configs:
 			config.mdx_configs["toc"] = {}

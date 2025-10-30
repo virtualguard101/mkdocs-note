@@ -64,6 +64,50 @@ publish: true
 | `use_git_timestamps` | bool | `true` | Use Git commit timestamps for sorting instead of file system timestamps |
 | `timestamp_zone` | str | `"UTC+0"` | Timezone for timestamp display (e.g., 'UTC+0', 'UTC+8', 'UTC-5'). Ensures consistent timestamp display across different deployment environments |
 
+#### Important Notes for CI/CD Deployment
+
+When using `use_git_timestamps: true` (default), ensure your CI/CD environment fetches the full Git history. Most CI/CD platforms (Vercel, GitHub Actions, GitLab CI, etc.) use shallow clones by default, which can cause inconsistent timestamps.
+
+**For Vercel:**
+
+Update your build script to fetch full git history:
+
+```bash
+#!/bin/bash
+
+# Unshallow the git repository to get full commit history
+if [ -d .git ]; then
+    echo "Fetching full git history..."
+    git fetch --unshallow || echo "Repository is already complete"
+    git fetch --all
+fi
+
+# Your build command
+mkdocs build
+```
+
+**For GitHub Actions:**
+
+Add `fetch-depth: 0` to your checkout step:
+
+```yaml
+- name: Checkout
+  uses: actions/checkout@v5
+  with:
+    fetch-depth: 0  # Fetch full git history
+```
+
+**For GitLab CI:**
+
+Set `GIT_DEPTH` to `0` in your `.gitlab-ci.yml`:
+
+```yaml
+variables:
+  GIT_DEPTH: 0  # Fetch full git history
+```
+
+If you cannot fetch full git history in your CI/CD environment, consider setting `use_git_timestamps: false` to use file system timestamps instead.
+
 ### Template and Asset Configuration
 
 | Option | Type | Default | Description |
