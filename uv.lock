@@ -912,7 +912,7 @@ wheels = [
 
 [[package]]
 name = "mkdocs-note"
-version = "2.1.3"
+version = "2.1.5"
 source = { editable = "." }
 dependencies = [
     { name = "colorlog" },

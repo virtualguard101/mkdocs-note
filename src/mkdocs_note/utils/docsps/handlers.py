@@ -272,6 +272,12 @@ class NoteProcessor:
 
 		Returns:
 		    Optional[float]: The Unix timestamp of the last commit, None if not available
+
+		Note:
+		    This method is designed to work reliably in CI/CD environments.
+		    In shallow clone environments (like Vercel or GitHub Actions without fetch-depth: 0),
+		    files may not have complete git history, in which case this returns None and
+		    the system will fallback to file system timestamps.
 		"""
 		try:
 			# Get the relative path from the project root
@@ -281,6 +287,14 @@ class NoteProcessor:
 			except ValueError:
 				# File is not under project root, try to get relative path from current working directory
 				relative_path = file_path
+
+			# First, check if this is a shallow clone
+			is_shallow = self._is_shallow_clone(project_root)
+			if is_shallow:
+				self.logger.debug(
+					"Detected shallow git clone. Git timestamps may be inconsistent. "
+					"Consider fetching full history in your CI/CD build script."
+				)
 
 			# Run git log command to get the last commit time
 			cmd = ["git", "log", "-1", "--format=%ct", "--", str(relative_path)]
@@ -295,6 +309,15 @@ class NoteProcessor:
 
 			if result.returncode == 0 and result.stdout.strip():
 				timestamp = float(result.stdout.strip())
+
+				# Validate timestamp is reasonable (not in the future, not too old)
+				current_time = datetime.now(tz=timezone.utc).timestamp()
+				if timestamp > current_time + 86400:  # More than 1 day in the future
+					self.logger.warning(
+						f"Git timestamp for {file_path.name} is in the future, using file system time"
+					)
+					return None
+
 				return timestamp
 			else:
 				self.logger.debug(
@@ -308,6 +331,21 @@ class NoteProcessor:
 		except Exception as e:
 			self.logger.debug(f"Error getting Git commit time for {file_path}: {e}")
 			return None
+
+	def _is_shallow_clone(self, project_root: Path) -> bool:
+		"""Check if the current git repository is a shallow clone.
+
+		Args:
+		    project_root (Path): The root path of the project
+
+		Returns:
+		    bool: True if this is a shallow clone, False otherwise
+		"""
+		try:
+			shallow_file = project_root / ".git" / "shallow"
+			return shallow_file.exists()
+		except Exception:
+			return False
 
 
 class CacheManager:
