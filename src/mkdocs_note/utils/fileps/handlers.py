@@ -1,7 +1,11 @@
+from datetime import datetime
+
+from mkdocs.structure.files import File, Files
+from mkdocs.utils import meta
+
 from mkdocs_note.logger import Logger
 from mkdocs_note.config import PluginConfig
 from pathlib import Path
-from typing import List
 
 
 class NoteScanner:
@@ -11,52 +15,71 @@ class NoteScanner:
 		self.config = config
 		self.logger = logger
 
-	def scan_notes(self) -> List[Path]:
-		"""Scan notes directory, return all supported note files"""
-		notes_dir = Path(self.config.notes_dir)
+	def _validate_files(self, f: File) -> bool:
+		"""Validate a file
+
+		Args:
+		    f (File): The mkdocs docs file to validate
+
+		Returns:
+		    bool: True if the file is valid, False otherwise
+		"""
+		_, frontmatter = meta.get_data(f.content_string)
+
+		if not frontmatter.get("publish", False):
+			self.logger.info(
+				f"Document {f.src_uri} is marked as not published, skipping"
+			)
+			return False
+
+		if "date" not in frontmatter:
+			self.logger.error(
+				f"Invalid frontmatter for {f.src_uri}: 'date' is required"
+			)
+			return False
+
+		date = frontmatter["date"]
+		if not isinstance(date, datetime):
+			self.logger.error(
+				f"Invalid frontmatter for {f.src_uri}: 'date' must be a datetime object"
+			)
+			return False
+
+		return True
+
+	def scan_notes(self, files: Files) -> list[File]:
+		"""Scan notes directory, return all supported note files
+
+		Args:
+			files (Files): The list of files to scan
+
+		Returns:
+			list[Path]: List of paths to supported note files
+		"""
+		notes_dir = self.config.notes_dir
 		if not notes_dir.exists():
 			self.logger.warning(f"Notes directory does not exist: {notes_dir}")
 			return []
 
 		notes = []
+		invalid_files = []
 
 		try:
-			for file_path in notes_dir.rglob("*"):
-				if self._is_valid_note_file(file_path):
-					notes.append(file_path)
-		except PermissionError as e:
-			self.logger.error(f"Permission denied while scanning {notes_dir}: {e}")
+			for f in files:
+				path_name = f.src_uri.spilt("/")
+
+				if len(path_name) < 2 or path_name[1] != notes_dir:
+					continue
+
+				if f.is_documentation_page() and self._validate_files(f):
+					notes.append(f)
+				else:
+					invalid_files.append(f)
+					continue
+
+		except Exception as e:
+			self.logger.error(f"Error scanning notes: {e}")
 			return []
-
-		self.logger.debug(f"Found {len(notes)} note files")
-		return notes
-
-	def _is_valid_note_file(self, file_path: Path) -> bool:
-		"""Check if file is a valid note file
-
-		Args:
-		    file_path (Path): The path of the file to check
-
-		Returns:
-		    bool: True if the file is a valid note file, False otherwise
-		"""
-		if not file_path.is_file():
-			return False
-
-		# Check extension
-		if file_path.suffix.lower() not in self.config.supported_extensions:
-			return False
-
-		# Check exclude patterns
-		if file_path.name in self.config.exclude_patterns:
-			return False
-
-		# Check exclude directories
-		for part in file_path.parts:
-			if part in self.config.exclude_dirs:
-				return False
-
-		return True
 
 
 class AssetScanner:
