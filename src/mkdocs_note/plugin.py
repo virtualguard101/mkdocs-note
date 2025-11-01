@@ -40,7 +40,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 		return files
 
-
 	def on_config(self, config: MkDocsConfig) -> MkDocsConfig:
 		"""Handle plugin configuration."""
 		self.static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -48,7 +47,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		add_static_resouces(config)
 
 		return config
-
 
 	def on_pre_build(
 		self,
@@ -59,7 +57,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		"""Handle pre-build."""
 		if self.config.graph_config.enabled:
 			self._graph = Graph(self.config.graph_config)
-
 
 	def on_nav(
 		self,
@@ -81,7 +78,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		self._files = files
 		return nav
 
-
 	def _write_graph_file(self, config: MkDocsConfig) -> None:
 		"""Write the graph data to a file."""
 		log.info("Writing graph data to file...")
@@ -93,7 +89,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 				json.dump(self._graph.to_dict(), f)
 		except (IOError, OSError) as e:
 			log.error(f"Error writing graph file: {e}")
-
 
 	def on_post_page(
 		self,
@@ -115,7 +110,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		inject_graph_script(output=output, config=config)
 		return output
 
-
 	def on_post_build(
 		self,
 		*,
@@ -135,7 +129,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			copy_static_assets(static_dir=self.static_dir, config=config)
 		except (IOError, OSError) as e:
 			log.error(f"Error copying static assets: {e}")
-
 
 	def on_page_markdown(
 		self,
@@ -172,6 +165,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 		return markdown
 
+
 	def is_note_index_page(self, f: File) -> bool:
 		"""Check if the page is a note index page.
 
@@ -182,7 +176,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			bool: True if the page is a note index page, False otherwise.
 		"""
 		return f.src_uri == str(Path(self.config.notes_root) / "index.md")
-
 
 
 def insert_recent_note_links(
@@ -209,5 +202,3 @@ def insert_recent_note_links(
         date = extract_date(f).strftime("%Y-%m-%d %H:%M:%S")
         content += f"- <div class='recent-notes'><a href='{f.page.abs_url}'>{title}</a><small>{date}</small></div>\n"
     return markdown.replace(replace_marker, content)
-
-

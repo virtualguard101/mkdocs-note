@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from mkdocs.structure.files import File, Files
 from mkdocs.plugins import get_plugin_logger
 
@@ -41,45 +39,3 @@ def scan_notes(self, files: Files) -> list[File]:
 		raise e
 	
 	return notes, invalid_files
-
-
-class AssetScanner:
-	"""Asset scanner"""
-
-	def scan_assets(self) -> list[Path]:
-		"""Scan assets directory, return all assets files
-
-		Returns:
-		    list[Path]: The list of valid asset files
-		"""
-		assets_dir = Path(self.config.assets_dir)
-		if not assets_dir.exists():
-			self.logger.warning(f"Assets directory does not exist: {assets_dir}")
-			return []
-
-		assets = []
-
-		try:
-			for file_path in assets_dir.rglob("*"):
-				if self._is_valid_asset_file(file_path):
-					assets.append(file_path)
-		except PermissionError as e:
-			self.logger.error(f"Permission denied while scanning {assets_dir}: {e}")
-			return []
-
-		self.logger.debug(f"Found {len(assets)} asset files")
-		return assets
-
-	def _is_valid_asset_file(self, file_path: Path) -> bool:
-		"""Check if file is a valid asset file
-
-		Args:
-		    file_path (Path): The path of the file to check
-
-		Returns:
-		    bool: True if the file is a valid asset file, False otherwise
-		"""
-		if not file_path.is_file():
-			return False
-
-		return True
