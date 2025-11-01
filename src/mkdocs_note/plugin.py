@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import os
+import json
 from pathlib import Path
 
 from mkdocs.structure.files import Files, File
@@ -11,6 +14,7 @@ from mkdocs_note.config import MkdocsNoteConfig
 from mkdocs_note.utils import scanner
 from mkdocs_note.utils import page as page_utils
 from mkdocs_note.utils.meta import extract_title, extract_date
+from mkdocs_note.graph import Graph, add_static_resouces, inject_graph_script, copy_static_assets
 
 
 log = get_plugin_logger(__name__)
@@ -36,9 +40,101 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 		return files
 
+
 	def on_config(self, config: MkDocsConfig) -> MkDocsConfig:
 		"""Handle plugin configuration."""
+		self.static_dir = os.path.join(os.path.dirname(__file__), "static")
+
+		add_static_resouces(config)
+
 		return config
+
+
+	def on_pre_build(
+		self,
+		*,
+		config: dict,
+		**kwagrs
+	) -> None:
+		"""Handle pre-build."""
+		if self.config.graph_config.enabled:
+			self._graph = Graph(self.config.graph_config)
+
+
+	def on_nav(
+		self,
+		nav: Navigation,
+		*,
+		config: MkDocsConfig,
+		files: Files,
+	) -> Navigation:
+		"""Handle navigation.
+
+		Args:
+			nav (Navigation): The navigation object.
+			config (MkDocsConfig): The MkDocs configuration.
+			files (Files): The files object.
+
+		Returns:
+			Navigation: The navigation object.
+		"""
+		self._files = files
+		return nav
+
+
+	def _write_graph_file(self, config: MkDocsConfig) -> None:
+		"""Write the graph data to a file."""
+		log.info("Writing graph data to file...")
+		output_dir = os.path.join(config["site_dir"], "graph")
+		try:
+			os.makedirs(output_dir, exist_ok=True)
+			graph_file = os.path.join(output_dir, "graph.json")
+			with open(graph_file, "w") as f:
+				json.dump(self._graph.to_dict(), f)
+		except (IOError, OSError) as e:
+			log.error(f"Error writing graph file: {e}")
+
+
+	def on_post_page(
+		self,
+		output: str,
+		*,
+		page: Page,
+		config: MkDocsConfig,
+	) -> str:
+		"""Handle post page.
+
+		Args:
+			output (str): The output content.
+			page (Page): The page object.
+			config (MkDocsConfig): The MkDocs configuration.
+
+		Returns:
+			str: The output content.
+		"""
+		inject_graph_script(output=output, config=config)
+		return output
+
+
+	def on_post_build(
+		self,
+		*,
+		config: MkDocsConfig,
+		**kwargs,
+	) -> None:
+		"""Handle post build.
+
+		Args:
+			config (MkDocsConfig): The MkDocs configuration.
+		"""
+		self._graph(self._files)
+		self._write_graph_file(config=config)
+
+		log.info("Copying static assets...")
+		try:
+			copy_static_assets(static_dir=self.static_dir, config=config)
+		except (IOError, OSError) as e:
+			log.error(f"Error copying static assets: {e}")
 
 
 	def on_page_markdown(

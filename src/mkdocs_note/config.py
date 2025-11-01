@@ -2,16 +2,6 @@ from mkdocs.config import Config
 from mkdocs.config import config_options as config_opt
 
 
-class UpperCaseChoice(config_opt.Choice):
-	"""A Choice option that automatically converts input to uppercase."""
-
-	def run_validation(self, value):
-		"""Convert value to uppercase before validation."""
-		if isinstance(value, str):
-			value = value.upper()
-		return super().run_validation(value)
-
-
 class MkdocsNoteConfig(Config):
 	"""Configuration class, managing all configuration parameters."""
 
@@ -24,23 +14,19 @@ class MkdocsNoteConfig(Config):
     All note scanning, file operations, and asset management are limited to this directory.
     """
 
-	recent_notes_config = config_opt.Type(dict, default={
-		"enabled": False,
-		"insert_marker": "<!-- recent_notes -->",
-		"insert_num": 10
-	})
+	recent_notes_config = config_opt.Type(
+		dict, 
+		default={
+			"enabled": False,
+			"insert_marker": "<!-- recent_notes -->",
+			"insert_num": 10,
+		},
+	)
 	"""Configuration for the recent notes.
     Available options:
     - enabled: Whether to enable the recent notes
     - insert_marker: The marker to insert the recent notes
     - insert_num: The number of recent notes to insert
-    """
-
-	log_level = UpperCaseChoice(
-		choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO"
-	)
-	"""The logging level for the plugin.
-    Controls the verbosity of log messages: DEBUG (most verbose) to CRITICAL (least verbose).
     """
 
 	notes_template = config_opt.Type(str, default="overrides/templates/default.md")
