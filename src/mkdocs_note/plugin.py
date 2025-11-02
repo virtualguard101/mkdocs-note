@@ -31,7 +31,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		self.notes_list.clear()
 		invalid_files: list[File] = []
 
-		self.notes_list, invalid_files = scanner.scan_notes(files)
+		self.notes_list, invalid_files = scanner.scan_notes(files, self.config)
 
 		self.notes_list.sort(key=lambda f: f.note_date, reverse=True)
 
