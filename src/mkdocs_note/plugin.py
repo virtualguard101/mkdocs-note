@@ -140,13 +140,13 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		"""Handle page markdown.
 
 		Args:
-			markdown (str): _description_
-			page (Page): _description_
-			config (MkDocsConfig): _description_
-			files (Files): _description_
+			markdown (str): The markdown content.
+			page (Page): The page object.
+			config (MkDocsConfig): The MkDocs configuration.
+			files (Files): The files object.
 
 		Returns:
-			str: _description_
+			str: The markdown content.
 		"""
 		if self.config.recent_notes_config.enabled:
 			if self.is_note_index_page(page.file):
