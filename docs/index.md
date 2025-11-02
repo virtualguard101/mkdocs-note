@@ -13,5 +13,4 @@ publish: true
 
 ## Recent New or Modified Documentations
 
-<!-- recent_notes_start -->
-<!-- recent_notes_end -->
+<!-- recent_notes -->

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from mkdocs.structure.files import File, Files
 from mkdocs.plugins import get_plugin_logger
 
@@ -16,7 +18,7 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 	Returns:
 		tuple[list[File], list[File]]: (valid notes, invalid files)
 	"""
-	notes_dir = config.notes_root
+	notes_dir = Path(config.notes_root) if isinstance(config.notes_root, str) else config.notes_root
 	if not notes_dir.exists():
 		return [], []
 

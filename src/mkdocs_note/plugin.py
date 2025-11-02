@@ -12,7 +12,6 @@ from mkdocs.structure.nav import Navigation
 
 from mkdocs_note.config import MkdocsNoteConfig
 from mkdocs_note.utils import scanner
-from mkdocs_note.utils import page as page_utils
 from mkdocs_note.utils.meta import extract_title, extract_date
 from mkdocs_note.graph import Graph, add_static_resouces, inject_graph_script, copy_static_assets
 
@@ -55,7 +54,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		**kwagrs
 	) -> None:
 		"""Handle pre-build."""
-		if self.config.graph_config.enabled:
+		if self.config.graph_config["enabled"]:
 			self._graph = Graph(self.config.graph_config)
 
 	def on_nav(
@@ -107,7 +106,8 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		Returns:
 			str: The output content.
 		"""
-		inject_graph_script(output=output, config=config)
+		debug = self.config.graph_config.get("debug", False)
+		output = inject_graph_script(output=output, config=config, debug=debug)
 		return output
 
 	def on_post_build(
@@ -121,8 +121,10 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		Args:
 			config (MkDocsConfig): The MkDocs configuration.
 		"""
-		self._graph(self._files)
-		self._write_graph_file(config=config)
+		# Build graph if enabled
+		if hasattr(self, '_graph') and hasattr(self, '_files'):
+			self._graph(self._files)
+			self._write_graph_file(config=config)
 
 		log.info("Copying static assets...")
 		try:
@@ -148,13 +150,13 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		Returns:
 			str: The markdown content.
 		"""
-		if self.config.recent_notes_config.enabled:
+		if self.config.recent_notes_config["enabled"]:
 			if self.is_note_index_page(page.file):
-				markdown = page_utils.insert_recent_note_links(
+				markdown = insert_recent_note_links(
 					markdown=markdown,
 					notes_list=self.notes_list,
-					insert_num=self.config.recent_notes_config.insert_num,
-					replace_marker=self.config.recent_notes_config.insert_marker,
+					insert_num=self.config.recent_notes_config["insert_num"],
+					replace_marker=self.config.recent_notes_config["insert_marker"],
 				)
 			else:
 				log.warning("Recent notes are not supported on non-note index pages.")

@@ -134,11 +134,13 @@ def add_static_resouces(config: MkDocsConfig) -> None:
 	if "css/graph.css" not in config["extra_css"]:
 		config["extra_css"].append("css/graph.css")
 
-def inject_graph_script(output: str, config: MkDocsConfig) -> str:
+def inject_graph_script(output: str, config: MkDocsConfig, debug: bool = False) -> str:
 	"""Inject the graph script into the HTML page.
 	
 	Args:
+		output (str): The HTML output.
 		config (MkDocsConfig): The MkDocs configuration.
+		debug (bool): Whether to enable debug mode.
 
 	Returns:
 		str: The HTML with the graph script injected.
@@ -155,7 +157,7 @@ def inject_graph_script(output: str, config: MkDocsConfig) -> str:
 	options_script = (
 		"<script>"
 		f"window.graph_options = {{"
-		f"    debug: {str(config['debug']).lower()},"
+		f"    debug: {str(debug).lower()},"
 		f"    base_path: '{base_path}'"
 		f"}};"
 		"</script>"
