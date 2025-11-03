@@ -1,48 +1,63 @@
 """
-Note cleaner for managing orphaned assets and note movements.
+Note cleaner for managing orphaned assets.
+
+Refactored to use MkdocsNoteConfig and OperationResult.
 """
 
 import shutil
 from pathlib import Path
-from typing import List, Set, Tuple
 
-from mkdocs_note.config import PluginConfig
-from mkdocs_note.logger import Logger
-from mkdocs_note.utils.fileps.handlers import NoteScanner
+from mkdocs_note.config import MkdocsNoteConfig
+from mkdocs_note.utils.cli.common import (
+	OperationResult,
+	get_asset_directory,
+	cleanup_empty_directories,
+	get_logger,
+)
+
+
+logger = get_logger(__name__)
 
 
 class NoteCleaner:
 	"""Cleaner for managing orphaned assets."""
 
-	def __init__(self, config: PluginConfig, logger: Logger):
-		self.config = config
-		self.logger = logger
-		self.note_scanner = NoteScanner(config, logger)
+	def __init__(self, config: MkdocsNoteConfig):
+		"""Initialize note cleaner.
 
-	def find_orphaned_assets(self) -> List[Path]:
+		Args:
+		    config: Plugin configuration instance
+		"""
+		self.config = config
+
+	def find_orphaned_assets(self) -> list[Path]:
 		"""Find asset directories that don't have corresponding note files.
 
 		Returns:
-		    List[Path]: List of orphaned asset directory paths
+		    list[Path]: List of orphaned asset directory paths
 		"""
-		notes_dir = Path(self.config.notes_dir)
+		notes_root = (
+			Path(self.config.notes_root)
+			if isinstance(self.config.notes_root, str)
+			else self.config.notes_root
+		)
 
-		# Get all note files
-		note_files = self.note_scanner.scan_notes()
+		# Get all note files by scanning the notes_root
+		note_files = self._scan_note_files(notes_root)
 
 		# Build a set of expected asset directory paths
-		expected_asset_dirs: Set[str] = set()
+		expected_asset_dirs: set[str] = set()
 		for note_file in note_files:
 			# Calculate asset directory based on note file location
-			asset_dir_path = note_file.parent / "assets" / note_file.stem
+			asset_dir_path = get_asset_directory(note_file)
 			expected_asset_dirs.add(str(asset_dir_path.resolve()))
 
-		# Find all actual asset directories by scanning notes_dir
-		orphaned_dirs: List[Path] = []
+		# Find all actual asset directories by scanning notes_root
+		orphaned_dirs: list[Path] = []
 
 		try:
-			# Scan for 'assets' directories within notes_dir
-			for assets_subdir in notes_dir.rglob("assets"):
+			# Scan for 'assets' directories within notes_root
+			for assets_subdir in notes_root.rglob("assets"):
 				if not assets_subdir.is_dir():
 					continue
 
@@ -58,72 +73,81 @@ class NoteCleaner:
 							if item_resolved not in expected_asset_dirs:
 								orphaned_dirs.append(item)
 		except Exception as e:
-			self.logger.error(f"Error scanning asset directories: {e}")
+			logger.error(f"Error scanning asset directories: {e}")
 
 		return orphaned_dirs
 
-	def clean_orphaned_assets(self, dry_run: bool = False) -> Tuple[int, List[Path]]:
+	def _scan_note_files(self, root_dir: Path) -> list[Path]:
+		"""Scan directory for note files.
+
+		Args:
+		    root_dir: Root directory to scan
+
+		Returns:
+		    list[Path]: List of note file paths
+		"""
+		note_files = []
+
+		try:
+			for file_path in root_dir.rglob("*"):
+				if (
+					file_path.is_file()
+					and file_path.suffix.lower() in self.config.supported_extensions
+				):
+					# Skip excluded files
+					if file_path.name not in self.config.exclude_patterns:
+						note_files.append(file_path)
+		except Exception as e:
+			logger.error(f"Error scanning note files: {e}")
+
+		return note_files
+
+	def clean_orphaned_assets(self, dry_run: bool = False) -> OperationResult:
 		"""Remove orphaned asset directories.
 
 		Args:
-		    dry_run (bool): If True, only report what would be removed without actually removing
+		    dry_run: If True, only report what would be removed without actually removing
 
 		Returns:
-		    Tuple[int, List[Path]]: (number of removed directories, list of removed paths)
+		    OperationResult: Result with list of removed/would-be-removed directories
 		"""
 		orphaned_dirs = self.find_orphaned_assets()
 
 		if not orphaned_dirs:
-			self.logger.info("No orphaned asset directories found")
-			return 0, []
+			logger.info("No orphaned asset directories found")
+			return OperationResult(
+				success=True,
+				message="No orphaned asset directories found",
+				data={"removed_count": 0, "orphaned_dirs": []},
+			)
 
-		removed_dirs: List[Path] = []
+		removed_dirs: list[Path] = []
 
 		for asset_dir in orphaned_dirs:
 			if dry_run:
-				self.logger.info(f"[DRY RUN] Would remove: {asset_dir}")
+				logger.info(f"[DRY RUN] Would remove: {asset_dir}")
 				removed_dirs.append(asset_dir)
 			else:
 				try:
-					self.logger.info(f"Removing orphaned asset directory: {asset_dir}")
+					logger.info(f"Removing orphaned asset directory: {asset_dir}")
 					shutil.rmtree(asset_dir)
 					removed_dirs.append(asset_dir)
 
 					# Clean up empty parent directories
-					self._cleanup_empty_parent_dirs(asset_dir.parent)
+					notes_root = (
+						Path(self.config.notes_root)
+						if isinstance(self.config.notes_root, str)
+						else self.config.notes_root
+					)
+					cleanup_empty_directories(asset_dir.parent, notes_root)
 				except Exception as e:
-					self.logger.error(f"Failed to remove {asset_dir}: {e}")
+					logger.error(f"Failed to remove {asset_dir}: {e}")
 
-		return len(removed_dirs), removed_dirs
+		mode_str = "[DRY RUN] " if dry_run else ""
+		message = f"{mode_str}Removed {len(removed_dirs)} orphaned asset director{'y' if len(removed_dirs) == 1 else 'ies'}"
 
-	def _cleanup_empty_parent_dirs(self, directory: Path) -> None:
-		"""Recursively clean up empty parent directories.
-
-		This method removes empty 'assets' directories and their empty parent
-		directories up to the note directory level.
-
-		Args:
-		    directory (Path): The directory to start cleanup from
-		"""
-		try:
-			current_dir = directory.resolve()
-			notes_dir = Path(self.config.notes_dir).resolve()
-
-			# Don't remove directories outside or at the notes directory level
-			if not current_dir.is_relative_to(notes_dir) or current_dir == notes_dir:
-				return
-
-			# Check if directory is empty
-			if current_dir.exists() and current_dir.is_dir():
-				try:
-					# Check if directory is empty (no files or subdirectories)
-					if not any(current_dir.iterdir()):
-						self.logger.debug(f"Removing empty directory: {current_dir}")
-						current_dir.rmdir()
-						# Recursively clean up parent
-						self._cleanup_empty_parent_dirs(current_dir.parent)
-				except OSError:
-					# Directory not empty or other error, stop cleanup
-					pass
-		except Exception as e:
-			self.logger.debug(f"Error during directory cleanup: {e}")
+		return OperationResult(
+			success=True,
+			message=message,
+			data={"removed_count": len(removed_dirs), "orphaned_dirs": removed_dirs},
+		)

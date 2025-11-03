@@ -57,3 +57,24 @@ class MkdocsNoteConfig(Config):
     This prevents broken image links when assets haven't been moved to the 
     co-located asset directory structure yet.
     """
+
+	# CLI-specific configuration
+	supported_extensions = config_opt.Type(list, default=[".md"])
+	"""List of supported note file extensions.
+    Used by CLI commands to validate note file types.
+    """
+
+	exclude_patterns = config_opt.Type(list, default=["index.md", "README.md"])
+	"""List of filename patterns to exclude from note management.
+    Files matching these patterns will not be created, moved, or managed by CLI commands.
+    """
+
+	timestamp_zone = config_opt.Type(str, default="UTC+0")
+	"""Timezone for timestamp generation in format 'UTC+X' or 'UTC-X'.
+    Used when creating new notes to generate date/time in frontmatter.
+    """
+
+	output_date_format = config_opt.Type(str, default="%Y-%m-%d %H:%M:%S")
+	"""Date format string for timestamp output.
+    Uses Python strftime format codes.
+    """
