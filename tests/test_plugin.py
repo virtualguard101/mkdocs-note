@@ -44,11 +44,11 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		# Create a mock file
 		mock_file = Mock()
 		mock_file.src_uri = "docs/index.md"
-		
+
 		# Test with default notes_root
 		result = self.plugin.is_note_index_page(mock_file)
 		self.assertTrue(result)
-		
+
 		# Test with non-index file
 		mock_file.src_uri = "docs/some-other-page.md"
 		result = self.plugin.is_note_index_page(mock_file)
@@ -60,33 +60,33 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		mock_files = Mock()
 		mock_files.remove = Mock()
 		mock_config = Mock()
-		
+
 		# Mock scanner.scan_notes to return empty lists
-		with patch('mkdocs_note.plugin.scanner.scan_notes') as mock_scan:
+		with patch("mkdocs_note.plugin.scanner.scan_notes") as mock_scan:
 			mock_scan.return_value = ([], [])
-			
+
 			result = self.plugin.on_files(mock_files, mock_config)
-			
+
 			# Verify scan_notes was called
 			mock_scan.assert_called_once_with(mock_files, self.plugin.config)
-			
+
 			# Verify files was returned
 			self.assertEqual(result, mock_files)
 
 	def test_on_config(self):
 		"""Test on_config event handler."""
 		mock_config = Mock()
-		
+
 		# Mock add_static_resouces
-		with patch('mkdocs_note.plugin.add_static_resouces') as mock_add:
+		with patch("mkdocs_note.plugin.add_static_resouces") as mock_add:
 			result = self.plugin.on_config(mock_config)
-			
+
 			# Verify add_static_resouces was called
 			mock_add.assert_called_once_with(mock_config)
-			
+
 			# Verify static_dir was set
 			self.assertIsNotNone(self.plugin.static_dir)
-			
+
 			# Verify config was returned
 			self.assertEqual(result, mock_config)
 
@@ -94,7 +94,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		"""Test on_pre_build when graph is disabled."""
 		self.plugin.config.graph_config["enabled"] = False
 		mock_config = Mock()
-		
+
 		# Should not raise any errors
 		self.plugin.on_pre_build(config=mock_config)
 
@@ -102,11 +102,11 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		"""Test on_pre_build when graph is enabled."""
 		self.plugin.config.graph_config["enabled"] = True
 		mock_config = Mock()
-		
+
 		# Mock Graph class
-		with patch('mkdocs_note.plugin.Graph') as mock_graph:
+		with patch("mkdocs_note.plugin.Graph") as mock_graph:
 			self.plugin.on_pre_build(config=mock_config)
-			
+
 			# Verify Graph was instantiated
 			mock_graph.assert_called_once()
 
@@ -115,28 +115,28 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		mock_nav = Mock()
 		mock_config = Mock()
 		mock_files = Mock()
-		
+
 		result = self.plugin.on_nav(mock_nav, config=mock_config, files=mock_files)
-		
+
 		# Verify nav was returned
 		self.assertEqual(result, mock_nav)
-		
+
 		# Verify _files was set
 		self.assertEqual(self.plugin._files, mock_files)
 
 	def test_on_page_markdown_disabled(self):
 		"""Test on_page_markdown when recent notes is disabled."""
 		self.plugin.config.recent_notes_config["enabled"] = False
-		
+
 		markdown = "# Test Content"
 		mock_page = Mock()
 		mock_config = Mock()
 		mock_files = Mock()
-		
+
 		result = self.plugin.on_page_markdown(
 			markdown, mock_page, mock_config, mock_files
 		)
-		
+
 		# Markdown should be unchanged
 		self.assertEqual(result, markdown)
 
@@ -144,31 +144,31 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		"""Test insert_recent_note_links function."""
 		from mkdocs_note.plugin import insert_recent_note_links
 		from datetime import datetime
-		
+
 		# Create mock files
 		mock_file1 = Mock()
 		mock_file1.page.abs_url = "/note1/"
 		mock_file1.note_title = "Note 1"
 		mock_file1.note_date = datetime.now()
-		
+
 		mock_file2 = Mock()
 		mock_file2.page.abs_url = "/note2/"
 		mock_file2.note_title = "Note 2"
 		mock_file2.note_date = datetime.now()
-		
+
 		notes_list = [mock_file1, mock_file2]
 		markdown = "# Index\n<!-- recent_notes -->"
-		
+
 		result = insert_recent_note_links(
 			markdown=markdown,
 			notes_list=notes_list,
 			insert_num=2,
-			replace_marker="<!-- recent_notes -->"
+			replace_marker="<!-- recent_notes -->",
 		)
-		
+
 		# Verify marker was replaced
 		self.assertNotIn("<!-- recent_notes -->", result)
-		
+
 		# Verify links were inserted
 		self.assertIn("Note 1", result)
 		self.assertIn("Note 2", result)
@@ -178,28 +178,29 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 	def test_write_graph_file(self):
 		"""Test _write_graph_file method."""
 		mock_config = {"site_dir": "/tmp/test_site"}
-		
+
 		# Mock the graph
 		mock_graph = Mock()
 		mock_graph.to_dict.return_value = {"nodes": [], "edges": []}
 		self.plugin._graph = mock_graph
-		
+
 		# Mock os operations
-		with patch('mkdocs_note.plugin.os.makedirs') as mock_makedirs, \
-		     patch('mkdocs_note.plugin.open', create=True) as mock_open, \
-		     patch('mkdocs_note.plugin.json.dump') as mock_dump:
-			
+		with (
+			patch("mkdocs_note.plugin.os.makedirs") as mock_makedirs,
+			patch("mkdocs_note.plugin.open", create=True) as mock_open,
+			patch("mkdocs_note.plugin.json.dump") as mock_dump,
+		):
 			mock_file = MagicMock()
 			mock_open.return_value.__enter__.return_value = mock_file
-			
+
 			self.plugin._write_graph_file(mock_config)
-			
+
 			# Verify directory was created
 			mock_makedirs.assert_called_once()
-			
+
 			# Verify file was opened
 			mock_open.assert_called_once()
-			
+
 			# Verify graph data was written
 			mock_dump.assert_called_once()
 

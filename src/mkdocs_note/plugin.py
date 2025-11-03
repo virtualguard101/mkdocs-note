@@ -12,16 +12,21 @@ from mkdocs.structure.nav import Navigation
 from mkdocs_note.config import MkdocsNoteConfig
 from mkdocs_note.utils import scanner
 from mkdocs_note.utils.meta import extract_title, extract_date
-from mkdocs_note.graph import Graph, add_static_resouces, inject_graph_script, copy_static_assets
+from mkdocs_note.graph import (
+	Graph,
+	add_static_resouces,
+	inject_graph_script,
+	copy_static_assets,
+)
 
 
 log = get_plugin_logger(__name__)
+
 
 class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 	"""Mkdocs Note Plugin entry point."""
 
 	notes_list: list[File] = []
-	
 
 	@event_priority(100)
 	def on_files(self, files: Files, config: MkDocsConfig) -> Files:
@@ -46,12 +51,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 		return config
 
-	def on_pre_build(
-		self,
-		*,
-		config: dict,
-		**kwagrs
-	) -> None:
+	def on_pre_build(self, *, config: dict, **kwagrs) -> None:
 		"""Handle pre-build."""
 		if self.config.graph_config["enabled"]:
 			self._graph = Graph(self.config.graph_config)
@@ -121,7 +121,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			config (MkDocsConfig): The MkDocs configuration.
 		"""
 		# Build graph if enabled
-		if hasattr(self, '_graph') and hasattr(self, '_files'):
+		if hasattr(self, "_graph") and hasattr(self, "_files"):
 			self._graph(self._files)
 			self._write_graph_file(config=config)
 
@@ -150,7 +150,9 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			str: The markdown content.
 		"""
 		# Only process recent notes on the note index page
-		if self.config.recent_notes_config["enabled"] and self.is_note_index_page(page.file):
+		if self.config.recent_notes_config["enabled"] and self.is_note_index_page(
+			page.file
+		):
 			markdown = insert_recent_note_links(
 				markdown=markdown,
 				notes_list=self.notes_list,
@@ -160,7 +162,6 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			log.debug(f"Recent notes inserted into {page.file.src_uri}")
 
 		return markdown
-
 
 	def is_note_index_page(self, f: File) -> bool:
 		"""Check if the page is a note index page.
@@ -177,30 +178,30 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 
 def insert_recent_note_links(
-    markdown: str,
-    notes_list: list[File],
-    insert_num: int,
-    replace_marker: str,
+	markdown: str,
+	notes_list: list[File],
+	insert_num: int,
+	replace_marker: str,
 ) -> str:
-    """Insert recent note links into the markdown.
+	"""Insert recent note links into the markdown.
 
-    Args:
-        markdown (str): The markdown content.
-        notes_list (list[File]): The list of valid notes.
-        insert_num (int): The number of recent notes to insert.
-        replace_marker (str): The marker to replace.
+	Args:
+	    markdown (str): The markdown content.
+	    notes_list (list[File]): The list of valid notes.
+	    insert_num (int): The number of recent notes to insert.
+	    replace_marker (str): The marker to replace.
 
-    Returns:
-        str: The markdown content with recent note links inserted.
-    """
+	Returns:
+	    str: The markdown content with recent note links inserted.
+	"""
 
-    content = "<ul>\n"
-    for f in notes_list[:insert_num]:
-        title = extract_title(f)
-        date = extract_date(f).strftime("%Y-%m-%d %H:%M:%S")
-        # Use f.url (relative URL) or f.page.url if page is available
-        url = f.page.url if hasattr(f, 'page') and f.page else f.url
-        # No indentation to avoid Markdown treating it as code block
-        content += f'<li><div style="display:flex; justify-content:space-between; align-items:center;"><a href="{url}">{title}</a><span style="font-size:0.8em; color:#888;">{date}</span></div></li>\n'
-    content += "</ul>\n"
-    return markdown.replace(replace_marker, content)
+	content = "<ul>\n"
+	for f in notes_list[:insert_num]:
+		title = extract_title(f)
+		date = extract_date(f).strftime("%Y-%m-%d %H:%M:%S")
+		# Use f.url (relative URL) or f.page.url if page is available
+		url = f.page.url if hasattr(f, "page") and f.page else f.url
+		# No indentation to avoid Markdown treating it as code block
+		content += f'<li><div style="display:flex; justify-content:space-between; align-items:center;"><a href="{url}">{title}</a><span style="font-size:0.8em; color:#888;">{date}</span></div></li>\n'
+	content += "</ul>\n"
+	return markdown.replace(replace_marker, content)

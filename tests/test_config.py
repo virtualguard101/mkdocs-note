@@ -27,9 +27,7 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 			self.config.recent_notes_config["insert_marker"], "<!-- recent_notes -->"
 		)
 		self.assertEqual(self.config.recent_notes_config["insert_num"], 10)
-		self.assertEqual(
-			self.config.notes_template, "overrides/templates/default.md"
-		)
+		self.assertEqual(self.config.notes_template, "overrides/templates/default.md")
 
 	def test_graph_config_default(self):
 		"""Test graph configuration defaults."""

@@ -15,7 +15,7 @@ class MkdocsNoteConfig(Config):
     """
 
 	recent_notes_config = config_opt.Type(
-		dict, 
+		dict,
 		default={
 			"enabled": False,
 			"insert_marker": "<!-- recent_notes -->",

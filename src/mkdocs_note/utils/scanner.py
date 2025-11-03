@@ -8,6 +8,7 @@ from mkdocs_note.utils.meta import validate_frontmatter
 
 logger = get_plugin_logger(__name__)
 
+
 def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 	"""Scan notes directory, return all supported note files
 
@@ -18,7 +19,11 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 	Returns:
 		tuple[list[File], list[File]]: (valid notes, invalid files)
 	"""
-	notes_dir = Path(config.notes_root) if isinstance(config.notes_root, str) else config.notes_root
+	notes_dir = (
+		Path(config.notes_root)
+		if isinstance(config.notes_root, str)
+		else config.notes_root
+	)
 	if not notes_dir.exists():
 		logger.warning(f"Notes directory does not exist: {notes_dir}")
 		return [], []
@@ -31,7 +36,7 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 			# Skip non-documentation pages
 			if not f.is_documentation_page():
 				continue
-			
+
 			# Check if file is within notes_root by comparing absolute paths
 			# f.abs_src_path is the absolute path to the source file
 			try:
@@ -50,5 +55,5 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 	except Exception as e:
 		logger.error(f"Error scanning notes: {e}")
 		raise e
-	
+
 	return notes, invalid_files

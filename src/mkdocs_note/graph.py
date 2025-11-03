@@ -16,6 +16,7 @@ from mkdocs.structure.pages import Page
 
 logger = get_plugin_logger(__name__)
 
+
 class Graph:
 	"""Represents the connection graph between files."""
 
@@ -121,6 +122,7 @@ class Graph:
 		"""Return the graph as a dictionary."""
 		return {"nodes": self.nodes, "edges": self.edges}
 
+
 def add_static_resouces(config: MkDocsConfig) -> None:
 	"""Add static resources into mkdocs config for network graph.
 
@@ -134,9 +136,10 @@ def add_static_resouces(config: MkDocsConfig) -> None:
 	if "css/graph.css" not in config["extra_css"]:
 		config["extra_css"].append("css/graph.css")
 
+
 def inject_graph_script(output: str, config: MkDocsConfig, debug: bool = False) -> str:
 	"""Inject the graph script into the HTML page.
-	
+
 	Args:
 		output (str): The HTML output.
 		config (MkDocsConfig): The MkDocs configuration.
@@ -166,9 +169,10 @@ def inject_graph_script(output: str, config: MkDocsConfig, debug: bool = False) 
 		return output.replace("</body>", f"{options_script}</body>")
 	return output
 
+
 def copy_static_assets(static_dir: str, config: MkDocsConfig) -> None:
 	"""Copy static assets into the site directory.
-	
+
 	Args:
 		config (MkDocsConfig): The MkDocs configuration.
 	"""

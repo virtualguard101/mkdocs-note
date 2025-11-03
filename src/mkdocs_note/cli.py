@@ -13,7 +13,7 @@ from importlib import metadata
 
 def get_version():
 	"""Get the version of mkdocs-note package.
-	
+
 	Returns:
 	    str: Version string from package metadata
 	"""
@@ -92,7 +92,7 @@ class CustomGroup(click.Group):
 @click.pass_context
 def cli(ctx):
 	"""MkDocs Note CLI - Manage notes and their assets structure.
-	
+
 	A command-line interface for managing MkDocs notes with co-located assets.
 	"""
 	ctx.ensure_object(dict)
@@ -103,12 +103,12 @@ def cli(ctx):
 @click.pass_context
 def new_command(ctx, file_path):
 	"""Create a new note file with proper asset structure.
-	
+
 	\b
 	Examples:
 	    mkdocs-note new docs/notes/my-note.md
 	    mkdocs-note new docs/notes/python/intro.md
-	
+
 	FILE_PATH: Path where the new note file should be created
 	"""
 	click.echo("⚠️  'new' command is not yet implemented")
@@ -121,15 +121,15 @@ def new_command(ctx, file_path):
 @click.pass_context
 def remove_command(ctx, file_path):
 	"""Remove a note file and its corresponding asset directory.
-	
+
 	\b
 	Aliases: rm
-	
+
 	\b
 	Examples:
 	    mkdocs-note remove docs/notes/test.md
 	    mkdocs-note rm docs/notes/test.md --yes
-	
+
 	FILE_PATH: Path to the note file to remove
 	"""
 	click.echo("⚠️  'remove' command is not yet implemented")
@@ -151,15 +151,15 @@ def rm_command(ctx, file_path):
 @click.pass_context
 def move_command(ctx, source, destination):
 	"""Move or rename a note file/directory and its asset directory.
-	
+
 	\b
 	Aliases: mv
-	
+
 	\b
 	Examples:
 	    mkdocs-note move docs/notes/old.md docs/notes/new.md
 	    mkdocs-note mv docs/notes/test.md docs/notes/archive
-	
+
 	\b
 	Arguments:
 	    SOURCE: Current path of the note file or directory
@@ -183,7 +183,7 @@ def mv_command(ctx, source, destination):
 @click.pass_context
 def clean_command(ctx):
 	"""Clean up orphaned asset directories without corresponding notes.
-	
+
 	\b
 	Examples:
 	    mkdocs-note clean --dry-run
@@ -198,10 +198,10 @@ def clean_command(ctx):
 @click.pass_context
 def template_command(ctx):
 	"""Manage the note template file.
-	
+
 	This command helps you check and create the template file
 	configured in your mkdocs.yml.
-	
+
 	\b
 	Examples:
 	    mkdocs-note template
