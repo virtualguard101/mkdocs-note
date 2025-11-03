@@ -7,7 +7,7 @@ publish: true
 
 # Recent Notes Insertion
 
-![](recent_insert_demo.png)
+![](assets/recent-notes/recent_insert_demo.png)
 
 Mkdocs Note support inserting the links which refer to the recent new or modified documentations to the marked placeholder which can be configured in `mkdocs.yml` as below.
 

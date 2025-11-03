@@ -109,11 +109,14 @@ plugins:
   - git-revision-date-localized:
       enable_creation_date: true
   - mkdocs-note:
-      max_notes: 5
-      timestamp_zone: "UTC+8"
-      log_level: info
-      enable_network_graph: true
-
+      recent_notes_config:
+        enabled: true
+        insert_marker: "<!-- recent_notes -->"
+        insert_num: 5
+      graph_config:
+        enabled: true
+        name: "title"
+        debug: false
   # - redirects:
   #     redirect_maps:
 
