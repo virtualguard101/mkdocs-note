@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import json
-from pathlib import Path
 
 from mkdocs.structure.files import Files, File
 from mkdocs.config.defaults import MkDocsConfig
@@ -150,20 +149,15 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		Returns:
 			str: The markdown content.
 		"""
-		if self.config.recent_notes_config["enabled"]:
-			if self.is_note_index_page(page.file):
-				markdown = insert_recent_note_links(
-					markdown=markdown,
-					notes_list=self.notes_list,
-					insert_num=self.config.recent_notes_config["insert_num"],
-					replace_marker=self.config.recent_notes_config["insert_marker"],
-				)
-			else:
-				log.warning("Recent notes are not supported on non-note index pages.")
-				markdown = markdown
-		else:
-			log.debug("Recent notes insertion are disabled.")
-			markdown = markdown
+		# Only process recent notes on the note index page
+		if self.config.recent_notes_config["enabled"] and self.is_note_index_page(page.file):
+			markdown = insert_recent_note_links(
+				markdown=markdown,
+				notes_list=self.notes_list,
+				insert_num=self.config.recent_notes_config["insert_num"],
+				replace_marker=self.config.recent_notes_config["insert_marker"],
+			)
+			log.debug(f"Recent notes inserted into {page.file.src_uri}")
 
 		return markdown
 
@@ -172,12 +166,14 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		"""Check if the page is a note index page.
 
 		Args:
-			page (Page): The page to check.
+			f (File): The file to check.
 
 		Returns:
 			bool: True if the page is a note index page, False otherwise.
 		"""
-		return f.src_uri == str(Path(self.config.notes_root) / "index.md")
+		# src_uri is relative to docs_dir, so we just check for 'index.md'
+		# when notes_root is the docs_dir itself
+		return f.src_uri == "index.md"
 
 
 def insert_recent_note_links(
@@ -198,9 +194,13 @@ def insert_recent_note_links(
         str: The markdown content with recent note links inserted.
     """
 
-    content = ""
+    content = "<ul>\n"
     for f in notes_list[:insert_num]:
         title = extract_title(f)
         date = extract_date(f).strftime("%Y-%m-%d %H:%M:%S")
-        content += f"- <div class='recent-notes'><a href='{f.page.abs_url}'>{title}</a><small>{date}</small></div>\n"
+        # Use f.url (relative URL) or f.page.url if page is available
+        url = f.page.url if hasattr(f, 'page') and f.page else f.url
+        # No indentation to avoid Markdown treating it as code block
+        content += f'<li><div style="display:flex; justify-content:space-between; align-items:center;"><a href="{url}">{title}</a><span style="font-size:0.8em; color:#888;">{date}</span></div></li>\n'
+    content += "</ul>\n"
     return markdown.replace(replace_marker, content)

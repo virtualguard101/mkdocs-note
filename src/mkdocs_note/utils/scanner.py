@@ -20,6 +20,7 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 	"""
 	notes_dir = Path(config.notes_root) if isinstance(config.notes_root, str) else config.notes_root
 	if not notes_dir.exists():
+		logger.warning(f"Notes directory does not exist: {notes_dir}")
 		return [], []
 
 	notes = []
@@ -27,16 +28,25 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 
 	try:
 		for f in files:
-			path_name = f.src_uri.split("/")
-
-			if len(path_name) < 2 or path_name[1] != notes_dir:
+			# Skip non-documentation pages
+			if not f.is_documentation_page():
+				continue
+			
+			# Check if file is within notes_root by comparing absolute paths
+			# f.abs_src_path is the absolute path to the source file
+			try:
+				file_path = Path(f.abs_src_path)
+				# Check if the file is within the notes_root directory
+				file_path.relative_to(notes_dir)
+			except (ValueError, AttributeError):
+				# File is not within notes_root
 				continue
 
-			if f.is_documentation_page() and validate_frontmatter(f):
+			# Validate frontmatter
+			if validate_frontmatter(f):
 				notes.append(f)
 			else:
 				invalid_files.append(f)
-				continue
 	except Exception as e:
 		logger.error(f"Error scanning notes: {e}")
 		raise e
