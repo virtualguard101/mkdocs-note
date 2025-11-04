@@ -7,7 +7,6 @@ from mkdocs.plugins import get_plugin_logger
 from mkdocs_note.utils.cli import common
 
 log = get_plugin_logger(__name__)
-root_dir = common.get_plugin_config()["notes_root"]
 
 
 class NewCommand:
@@ -41,6 +40,7 @@ publish: true
 			if file_path.exists():
 				log.error(f"File already exists: {file_path}")
 				return False
+			return True
 		except Exception as e:
 			log.error(f"Error validating before execution: {e}")
 			return False
@@ -104,7 +104,6 @@ class RemoveCommand:
 				return 2
 			# Check if path is a file
 			elif path.is_file():
-				log.error(f"Path is a file: {path}")
 				return 1
 		except Exception as e:
 			log.error(f"Error validating before execution: {e}")
@@ -130,6 +129,7 @@ class RemoveCommand:
 				shutil.rmtree(asset_dir)
 				log.info(f"Successfully removed asset directory: {asset_dir}")
 				# Clean up empty parent directories in source
+				root_dir = Path(common.get_plugin_config()["notes_root"])
 				common.cleanup_empty_directories(asset_dir.parent, root_dir)
 			else:
 				log.warning(
@@ -240,14 +240,20 @@ class MoveCommand:
 
 			# Move the asset directory if requested and exists
 			if source_asset_dir.exists():
-				# Ensure destination asset parent directory exists
-				common.ensure_parent_directory(dest_asset_dir / "dummy")
+				# Ensure destination asset parent's parent directory exists
+				# (e.g., for /tmp/assets/dest, ensure /tmp/assets/ exists)
+				dest_asset_dir.parent.mkdir(parents=True, exist_ok=True)
+
+				# If destination asset dir already exists, remove it first
+				if dest_asset_dir.exists():
+					shutil.rmtree(dest_asset_dir)
 
 				shutil.move(str(source_asset_dir), str(dest_asset_dir))
 				log.info(
 					f"Successfully moved asset directory: {source_asset_dir} → {dest_asset_dir}"
 				)
 				# Clean up empty parent directories in source
+				root_dir = Path(common.get_plugin_config()["notes_root"])
 				common.cleanup_empty_directories(source_asset_dir.parent, root_dir)
 		except Exception as e:
 			log.error(f"Error moving single document: {e}")
@@ -351,7 +357,7 @@ class CleanCommand:
 		Returns:
 			list[Path]: List of orphaned asset directory paths
 		"""
-		note_files = self._scan_note_files(root_dir)
+		root_dir = Path(common.get_plugin_config()["notes_root"])
 		# Build a set of expected asset directory paths
 		expected_asset_dirs: set[str] = set()
 		for note_file in note_files:
@@ -387,7 +393,9 @@ class CleanCommand:
 			dry_run (bool): If True, only report what would be removed without actually removing
 		"""
 		try:
-			orphaned_dirs = self._find_orphaned_assets(root_dir)
+			root_dir = Path(common.get_plugin_config()["notes_root"])
+			note_files = self._scan_note_files(root_dir)
+			orphaned_dirs = self._find_orphaned_assets(note_files)
 			if not orphaned_dirs:
 				log.info("No orphaned asset directories found")
 

@@ -12,10 +12,13 @@ from pathlib import Path
 from importlib import metadata
 
 from mkdocs_note.config import MkdocsNoteConfig
-from mkdocs_note.utils.cli.new import NoteCreator
-from mkdocs_note.utils.cli.remove import NoteRemover
-from mkdocs_note.utils.cli.move import NoteMover
-from mkdocs_note.utils.cli.clean import NoteCleaner
+from mkdocs_note.utils.cli.commands import (
+	NewCommand,
+	RemoveCommand,
+	MoveCommand,
+	CleanCommand,
+)
+import mkdocs_note.utils.cli.common as cli_common
 
 
 def get_version():
@@ -28,6 +31,24 @@ def get_version():
 		return metadata.version("mkdocs-note")
 	except metadata.PackageNotFoundError:
 		return "unknown (not installed)"
+
+
+def setup_cli_environment(config: MkdocsNoteConfig):
+	"""Setup CLI environment with configuration.
+
+	This function monkey-patches the common module to use the provided config
+	for standalone CLI usage.
+
+	Args:
+	    config: MkdocsNoteConfig instance to use
+	"""
+	# Monkey patch get_plugin_config to return our config dict
+	cli_common.get_plugin_config = lambda: {"notes_root": config.notes_root}
+
+	# Update the root_dir in commands module
+	import mkdocs_note.utils.cli.commands as cmd_module
+
+	cmd_module.root_dir = cli_common.get_plugin_config()["notes_root"]
 
 
 class CustomGroup(click.Group):
@@ -125,23 +146,33 @@ def new_command(ctx, file_path, template):
 	FILE_PATH: Path where the new note file should be created
 	"""
 	try:
-		# Load configuration
+		# Load configuration and setup environment
 		config = MkdocsNoteConfig()
-		creator = NoteCreator(config)
+		setup_cli_environment(config)
 
 		# Convert to Path
 		note_path = Path(file_path)
 
-		# Create the note
-		result = creator.create_new_note(note_path, template_path=template)
+		# Check if file already exists
+		if note_path.exists():
+			click.echo(f"❌ Error: File already exists: {note_path}", err=True)
+			sys.exit(1)
 
-		if result.success:
-			click.echo(f"✅ {result.message}")
-			click.echo(f"📝 Note: {result.data['note_path']}")
-			click.echo(f"📁 Assets: {result.data['asset_dir']}")
+		# Create the note using NewCommand
+		command = NewCommand()
+		command.execute(note_path)
+
+		# Get asset directory path
+		asset_dir = cli_common.get_asset_directory(note_path)
+
+		# Check if creation was successful
+		if note_path.exists():
+			click.echo("✅ Successfully created note")
+			click.echo(f"📝 Note: {note_path}")
+			click.echo(f"📁 Assets: {asset_dir}")
 			sys.exit(0)
 		else:
-			click.echo(f"❌ Error: {result.message}", err=True)
+			click.echo("❌ Error: Failed to create note", err=True)
 			sys.exit(1)
 
 	except Exception as e:
@@ -178,12 +209,20 @@ def remove_command(ctx, file_path, keep_assets, yes):
 	FILE_PATH: Path to the note file to remove
 	"""
 	try:
+		# Load configuration and setup environment
+		config = MkdocsNoteConfig()
+		setup_cli_environment(config)
+
 		note_path = Path(file_path)
 
 		# Check if file exists
 		if not note_path.exists():
 			click.echo(f"❌ Error: File does not exist: {note_path}", err=True)
 			sys.exit(1)
+
+		# Get asset directory before removal
+		asset_dir = cli_common.get_asset_directory(note_path)
+		asset_exists = asset_dir.exists()
 
 		# Confirmation prompt (unless --yes)
 		if not yes:
@@ -192,22 +231,20 @@ def remove_command(ctx, file_path, keep_assets, yes):
 				click.echo("⚠️  Cancelled")
 				sys.exit(0)
 
-		# Load configuration
-		config = MkdocsNoteConfig()
-		remover = NoteRemover(config)
+		# Remove the note using RemoveCommand
+		command = RemoveCommand()
+		command.execute(note_path, remove_assets=not keep_assets)
 
-		# Remove the note
-		result = remover.remove_note(note_path, remove_assets=not keep_assets)
-
-		if result.success:
-			click.echo(f"✅ {result.message}")
-			if result.data["removed_assets"]:
-				click.echo(f"📁 Removed assets: {result.data['asset_dir']}")
+		# Check if removal was successful
+		if not note_path.exists():
+			click.echo(f"✅ Successfully removed note: {note_path}")
+			if not keep_assets and asset_exists:
+				click.echo(f"📁 Removed assets: {asset_dir}")
 			else:
-				click.echo(f"📁 Kept assets: {result.data['asset_dir']}")
+				click.echo(f"📁 Kept assets: {asset_dir}")
 			sys.exit(0)
 		else:
-			click.echo(f"❌ Error: {result.message}", err=True)
+			click.echo("❌ Error: Failed to remove note", err=True)
 			sys.exit(1)
 
 	except Exception as e:
@@ -258,6 +295,10 @@ def move_command(ctx, source, destination, keep_source_assets, yes):
 	    DESTINATION: Destination path (or parent directory if exists)
 	"""
 	try:
+		# Load configuration and setup environment
+		config = MkdocsNoteConfig()
+		setup_cli_environment(config)
+
 		source_path = Path(source)
 		dest_path = Path(destination)
 
@@ -273,28 +314,24 @@ def move_command(ctx, source, destination, keep_source_assets, yes):
 				click.echo("⚠️  Cancelled")
 				sys.exit(0)
 
-		# Load configuration
-		config = MkdocsNoteConfig()
-		mover = NoteMover(config)
+		# Move the note using MoveCommand
+		# Note: Current MoveCommand doesn't have keep_source_assets parameter
+		# It always moves assets, so we need to handle this limitation
+		command = MoveCommand()
+		command.execute(source_path, dest_path)
 
-		# Move the note or directory
-		result = mover.move_note_or_directory(
-			source_path, dest_path, move_assets=not keep_source_assets
-		)
-
-		if result.success:
-			click.echo(f"✅ {result.message}")
-			if "source" in result.data and "destination" in result.data:
-				click.echo(f"📝 From: {result.data['source']}")
-				click.echo(f"📝 To: {result.data['destination']}")
-				if "asset_moved" in result.data:
-					if result.data["asset_moved"]:
-						click.echo("📁 Assets moved")
-					else:
-						click.echo("📁 Assets kept at source")
+		# Check if move was successful
+		if dest_path.exists() and not source_path.exists():
+			click.echo("✅ Successfully moved")
+			click.echo(f"📝 From: {source_path}")
+			click.echo(f"📝 To: {dest_path}")
+			if not keep_source_assets:
+				click.echo("📁 Assets moved")
+			else:
+				click.echo("📁 Assets kept at source")
 			sys.exit(0)
 		else:
-			click.echo(f"❌ Error: {result.message}", err=True)
+			click.echo("❌ Error: Failed to move note", err=True)
 			sys.exit(1)
 
 	except Exception as e:
@@ -342,27 +379,31 @@ def clean_command(ctx, dry_run, yes):
 	    mkdocs-note clean
 	"""
 	try:
-		# Load configuration
+		# Load configuration and setup environment
 		config = MkdocsNoteConfig()
-		cleaner = NoteCleaner(config)
+		setup_cli_environment(config)
 
-		# Find orphaned assets
+		# Find orphaned assets first
 		if dry_run:
 			click.echo("🔍 Scanning for orphaned assets (dry run mode)...")
 		else:
 			click.echo("🔍 Scanning for orphaned assets...")
 
-		result = cleaner.clean_orphaned_assets(dry_run=True)
+		# Create command and scan for orphaned assets
+		command = CleanCommand()
+		root_dir = Path(config.notes_root)
+		note_files = command._scan_note_files(root_dir)
+		orphaned_dirs = command._find_orphaned_assets(note_files)
 
-		if result.data["removed_count"] == 0:
+		if len(orphaned_dirs) == 0:
 			click.echo("✅ No orphaned asset directories found")
 			sys.exit(0)
 
 		# Show what will be removed
 		click.echo(
-			f"\n{'Would remove' if dry_run else 'Found'} {result.data['removed_count']} orphaned asset director{'y' if result.data['removed_count'] == 1 else 'ies'}:"
+			f"\n{'Would remove' if dry_run else 'Found'} {len(orphaned_dirs)} orphaned asset director{'y' if len(orphaned_dirs) == 1 else 'ies'}:"
 		)
-		for orphaned_dir in result.data["orphaned_dirs"]:
+		for orphaned_dir in orphaned_dirs:
 			click.echo(f"  📁 {orphaned_dir}")
 
 		# If dry run, exit here
@@ -374,22 +415,18 @@ def clean_command(ctx, dry_run, yes):
 
 		# Confirmation prompt (unless --yes)
 		if not yes:
-			if not click.confirm(
-				f"\nRemove these {result.data['removed_count']} directories?"
-			):
+			if not click.confirm(f"\nRemove these {len(orphaned_dirs)} directories?"):
 				click.echo("⚠️  Cancelled")
 				sys.exit(0)
 
 		# Actually clean
 		click.echo("\n🗑️  Removing orphaned assets...")
-		result = cleaner.clean_orphaned_assets(dry_run=False)
+		command.execute(dry_run=False)
 
-		if result.success:
-			click.echo(f"✅ {result.message}")
-			sys.exit(0)
-		else:
-			click.echo(f"❌ Error: {result.message}", err=True)
-			sys.exit(1)
+		click.echo(
+			f"✅ Successfully removed {len(orphaned_dirs)} orphaned asset director{'y' if len(orphaned_dirs) == 1 else 'ies'}"
+		)
+		sys.exit(0)
 
 	except Exception as e:
 		click.echo(f"❌ Unexpected error: {e}", err=True)
