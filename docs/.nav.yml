@@ -9,11 +9,8 @@ nav:
     - Recent Notes Insertion: usage/recent-notes.md
     - Command Line Interface: usage/cli.md
     - Asset Management: usage/asset-manager.md
-    - Templating System: usage/templating.md
     - Network Graph Visualization: usage/network-graph.md
-    - Exclusion: usage/exclusion.md
     - Configuration Options: usage/config.md
-    - Some Security Considerations: usage/sec.md
 
   - Contributing Guide:
     - contributing/contributing.md
