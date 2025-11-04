@@ -121,7 +121,6 @@ def new_command(ctx, file_path, template):
 	Examples:
 	    mkdocs-note new docs/notes/my-note.md
 	    mkdocs-note new docs/notes/python/intro.md
-	    mkdocs-note new docs/notes/custom.md --template templates/custom.md
 
 	FILE_PATH: Path where the new note file should be created
 	"""
@@ -368,12 +367,16 @@ def clean_command(ctx, dry_run, yes):
 
 		# If dry run, exit here
 		if dry_run:
-			click.echo("\n💡 Run without --dry-run to actually remove these directories")
+			click.echo(
+				"\n💡 Run without --dry-run to actually remove these directories"
+			)
 			sys.exit(0)
 
 		# Confirmation prompt (unless --yes)
 		if not yes:
-			if not click.confirm(f"\nRemove these {result.data['removed_count']} directories?"):
+			if not click.confirm(
+				f"\nRemove these {result.data['removed_count']} directories?"
+			):
 				click.echo("⚠️  Cancelled")
 				sys.exit(0)
 

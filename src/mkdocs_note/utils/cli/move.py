@@ -63,16 +63,16 @@ class NoteMover:
 
 			# Check if source is a directory
 			if source_path.is_dir():
-				return self.move_directory(source_path, dest_path, move_assets)
+				return self._move_directory(source_path, dest_path, move_assets)
 			else:
-				return self.move_note(source_path, dest_path, move_assets)
+				return self._move_note(source_path, dest_path, move_assets)
 
 		except Exception as e:
 			error_msg = f"Failed to move: {e}"
 			logger.error(error_msg)
 			return OperationResult(success=False, message=error_msg)
 
-	def move_directory(
+	def _move_directory(
 		self, source_dir: Path, dest_dir: Path, move_assets: bool = True
 	) -> OperationResult:
 		"""Move a directory with all notes and their assets.
@@ -89,12 +89,14 @@ class NoteMover:
 			# Validate source directory exists
 			if not source_dir.exists():
 				return OperationResult(
-					success=False, message=f"Source directory does not exist: {source_dir}"
+					success=False,
+					message=f"Source directory does not exist: {source_dir}",
 				)
 
 			if not source_dir.is_dir():
 				return OperationResult(
-					success=False, message=f"Source path is not a directory: {source_dir}"
+					success=False,
+					message=f"Source path is not a directory: {source_dir}",
 				)
 
 			# Validate destination doesn't already exist
@@ -139,7 +141,7 @@ class NoteMover:
 				dest_note_path = dest_dir / rel_path
 
 				# Move the note
-				result = self.move_note(note_file, dest_note_path, move_assets)
+				result = self._move_note(note_file, dest_note_path, move_assets)
 				if not result.success:
 					failed_count += 1
 
@@ -173,10 +175,10 @@ class NoteMover:
 
 		except Exception as e:
 			error_msg = f"Failed to move directory: {e}"
-			logger.error(error_msg)
-			return OperationResult(success=False, message=error_msg)
+		logger.error(error_msg)
+		return OperationResult(success=False, message=error_msg)
 
-	def move_note(
+	def _move_note(
 		self, source_path: Path, dest_path: Path, move_assets: bool = True
 	) -> OperationResult:
 		"""Move or rename a note file and its asset directory.
@@ -193,7 +195,8 @@ class NoteMover:
 			# Validate source file exists
 			if not source_path.exists():
 				return OperationResult(
-					success=False, message=f"Source note file does not exist: {source_path}"
+					success=False,
+					message=f"Source note file does not exist: {source_path}",
 				)
 
 			if not source_path.is_file():
@@ -238,7 +241,9 @@ class NoteMover:
 				# Ensure destination asset parent directory exists
 				ensure_parent_directory(dest_asset_dir / "dummy")
 
-				logger.info(f"Moving asset directory: {source_asset_dir} → {dest_asset_dir}")
+				logger.info(
+					f"Moving asset directory: {source_asset_dir} → {dest_asset_dir}"
+				)
 				shutil.move(str(source_asset_dir), str(dest_asset_dir))
 				logger.info("Successfully moved asset directory")
 
