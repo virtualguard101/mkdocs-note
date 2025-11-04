@@ -1,5 +1,5 @@
 ---
-date: 2025-10-16 14:06:23
+date: 2025-11-04 23:45:00
 title: Getting Started
 permalink: 
 publish: true
@@ -26,6 +26,39 @@ pip install mkdocs-note
 
 For more details, please refer to the [Installation | User Guide](usage/installation.md).
 
+## Use CLI to manage notes
+
+The most highlighted feature of the plugin is the CLI commands to manage notes, which can help you manage your notes with their corresponding assets **atomically**.
+
+### Create a note
+
+To create a note, you can use the following command:
+```bash
+mkdocs-note new /path/to/note
+```
+
+It will create a note in the specified path and create a corresponding asset directory in the `assets` directory which will be co-located with the note.
+
+### Remove Note or Note Directory
+
+To remove a note, you can use the following command:
+```bash
+mkdocs-note remove /path/to/note-or-directory
+```
+
+It will remove the note or note directory and the corresponding asset directory(ies) from the `assets` directory, inspired by shell command `rm -rf`.
+
+### Move or Rename Note or Note Directory
+
+To move or rename a note or note directory, you can use the following command:
+```bash
+mkdocs-note move /path/to/note-or-directory /path/to/new-location
+```
+
+It will move or rename the note or note directory and the corresponding asset directory(ies) to the new location, inspired by shell command `mv`.
+
+More details, please refer to the [CLI Commands | User Guide](usage/cli.md).
+
 ## Configuration
 
 ### Basic Configuration
@@ -41,120 +74,32 @@ It's the simplest configuration, and the plugin will use the default configurati
 
 ### Recommended Configuration
 
-For recommended configuration, you can add the following to your `mkdocs.yml`:
+To use the plugin in a recommended way, you can add the following to your `mkdocs.yml`:
 
 ```yml
 plugins:
   - mkdocs-note:
-      notes_dir: "docs/notes"
-      index_file: "docs/index.md"
-      start_marker: "<!-- recent_notes_start -->"
-      end_marker: "<!-- recent_notes_end -->"
-      max_notes: 10
-      supported_extensions: [".md"]
+      recent_notes_config:
+        enabled: true
+        insert_marker: "<!-- recent_notes -->"
+        insert_num: 5
+      graph_config:
+        enabled: true
+        name: "title"
+        debug: false
 ```
 
-In general, Mkdocs Note supports highly customizable configuration, you can configure the plugin to your own needs.
+## Recent Notes Insertion
 
-Please refer to the [Configuration Options | User Guide](usage/config.md) for more details about the information of each configuration options.
+Mkdocs Note supports inserting specified number of recent notes to the marked placeholder in the index file, which can be configured in `mkdocs.yml` as follows:
 
-## Create Your Note Boxes
-
-### Manual Setup
-
-1. Create the notes directory you have just configured above in your mkdocs project (e.g., `docs/notes`)
-
-2. Create an `index.md` file in your notes directory manually.
-
-3. Add the marker comments to your index file:
-
-```markdown
-# My Notes
-
-<!-- recent_notes_start -->
-<!-- recent_notes_end -->
+```yml
+plugins:
+  - mkdocs-note:
+      recent_notes_config:
+        enabled: true
+        insert_marker: "<!-- recent_notes -->"
+        insert_num: 5
 ```
 
-For index files (`index.md`), the default configuration will not allow CLI tools to create it automatically, so you need to create it manually. See more details in [Exclusion](usage/exclusion.md) and [Something You Should Notice | Recent Notes Insertion](usage/recent-notes.md#Something-You-Should-Notice) about it.
-
-### Use CLI Commands
-
-The plugin provides several CLI commands for docs and their assets management.
-
-And first of all, this is a mkdocs-based plugin, so you need to have a mkdocs project first.
-
-#### Validate Structure
-
-Use following command to validate the structure of your docs and assets:
-
-```bash
-mkdocs-note validate [--path PATH]
-```
-
-This command will check if the structure of your docs and assets is compliant with the plugin's design.
-
-If there are any issues, it will report them to you.
-
-#### Initialize Docs and Assets Structure
-
-Use following command to initialize your mkdocs-based docs and assets structure:
-
-```bash
-mkdocs-note init [--path PATH]
-```
-
-If your docs already has a structure, this command will analyze the existing asset structures and fix the non-compliant asset trees.
-
-However, it will not help you move your existing assets to the new structure.
-
-For example, if you have a note in `docs/notes/my-note.md`, and the asset is in `docs/assets/notes/my-note/`, this command will not help you move the asset to `docs/assets/my-note/`.
-
-And take a look at the entire plugin in `v2.0.0`,there has no way to move the asset to the new structure automatically, so you need to do it manually and we're now trying to add this optional feature in the future.
-
-By the way, if you're really don't want to move your existing assets to the new structure, you can puts them out of the config option `notes_dir` and use legency way to link them in order to avoid the plugin automatically managing them and cause some undefined events.
-
-#### Create New Documentation
-
-Use following command to create a new documentation:
-
-```bash
-mkdocs-note new FILE_PATH
-```
-
-This command will create a new note file with the default template and the corresponding asset directory, which is a bit like [`hexo new`](https://hexo.io/zh-cn/docs/commands#new) command in Hexo.
-
-#### Remove Existing Documentation
-
-Use following command to remove an existing documentation:
-
-```bash
-mkdocs-note remove FILE_PATH
-```
-
-This command will remove the documentation file and its corresponding asset directory, and before doing that, it will ask you for confirmation.
-
-And you can use the alias `mkdocs-note rm` to do the same thing.
-
-#### Other Commands
-
-There are some other commands that are not mentioned here, you can use `mkdocs-note --help/-h` or `mkdocs-note <command> --help/-h` to get the full list of commands and their usage.
-
-#### Configuration Auto-Loading
-
-All CLI commands automatically load your custom configuration from `mkdocs.yml` in the current or parent directories. You can also specify a config file explicitly using `--config` or `-c` option:
-
-```bash
-mkdocs-note --config path/to/mkdocs.yml <command>
-```
-
-## Getting Help
-
-See the [User Guide](usage/index.md) for more details about the usage and features of the plugin.
-
-This project is still in its infancy stage, so any feedback or suggestions are welcome.
-
-You can open an issue on [GitHub](https://github.com/virtualguard101/mkdocs-note/issues) to report bugs or request features.
-
-Or you can email me directly at [virtualguard101@gmail.com](mailto:virtualguard101@gmail.com), though I may respone late because of my busy schedule.
-
-Thank you for using MkDocs Note!
+More details, please refer to the [Recent Notes Insertion | User Guide](usage/recent-notes.md).
