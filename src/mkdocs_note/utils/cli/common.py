@@ -2,29 +2,11 @@
 Common utilities and data structures for CLI operations.
 """
 
-import logging
-from dataclasses import dataclass
+from mkdocs.plugins import get_plugin_logger
 from pathlib import Path
-from typing import Any
 
 
-@dataclass
-class OperationResult:
-	"""Result of a CLI operation.
-
-	Attributes:
-	    success: Whether the operation succeeded
-	    message: Human-readable message describing the result
-	    data: Optional additional data returned by the operation
-	"""
-
-	success: bool
-	message: str = ""
-	data: Any = None
-
-	def __bool__(self) -> bool:
-		"""Allow using result in boolean context."""
-		return self.success
+log = get_plugin_logger(__name__)
 
 
 def get_asset_directory(note_path: Path) -> Path:
@@ -46,19 +28,6 @@ def get_asset_directory(note_path: Path) -> Path:
 	    PosixPath('docs/notes/python/assets/intro')
 	"""
 	return note_path.parent / "assets" / note_path.stem
-
-
-def is_supported_note(path: Path, supported_extensions: list[str]) -> bool:
-	"""Check if a file path has a supported extension.
-
-	Args:
-	    path: File path to check
-	    supported_extensions: List of supported extensions (e.g., [".md", ".ipynb"])
-
-	Returns:
-	    bool: True if extension is supported
-	"""
-	return path.suffix.lower() in supported_extensions
 
 
 def is_excluded_name(name: str, exclude_patterns: list[str]) -> bool:
@@ -105,7 +74,7 @@ def cleanup_empty_directories(start_dir: Path, stop_at: Path) -> None:
 		if current.exists() and current.is_dir():
 			try:
 				if not any(current.iterdir()):
-					logging.debug(f"Removing empty directory: {current}")
+					log.debug(f"Removing empty directory: {current}")
 					current.rmdir()
 					# Recursively clean up parent
 					cleanup_empty_directories(current.parent, stop)
@@ -113,23 +82,4 @@ def cleanup_empty_directories(start_dir: Path, stop_at: Path) -> None:
 				# Directory not empty or other error, stop cleanup
 				pass
 	except Exception as e:
-		logging.debug(f"Error during directory cleanup: {e}")
-
-
-def get_logger(name: str) -> logging.Logger:
-	"""Get a logger instance for CLI operations.
-
-	Args:
-	    name: Logger name (typically __name__)
-
-	Returns:
-	    logging.Logger: Configured logger instance
-	"""
-	logger = logging.getLogger(name)
-	if not logger.handlers:
-		handler = logging.StreamHandler()
-		formatter = logging.Formatter("%(levelname)s - %(name)s - %(message)s")
-		handler.setFormatter(formatter)
-		logger.addHandler(handler)
-		logger.setLevel(logging.INFO)
-	return logger
+		log.error(f"Error during directory cleanup: {e}")

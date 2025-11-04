@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -6,6 +7,7 @@ from mkdocs.plugins import get_plugin_logger
 from mkdocs_note.utils.cli import common
 
 log = get_plugin_logger(__name__)
+root_dir = Path("docs")
 
 
 class NewCommand:
@@ -27,7 +29,7 @@ publish: true
 
 	def _validate_before_execution(self, file_path: Path) -> bool:
 		"""Validate before executing the new command.
-		
+
 		Args:
 			file_path (Path): The path to the new note file
 
@@ -108,11 +110,7 @@ class RemoveCommand:
 			log.error(f"Error validating before execution: {e}")
 			return 0
 
-	def _remove_single_document(
-		self,
-		path: Path,
-		remove_assets: bool = True
-	) -> None:
+	def _remove_single_document(self, path: Path, remove_assets: bool = True) -> None:
 		"""Remove a single document.
 
 		Args:
@@ -129,18 +127,19 @@ class RemoveCommand:
 
 			# Remove the asset directory if requested and exists
 			if remove_assets and asset_dir.exists():
-				import shutil
 				shutil.rmtree(asset_dir)
 				log.info(f"Successfully removed asset directory: {asset_dir}")
+				# Clean up empty parent directories in source
+				common.cleanup_empty_directories(asset_dir.parent, root_dir)
 			else:
-				log.warning(f"Asset directory does not exist: {asset_dir}, skipping removal")
+				log.warning(
+					f"Asset directory does not exist: {asset_dir}, skipping removal"
+				)
 		except Exception as e:
 			log.error(f"Error removing single document: {e}")
 
 	def _remove_docs_directory(
-		self,
-		directory: Path,
-		remove_assets: bool = True
+		self, directory: Path, remove_assets: bool = True
 	) -> None:
 		"""Remove a directory of documents.
 
@@ -150,7 +149,11 @@ class RemoveCommand:
 		"""
 		try:
 			# Get the list of documents in the directory
-			documents = [p for p in directory.iterdir() if p.is_file() and (p.suffix == ".md" or p.suffix == ".ipynb")]
+			documents = [
+				p
+				for p in directory.iterdir()
+				if p.is_file() and (p.suffix == ".md" or p.suffix == ".ipynb")
+			]
 
 			# Remove each document
 			for document in documents:
@@ -158,11 +161,7 @@ class RemoveCommand:
 		except Exception as e:
 			log.error(f"Error removing directory of documents: {e}")
 
-	def execute(
-		self,
-		path: Path,
-		remove_assets: bool = True
-	) -> None:
+	def execute(self, path: Path, remove_assets: bool = True) -> None:
 		"""Execute the remove command.
 
 		Args:
@@ -187,11 +186,7 @@ class MoveCommand:
 	corresponding asset directory(ies) like `mv`.
 	"""
 
-	def _validate_before_execution(
-		self,
-		source: Path,
-		destination: Path
-	) -> int:
+	def _validate_before_execution(self, source: Path, destination: Path) -> int:
 		"""Validate before executing the move command.
 
 		Args:
@@ -215,7 +210,7 @@ class MoveCommand:
 			# Check if source is a file
 			elif source.is_file():
 				return 1
-			
+
 			# Check if destination exists
 			if destination.exists():
 				log.error(f"Destination already exists: {destination}")
@@ -224,11 +219,7 @@ class MoveCommand:
 			log.error(f"Error validating before execution: {e}")
 			return 0
 
-	def _move_single_document(
-		self,
-		source: Path,
-		destination: Path
-	) -> None:
+	def _move_single_document(self, source: Path, destination: Path) -> None:
 		"""Move a single document.
 
 		Args:
@@ -236,15 +227,43 @@ class MoveCommand:
 			destination (Path): The path to the destination note file to move
 		"""
 		try:
-			pass
+			# Ensure parent directory exists
+			common.ensure_parent_directory(destination)
+
+			# Get the corresponding asset directory before moving
+			source_asset_dir = common.get_asset_directory(source)
+			dest_asset_dir = common.get_asset_directory(destination)
+
+			# Move the document
+			shutil.move(source, destination)
+			log.info(f"Successfully moved document: {source} → {destination}")
+
+			# Move the asset directory if requested and exists
+			if source_asset_dir.exists():
+				# Ensure destination asset parent directory exists
+				common.ensure_parent_directory(dest_asset_dir / "dummy")
+
+				shutil.move(str(source_asset_dir), str(dest_asset_dir))
+				log.info(
+					f"Successfully moved asset directory: {source_asset_dir} → {dest_asset_dir}"
+				)
+				# Clean up empty parent directories in source
+				common.cleanup_empty_directories(source_asset_dir.parent, root_dir)
 		except Exception as e:
 			log.error(f"Error moving single document: {e}")
+			# Try to rollback if possible
+			try:
+				if destination.exists():
+					log.info("Attempting to rollback changes...")
+					if not source.exists():
+						shutil.move(str(destination), str(source))
+					if source_asset_dir and not source_asset_dir.exists():
+						shutil.move(str(dest_asset_dir), str(source_asset_dir))
+					log.info("Rollback completed")
+			except Exception as rollback_error:
+				log.error(f"Rollback failed: {rollback_error}")
 
-	def _move_docs_directory(
-		self,
-		source: Path,
-		destination: Path
-	) -> None:
+	def _move_docs_directory(self, source: Path, destination: Path) -> None:
 		"""Move a directory of documents.
 
 		Args:
@@ -252,19 +271,142 @@ class MoveCommand:
 			destination (Path): The path to the destination directory of documents to move
 		"""
 		try:
-			pass
+			# Get all note files in the source directory
+			source_dir_resolved = source.resolve()
+			all_note_files = []
+
+			for file_path in source_dir_resolved.rglob("*"):
+				if file_path.is_file() and file_path.suffix.lower() in [
+					".md",
+					".ipynb",
+				]:
+					all_note_files.append(file_path)
+
+			if not all_note_files:
+				log.warning(f"No note files found in directory: {source}")
+
+			log.info(f"Found {len(all_note_files)} note file(s) to move")
+
+			# Move each note file
+			for note_file in all_note_files:
+				self._move_single_document(
+					note_file, destination / note_file.relative_to(source_dir_resolved)
+				)
 		except Exception as e:
 			log.error(f"Error moving directory of documents: {e}")
 
-	def execute(
-		self,
-		source: Path,
-		destination: Path
-	) -> None:
+	def execute(self, source: Path, destination: Path) -> None:
 		"""Execute the move command.
 
 		Args:
 			source (Path): The path to the source note file(s) to move
 			destination (Path): The path to the destination note file(s) to move
 		"""
-		pass
+		try:
+			# Validate before execution
+			pre_check = self._validate_before_execution(source, destination)
+			if pre_check == 0:
+				log.error(f"Validation failed for: {source}")
+			elif pre_check == 1:
+				self._move_single_document(source, destination)
+			elif pre_check == 2:
+				self._move_docs_directory(source, destination)
+		except Exception as e:
+			log.error(f"Error executing move command: {e}")
+			return
+
+
+class CleanCommand:
+	"""Command to clean up orphaned asset directories."""
+
+	def _scan_note_files(self, root_dir: Path) -> list[Path]:
+		"""Scan directory for note files.
+
+		Args:
+			root_dir (Path): Root directory to scan
+
+		Returns:
+			list[Path]: List of note file paths
+		"""
+		note_files = []
+
+		try:
+			for file_path in root_dir.rglob("*"):
+				if file_path.is_file() and file_path.suffix.lower() in [
+					".md",
+					".ipynb",
+				]:
+					note_files.append(file_path)
+		except Exception as e:
+			log.error(f"Error scanning note files: {e}")
+
+		return note_files
+
+	def _find_orphaned_assets(self, note_files: list[Path]) -> list[Path]:
+		"""Find orphaned asset directories.
+
+		Args:
+			note_files (list[Path]): List of note file paths
+
+		Returns:
+			list[Path]: List of orphaned asset directory paths
+		"""
+		note_files = self._scan_note_files(root_dir)
+		# Build a set of expected asset directory paths
+		expected_asset_dirs: set[str] = set()
+		for note_file in note_files:
+			asset_dir = common.get_asset_directory(note_file)
+			expected_asset_dirs.add(str(asset_dir.resolve()))
+
+		# Find all actual asset directories by scanning root_dir
+		orphaned_dirs: list[Path] = []
+		try:
+			# Scan for 'assets' directories within root_dir
+			for asset_dir in root_dir.rglob("assets"):
+				if not asset_dir.is_dir():
+					continue
+				# Check all subdirectories within each assets directory
+				for item in asset_dir.iterdir():
+					if item.is_dir():
+						# Check if this is a leaf directory (no subdirectories)
+						has_subdirs = any(child.is_dir() for child in item.iterdir())
+						if not has_subdirs:
+							# Check if this is a leaf directory that corresponds to a note
+							item_resolved = str(item.resolve())
+							if item_resolved not in expected_asset_dirs:
+								orphaned_dirs.append(item)
+		except Exception as e:
+			log.error(f"Error finding orphaned assets: {e}")
+
+		return orphaned_dirs
+
+	def execute(self, dry_run: bool = False) -> None:
+		"""Execute the clean command.
+
+		Args:
+			dry_run (bool): If True, only report what would be removed without actually removing
+		"""
+		try:
+			orphaned_dirs = self._find_orphaned_assets(root_dir)
+			if not orphaned_dirs:
+				log.info("No orphaned asset directories found")
+
+			log.info(f"Found {len(orphaned_dirs)} orphaned asset directory(ies)")
+
+			removed_dirs: list[Path] = []
+
+			for asset_dir in orphaned_dirs:
+				if dry_run:
+					log.info(f"[DRY RUN] Would remove: {asset_dir}")
+					removed_dirs.append(asset_dir)
+				else:
+					shutil.rmtree(asset_dir)
+					removed_dirs.append(asset_dir)
+					log.info(
+						f"Removed {len(removed_dirs)} orphaned asset directory(ies)"
+					)
+					# Clean up empty parent directories in source
+					common.cleanup_empty_directories(asset_dir.parent, root_dir)
+		except Exception as e:
+			log.error(f"Error executing clean command: {e}")
+			return
