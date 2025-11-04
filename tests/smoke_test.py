@@ -30,236 +30,186 @@ def test_core_modules():
 	"""Test that core modules can be imported."""
 	print("Testing core modules...")
 
-	modules_to_test = [
-		("mkdocs_note.config", "PluginConfig"),
-		("mkdocs_note.logger", "Logger"),
-		("mkdocs_note.utils.fileps.handlers", "NoteScanner"),
-		("mkdocs_note.utils.fileps.handlers", "AssetScanner"),
-		("mkdocs_note.utils.dataps.meta", "NoteInfo"),
-		("mkdocs_note.utils.docsps.handlers", "NoteProcessor"),
-		("mkdocs_note.utils.docsps.creator", "NoteCreator"),
-		("mkdocs_note.utils.docsps.initializer", "NoteInitializer"),
-		("mkdocs_note.utils.assetps.handlers", "AssetsProcessor"),
-		("mkdocs_note.utils.graphps.handlers", "GraphHandler"),
-		("mkdocs_note.utils.graphps.graph", "Graph"),
-		("mkdocs_note.plugin", "MkdocsNotePlugin"),
-	]
-
-	for module_name, class_name in modules_to_test:
-		try:
-			module = __import__(module_name, fromlist=[class_name])
-			getattr(module, class_name)
-			print(f"✅ {module_name}.{class_name} imported successfully")
-		except (ImportError, AttributeError) as e:
-			print(f"❌ Failed to import {module_name}.{class_name}: {e}")
-			assert False, f"Failed to import {module_name}.{class_name}: {e}"
-
-
-def test_basic_functionality():
-	"""Test basic functionality of key components."""
-	print("Testing basic functionality...")
-
-	# Test PluginConfig
+	# Test config module
 	try:
-		from mkdocs_note.config import PluginConfig
+		from mkdocs_note.config import MkdocsNoteConfig
 
-		config = PluginConfig()
-		assert hasattr(config, "enabled")
-		assert hasattr(config, "max_notes")
-		print("✅ PluginConfig basic functionality works")
+		config = MkdocsNoteConfig()
+		assert config is not None
+		print("✅ MkdocsNoteConfig works")
 	except Exception as e:
-		print(f"❌ PluginConfig functionality failed: {e}")
-		assert False, f"PluginConfig functionality failed: {e}"
+		print(f"❌ MkdocsNoteConfig failed: {e}")
+		assert False, f"MkdocsNoteConfig failed: {e}"
 
-	# Test Logger
-	try:
-		from mkdocs_note.logger import Logger
-
-		logger = Logger()
-		logger.info("Smoke test message")
-		print("✅ Logger basic functionality works")
-	except Exception as e:
-		print(f"❌ Logger functionality failed: {e}")
-		assert False, f"Logger functionality failed: {e}"
-
-	# Test NoteScanner
-	try:
-		from mkdocs_note.utils.fileps.handlers import NoteScanner
-		from mkdocs_note.config import PluginConfig
-		from mkdocs_note.logger import Logger
-
-		config = PluginConfig()
-		logger = Logger()
-		NoteScanner(config, logger)  # Test instantiation
-		print("✅ NoteScanner basic functionality works")
-	except Exception as e:
-		print(f"❌ NoteScanner functionality failed: {e}")
-		assert False, f"NoteScanner functionality failed: {e}"
-
-	# Test data models
-	try:
-		print("✅ Data models basic functionality works")
-	except Exception as e:
-		print(f"❌ Data models functionality failed: {e}")
-		assert False, f"Data models functionality failed: {e}"
-
-	# Test NoteProcessor
-	try:
-		from mkdocs_note.utils.docsps.handlers import NoteProcessor
-		from mkdocs_note.config import PluginConfig
-		from mkdocs_note.logger import Logger
-
-		config = PluginConfig()
-		logger = Logger()
-		NoteProcessor(config, logger)  # Test instantiation
-		print("✅ NoteProcessor basic functionality works")
-	except Exception as e:
-		print(f"❌ NoteProcessor functionality failed: {e}")
-		assert False, f"NoteProcessor functionality failed: {e}"
-
-	# Test MkdocsNotePlugin
+	# Test plugin module
 	try:
 		from mkdocs_note.plugin import MkdocsNotePlugin
-		from mkdocs_note.config import PluginConfig
 
 		plugin = MkdocsNotePlugin()
-		plugin.config = PluginConfig()
-		assert hasattr(plugin, "plugin_enabled")
-		print("✅ MkdocsNotePlugin basic functionality works")
+		assert plugin is not None
+		print("✅ MkdocsNotePlugin works")
 	except Exception as e:
-		print(f"❌ MkdocsNotePlugin functionality failed: {e}")
-		assert False, f"MkdocsNotePlugin functionality failed: {e}"
+		print(f"❌ MkdocsNotePlugin failed: {e}")
+		assert False, f"MkdocsNotePlugin failed: {e}"
 
-	# Test NoteCreator
+	# Test utils.meta module
 	try:
-		from mkdocs_note.utils.docsps.creator import NoteCreator
-		from mkdocs_note.config import PluginConfig
-		from mkdocs_note.logger import Logger
+		from mkdocs_note.utils.meta import (
+			validate_frontmatter,
+			extract_date,
+			extract_title,
+		)
 
-		config = PluginConfig()
-		logger = Logger()
-		NoteCreator(config, logger)  # Test instantiation
-		print("✅ NoteCreator basic functionality works")
+		assert validate_frontmatter is not None
+		assert extract_date is not None
+		assert extract_title is not None
+		print("✅ utils.meta works")
 	except Exception as e:
-		print(f"❌ NoteCreator functionality failed: {e}")
-		assert False, f"NoteCreator functionality failed: {e}"
+		print(f"❌ utils.meta failed: {e}")
+		assert False, f"utils.meta failed: {e}"
 
-	# Test NoteInitializer
+	# Test utils.scanner module
 	try:
-		from mkdocs_note.utils.docsps.initializer import NoteInitializer
-		from mkdocs_note.config import PluginConfig
-		from mkdocs_note.logger import Logger
+		from mkdocs_note.utils.scanner import scan_notes
 
-		config = PluginConfig()
-		logger = Logger()
-		NoteInitializer(config, logger)  # Test instantiation
-		print("✅ NoteInitializer basic functionality works")
+		assert scan_notes is not None
+		print("✅ utils.scanner works")
 	except Exception as e:
-		print(f"❌ NoteInitializer functionality failed: {e}")
-		assert False, f"NoteInitializer functionality failed: {e}"
+		print(f"❌ utils.scanner failed: {e}")
+		assert False, f"utils.scanner failed: {e}"
 
-	# Test AssetsProcessor
+	# Test graph module
 	try:
-		from mkdocs_note.utils.assetps.handlers import AssetsProcessor
-		from mkdocs_note.config import PluginConfig
-		from mkdocs_note.logger import Logger
+		from mkdocs_note.graph import Graph
 
-		config = PluginConfig()
-		logger = Logger()
-		AssetsProcessor(config, logger)  # Test instantiation
-		print("✅ AssetsProcessor basic functionality works")
+		assert Graph is not None
+		print("✅ Graph works")
 	except Exception as e:
-		print(f"❌ AssetsProcessor functionality failed: {e}")
-		assert False, f"AssetsProcessor functionality failed: {e}"
-
-	# Test GraphHandler
-	try:
-		from mkdocs_note.utils.graphps.handlers import GraphHandler
-		from mkdocs_note.config import PluginConfig
-
-		config = PluginConfig()
-		config.enable_network_graph = True
-		GraphHandler(config)  # Test instantiation
-		print("✅ GraphHandler basic functionality works")
-	except Exception as e:
-		print(f"❌ GraphHandler functionality failed: {e}")
-		assert False, f"GraphHandler functionality failed: {e}"
-
-	# Test Graph
-	try:
-		from mkdocs_note.utils.graphps.graph import Graph
-
-		graph_config = {"name": "title", "debug": False}
-		Graph(graph_config)  # Test instantiation
-		print("✅ Graph basic functionality works")
-	except Exception as e:
-		print(f"❌ Graph functionality failed: {e}")
-		assert False, f"Graph functionality failed: {e}"
+		print(f"❌ Graph failed: {e}")
+		assert False, f"Graph failed: {e}"
 
 
-def test_package_metadata():
-	"""Test that package metadata is accessible."""
-	print("Testing package metadata...")
+def test_plugin_entry_point():
+	"""Test that plugin entry point is properly configured."""
+	print("Testing plugin entry point...")
 
 	try:
-		import mkdocs_note
+		from importlib import metadata
 
-		# Check if __version__ exists
-		if hasattr(mkdocs_note, "__version__"):
-			version = mkdocs_note.__version__
-			print(f"✅ Package version: {version}")
+		entry_points = metadata.entry_points()
+
+		# Try to find mkdocs.plugins entry points
+		mkdocs_plugins = None
+		if hasattr(entry_points, "select"):
+			# Python 3.10+
+			mkdocs_plugins = entry_points.select(group="mkdocs.plugins")
 		else:
-			print("⚠️  Package version not found")
+			# Python 3.9
+			mkdocs_plugins = entry_points.get("mkdocs.plugins", [])
 
-		# Check if __author__ exists
-		if hasattr(mkdocs_note, "__author__"):
-			author = mkdocs_note.__author__
-			print(f"✅ Package author: {author}")
-		else:
-			print("⚠️  Package author not found")
+		# Check if mkdocs-note plugin is registered
+		plugin_found = False
+		for ep in mkdocs_plugins:
+			if ep.name == "mkdocs-note":
+				plugin_found = True
+				break
 
-		assert True
+		assert plugin_found, "mkdocs-note plugin not found in entry points"
+		print("✅ Plugin entry point is properly configured")
+
 	except Exception as e:
-		print(f"❌ Package metadata test failed: {e}")
-		assert False, f"Package metadata test failed: {e}"
+		print(f"❌ Plugin entry point test failed: {e}")
+		assert False, f"Plugin entry point test failed: {e}"
 
 
-def main():
+def test_cli_entry_point():
+	"""Test that CLI entry point is properly configured."""
+	print("Testing CLI entry point...")
+
+	try:
+		from importlib import metadata
+
+		entry_points = metadata.entry_points()
+
+		# Try to find console_scripts entry points
+		console_scripts = None
+		if hasattr(entry_points, "select"):
+			# Python 3.10+
+			console_scripts = entry_points.select(group="console_scripts")
+		else:
+			# Python 3.9
+			console_scripts = entry_points.get("console_scripts", [])
+
+		# Check if mkdocs-note CLI is registered
+		cli_found = False
+		for ep in console_scripts:
+			if ep.name == "mkdocs-note":
+				cli_found = True
+				break
+
+		assert cli_found, "mkdocs-note CLI not found in entry points"
+		print("✅ CLI entry point is properly configured")
+
+	except Exception as e:
+		print(f"❌ CLI entry point test failed: {e}")
+		assert False, f"CLI entry point test failed: {e}"
+
+
+def test_version():
+	"""Test that package version can be retrieved."""
+	print("Testing package version...")
+
+	try:
+		from importlib import metadata
+
+		version = metadata.version("mkdocs-note")
+		assert version is not None
+		assert len(version) > 0
+		print(f"✅ Package version: {version}")
+
+	except Exception as e:
+		print(f"❌ Version retrieval failed: {e}")
+		assert False, f"Version retrieval failed: {e}"
+
+
+def run_all_tests():
 	"""Run all smoke tests."""
-	print("MkDocs-Note Package Smoke Test")
-	print("=" * 50)
-	print(f"Python version: {sys.version}")
-	print(f"Python path: {sys.executable}")
-	print("=" * 50)
+	print("\n" + "=" * 60)
+	print("Running MkDocs-Note Smoke Tests")
+	print("=" * 60 + "\n")
 
-	all_passed = True
-
-	# Run all tests
 	tests = [
-		("Package Import", test_package_import),
-		("Core Modules", test_core_modules),
-		("Basic Functionality", test_basic_functionality),
-		("Package Metadata", test_package_metadata),
+		test_package_import,
+		test_core_modules,
+		test_plugin_entry_point,
+		test_cli_entry_point,
+		test_version,
 	]
 
-	for test_name, test_func in tests:
-		print(f"\n--- {test_name} ---")
-		try:
-			test_func()
-		except Exception as e:
-			print(f"❌ {test_name} failed: {e}")
-			all_passed = False
+	failed_tests = []
 
-	print("\n" + "=" * 50)
-	if all_passed:
-		print("🎉 All smoke tests passed!")
-		print("Package is ready for publishing.")
-		return 0
+	for test in tests:
+		try:
+			test()
+		except AssertionError as e:
+			failed_tests.append((test.__name__, str(e)))
+			print(f"\n❌ Test '{test.__name__}' failed: {e}\n")
+		except Exception as e:
+			failed_tests.append((test.__name__, str(e)))
+			print(f"\n❌ Test '{test.__name__}' raised exception: {e}\n")
+
+	print("\n" + "=" * 60)
+	if failed_tests:
+		print(f"❌ {len(failed_tests)} test(s) failed:")
+		for test_name, error in failed_tests:
+			print(f"  - {test_name}: {error}")
+		print("=" * 60)
+		sys.exit(1)
 	else:
-		print("❌ Some smoke tests failed.")
-		print("Package should NOT be published.")
-		return 1
+		print("✅ All smoke tests passed!")
+		print("=" * 60)
+		sys.exit(0)
 
 
 if __name__ == "__main__":
-	sys.exit(main())
+	run_all_tests()

@@ -1,3 +1,10 @@
+---
+date: 2025-11-05 00:00:00
+title: Network Graph Visualization
+permalink: 
+publish: true
+---
+
 # Network Graph Visualization
 
 The MkDocs Note plugin includes an interactive network graph feature that visualizes the relationships between your notes. This feature helps you understand the structure and connections in your documentation.
@@ -21,7 +28,8 @@ To enable the network graph, add the following to your `mkdocs.yml`:
 ```yaml
 plugins:
   - mkdocs-note:
-      enable_network_graph: true
+      graph_config:
+        enabled: true
 ```
 
 ### Advanced Configuration
@@ -29,8 +37,8 @@ plugins:
 ```yaml
 plugins:
   - mkdocs-note:
-      enable_network_graph: true
       graph_config:
+        enabled: true
         name: "title"              # Node naming: "title" or "file_name"
         debug: false              # Enable debug logging
 ```
@@ -120,96 +128,6 @@ Override specific graph elements:
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
-```
-
-## Link Generation
-
-The plugin automatically generates links between notes based on:
-
-### 1. Markdown Links
-
-- Standard markdown links: `[link text](target.md)`
-
-- Relative path resolution from note location
-
-- Automatic detection of internal documentation links
-
-### 2. Wiki-style Links
-
-- Wiki-style links: `[[target]]` or `[[target.md]]`
-
-- Automatic `.md` extension addition when needed
-
-- Path normalization and resolution
-
-### 3. Link Processing
-
-- Links are normalized and resolved relative to the source note
-
-- Only links to other documentation pages are included
-
-- External links and anchors are filtered out
-
-## Performance Considerations
-
-### Large Note Collections
-
-The network graph automatically handles large collections by:
-
-1. **Efficient Processing**: Only processes documentation pages, excluding assets and other files
-
-2. **Link Filtering**: Automatically filters out external links and invalid references
-
-3. **Memory Optimization**: Uses efficient data structures for node and edge storage
-
-### Build Performance
-
-The graph generation is integrated into the MkDocs build process and:
-
-- Runs during the `on_post_build` event
-
-- Processes only changed files (when using `--dirty` builds)
-
-- Generates graph data in parallel with other build tasks
-
-## Integration with Other Features
-
-The network graph works seamlessly with other plugin features:
-
-- **Recent Notes**: Integrates with the existing recent notes functionality
-
-- **Asset Management**: Respects the plugin's asset handling
-
-- **Template System**: Works with note templates and frontmatter
-
-- **Build Process**: Automatically generates during MkDocs build
-
-## Technical Details
-
-### Implementation
-
-The network graph feature is implemented using:
-
-- **Backend**: Python-based graph generation and data processing
-
-- **Frontend**: D3.js for interactive visualization
-
-- **Integration**: MkDocs plugin hooks for seamless integration
-
-- **Architecture**: Modular design following the plugin's `graphps` pattern
-
-### File Structure
-
-```
-src/mkdocs_note/
-├── utils/
-│   ├── graphps/
-│       ├── __init__.py
-│       ├── graph.py          # Graph data structure and processing
-│       └── handlers.py       # Graph handler for plugin integration
-└── static/
-    ├── js/graph.js       # Frontend visualization
-    └── stylesheet/graph.css  # Graph styling
 ```
 
 ## References

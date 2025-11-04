@@ -5,14 +5,16 @@ Migrated from [mkdocs-network-graph-plugin](https://github.com/develmusa/mkdocs-
 
 import os
 import re
+import shutil
 from typing import Iterator, Optional
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urlsplit, urlparse
+
+from mkdocs.plugins import get_plugin_logger
+from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.structure.files import Files
 from mkdocs.structure.pages import Page
 
-from mkdocs_note.logger import Logger
-
-logger = Logger()
+logger = get_plugin_logger(__name__)
 
 
 class Graph:
@@ -119,3 +121,67 @@ class Graph:
 	def to_dict(self):
 		"""Return the graph as a dictionary."""
 		return {"nodes": self.nodes, "edges": self.edges}
+
+
+def add_static_resouces(config: MkDocsConfig) -> None:
+	"""Add static resources into mkdocs config for network graph.
+
+	Args:
+		config (MkDocsConfig): The MkDocs configuration.
+	"""
+	config["extra_javascript"].append("https://d3js.org/d3.v7.min.js")
+
+	if "js/graph.js" not in config["extra_javascript"]:
+		config["extra_javascript"].append("js/graph.js")
+	if "css/graph.css" not in config["extra_css"]:
+		config["extra_css"].append("css/graph.css")
+
+
+def inject_graph_script(output: str, config: MkDocsConfig, debug: bool = False) -> str:
+	"""Inject the graph script into the HTML page.
+
+	Args:
+		output (str): The HTML output.
+		config (MkDocsConfig): The MkDocs configuration.
+		debug (bool): Whether to enable debug mode.
+
+	Returns:
+		str: The HTML with the graph script injected.
+	"""
+	site_url = config.get("site_url")
+	if site_url:
+		base_path = urlparse(site_url).path
+		# Ensure base_path ends with a slash
+		if not base_path.endswith("/"):
+			base_path += "/"
+	else:
+		base_path = "/"
+
+	options_script = (
+		"<script>"
+		f"window.graph_options = {{"
+		f"    debug: {str(debug).lower()},"
+		f"    base_path: '{base_path}'"
+		f"}};"
+		"</script>"
+	)
+	if "</body>" in output:
+		return output.replace("</body>", f"{options_script}</body>")
+	return output
+
+
+def copy_static_assets(static_dir: str, config: MkDocsConfig) -> None:
+	"""Copy static assets into the site directory.
+
+	Args:
+		config (MkDocsConfig): The MkDocs configuration.
+	"""
+	# Copy JS
+	js_output_dir = os.path.join(config["site_dir"], "js")
+	os.makedirs(js_output_dir, exist_ok=True)
+	shutil.copy(os.path.join(static_dir, "graph.js"), js_output_dir)
+
+	# Copy CSS
+	css_output_dir = os.path.join(config["site_dir"], "css")
+	os.makedirs(css_output_dir, exist_ok=True)
+	shutil.copy(os.path.join(static_dir, "graph.css"), css_output_dir)

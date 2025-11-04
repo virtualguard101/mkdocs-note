@@ -3,7 +3,7 @@ alias p := publish
 alias s := serve
 
 test OPTIONS="":
-    ./tests/test.sh {{ OPTIONS }}
+    uv run pytest {{ OPTIONS }}
 
 publish VERSION:
     git checkout main

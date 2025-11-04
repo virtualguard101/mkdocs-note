@@ -1,7 +1,8 @@
 import unittest
-import subprocess
-import sys
-from pathlib import Path
+import re
+from click.testing import CliRunner
+
+from mkdocs_note.cli import cli
 
 
 class TestHelpOptions(unittest.TestCase):
@@ -9,21 +10,20 @@ class TestHelpOptions(unittest.TestCase):
 
 	def __init__(self, methodName: str = "runTest") -> None:
 		super().__init__(methodName)
-		self.cli_path: Path = Path()
-		self.python_executable: str = ""
+		self.runner: CliRunner = CliRunner()
 
 	def setUp(self):
 		"""Set up the test environment."""
-		self.cli_path = Path(__file__).parent.parent / "src" / "mkdocs_note" / "cli.py"
-		self.python_executable = sys.executable
+		self.runner = CliRunner()
 
 	def run_cli_command(self, args):
-		"""Run a CLI command and return the output."""
-		cmd = [self.python_executable, str(self.cli_path)] + args
-		result = subprocess.run(
-			cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent
-		)
-		return result.stdout, result.stderr, result.returncode
+		"""Run a CLI command and return the output.
+
+		Returns tuple of (stdout, stderr, returncode) for compatibility.
+		"""
+		result = self.runner.invoke(cli, args)
+		# Click's CliRunner puts all output in stdout, stderr is usually empty
+		return result.output, "", result.exit_code
 
 	def test_help_long_option(self):
 		"""Test that --help option works without errors."""
@@ -75,9 +75,13 @@ class TestHelpOptions(unittest.TestCase):
 		)
 
 		# Should contain version information
-		# This test case is incorrect and not useful
-		# self.assertIn("mkdocs-note", stdout)
-		# self.assertIn("2.0.1", stdout)
+		# Version output format is "cli, version X.Y.Z"
+		self.assertIn("version", stdout.lower())
+		# Should contain version number pattern
+		self.assertTrue(
+			re.search(r"\d+\.\d+\.\d+", stdout),
+			f"No version number found in: {stdout}",
+		)
 
 	def test_help_with_subcommand(self):
 		"""Test that help works with subcommands."""
@@ -88,7 +92,7 @@ class TestHelpOptions(unittest.TestCase):
 			0,
 			f"new --help failed with return code {returncode}. stderr: {stderr}",
 		)
-		self.assertIn("Create a new note file", stdout)
+		self.assertIn("Create a new note", stdout)
 
 		# Test with 'new' command using -h
 		stdout_h, stderr_h, returncode_h = self.run_cli_command(["new", "-h"])
@@ -97,12 +101,27 @@ class TestHelpOptions(unittest.TestCase):
 			0,
 			f"new -h failed with return code {returncode_h}. stderr: {stderr_h}",
 		)
-		self.assertIn("Create a new note file", stdout_h)
+		self.assertIn("Create a new note", stdout_h)
 
 		# Both should produce the same output
 		self.assertEqual(
 			stdout, stdout_h, "new --help and new -h should produce identical output"
 		)
+
+	def test_help_with_all_commands(self):
+		"""Test that help works for all commands."""
+		commands = ["new", "remove", "rm", "move", "mv", "clean"]
+
+		for cmd in commands:
+			with self.subTest(command=cmd):
+				stdout, stderr, returncode = self.run_cli_command([cmd, "--help"])
+				self.assertEqual(
+					returncode,
+					0,
+					f"{cmd} --help failed with return code {returncode}",
+				)
+				# Should contain help text (not empty)
+				self.assertTrue(len(stdout) > 50, f"{cmd} help text too short")
 
 
 if __name__ == "__main__":
