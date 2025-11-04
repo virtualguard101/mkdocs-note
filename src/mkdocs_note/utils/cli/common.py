@@ -2,11 +2,24 @@
 Common utilities and data structures for CLI operations.
 """
 
-from mkdocs.plugins import get_plugin_logger
 from pathlib import Path
+
+from mkdocs.plugins import get_plugin_logger
+from mkdocs.config.defaults import MkDocsConfig
+
+from mkdocs_note.plugin import MkdocsNotePlugin as plugin
 
 
 log = get_plugin_logger(__name__)
+
+
+def get_plugin_config() -> MkDocsConfig:
+	"""Get the plugin configuration.
+	
+	Returns:
+		MkdocsNoteConfig: The plugin configuration
+	"""
+	return plugin.config
 
 
 def get_asset_directory(note_path: Path) -> Path:

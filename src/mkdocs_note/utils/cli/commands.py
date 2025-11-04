@@ -7,7 +7,7 @@ from mkdocs.plugins import get_plugin_logger
 from mkdocs_note.utils.cli import common
 
 log = get_plugin_logger(__name__)
-root_dir = Path("docs")
+root_dir = common.get_plugin_config()["notes_root"]
 
 
 class NewCommand:

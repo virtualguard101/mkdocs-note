@@ -29,10 +29,6 @@ class MkdocsNoteConfig(Config):
     - insert_num: The number of recent notes to insert
     """
 
-	notes_template = config_opt.Type(str, default="overrides/templates/default.md")
-	"""The template of the notes.
-    """
-
 	# Network Graph Configuration
 	graph_config = config_opt.Type(
 		dict,
@@ -47,20 +43,4 @@ class MkdocsNoteConfig(Config):
     Available options:
     - name: Node naming strategy ("title" or "file_name")
     - debug: Enable debug logging for graph generation
-    """
-
-	# CLI-specific configuration
-	supported_extensions = config_opt.Type(list, default=[".md"])
-	"""List of supported note file extensions.
-    Used by CLI commands to validate note file types.
-    """
-
-	exclude_patterns = config_opt.Type(list, default=["index.md", "README.md"])
-	"""List of filename patterns to exclude from note management.
-    Files matching these patterns will not be created, moved, or managed by CLI commands.
-    """
-
-	timestamp_format = config_opt.Type(str, default="%Y-%m-%d %H:%M:%S")
-	"""Date format string for timestamp output.
-    Uses Python strftime format codes.
     """
