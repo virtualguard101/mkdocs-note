@@ -1,3 +1,10 @@
+---
+date: 2025-11-05 00:25:00
+title: Architecture Overview
+permalink: 
+publish: false
+---
+
 # Architecture Overview (v2.0.0+)
 
 This document describes the complete architecture of the MkDocs-Note plugin in v2.0.0+, including modular refactoring, frontmatter metadata system, and co-located resource management.

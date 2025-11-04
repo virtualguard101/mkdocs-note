@@ -1,9 +1,338 @@
+---
+date: 2025-11-05 00:20:00
+title: Changelog
+permalink: 
+publish: true
+---
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 3.0.0 - 2025-11-04 (Architecture Simplification)
+
+### Changed
+
+- **[BREAKING] Major Architecture Refactoring**: Completely restructured project architecture from complex modular design to simplified flat structure (#60)
+  
+  - **Core Philosophy Change**: From "feature-rich notebook manager" to "lightweight documentation plugin with note features"
+  
+  - **Removed Modules** (deleted ~9,300 lines of code):
+    
+    - `utils/assetps/`: Asset management subsystem (401 lines)
+    
+    - `utils/dataps/`: Data models and frontmatter system (600+ lines)
+    
+    - `utils/docsps/`: Document operations (creator, cleaner, mover, remover, initializer - 1,800+ lines)
+    
+    - `utils/fileps/`: File I/O operations (105 lines)
+    
+    - `utils/graphps/`: Graph processing utilities (106 lines)
+    
+    - `utils/pathps/`: Path utilities (empty placeholder)
+    
+    - `logger.py`: Custom logging module (50 lines)
+  
+  - **New Simplified Structure**:
+    
+    - Core modules moved to package root: `plugin.py`, `cli.py`, `config.py`, `graph.py`
+    
+    - Minimal utilities: `utils/meta.py`, `utils/scanner.py`, `utils/cli/` (commands & common)
+    
+    - Total source code: ~2,700 lines (vs. ~12,000 lines in v2.x)
+  
+  - **Removed Features**:
+    
+    - Asset management system (automatic asset directory creation/management)
+    
+    - Template system (note templates with variable substitution)
+    
+    - Note validation and initialization commands
+    
+    - Advanced CLI commands: `init`, `validate`, `template`
+    
+    - Frontmatter management system
+    
+    - Complex file scanning and processing pipelines
+  
+  - **Retained Core Features**:
+    
+    - ✅ Recent notes display functionality
+    
+    - ✅ Network graph visualization
+    
+    - ✅ Basic CLI commands: `new`, `remove`, `move`, `clean`
+    
+    - ✅ Git timestamp support
+    
+    - ✅ Metadata extraction (title, date)
+  
+  - **Benefits**:
+    
+    - ✅ **Significantly Reduced Complexity**: Easier to understand, maintain, and extend
+    
+    - ✅ **Faster Performance**: Less overhead from removed abstraction layers
+    
+    - ✅ **Lower Maintenance Burden**: Fewer moving parts means fewer potential bugs
+    
+    - ✅ **Clearer Purpose**: Focused on core documentation needs rather than comprehensive note management
+    
+    - ✅ **Better Integration**: Simpler codebase integrates more naturally with MkDocs ecosystem
+
+- **Configuration Simplification**: Dramatically reduced configuration options
+  
+  - **Removed Options**:
+    
+    - `assets_dir`: Asset management removed
+    
+    - `notes_template`: Template system removed
+    
+    - `cache_size`: Caching logic simplified
+    
+    - `exclude_patterns`: File filtering simplified
+    
+    - `use_git_timestamps`: Now always enabled by default
+    
+    - `timestamp_zone`: Timezone handling simplified
+  
+  - **Retained Options**:
+    
+    - `enabled`: Plugin enable/disable toggle
+    
+    - `notes_root`: Working directory (default: `docs`)
+    
+    - `recent_notes_config`: Recent notes insertion settings
+    
+    - `graph_config`: Network graph visualization settings
+  
+  - **Impact**: Configuration now fits in 47 lines vs. 237 lines in v2.x
+
+- **CLI Refactoring**: Streamlined command-line interface
+  
+  - Migrated from complex `cli.py` (814 lines in v2.x) to modular structure:
+    
+    - `cli.py`: Main CLI entry point (438 lines)
+    
+    - `utils/cli/commands.py`: Command implementations (420 lines)
+    
+    - `utils/cli/common.py`: Shared utilities (98 lines)
+  
+  - **Removed Commands**:
+    
+    - `init`: Note directory initialization (no longer needed)
+    
+    - `validate`: Asset structure validation (asset system removed)
+    
+    - `template`: Template management (template system removed)
+  
+  - **Retained Commands** (with simplified implementations):
+    
+    - `new`: Create new notes (no template/validation overhead)
+    
+    - `remove` / `rm`: Delete notes (no asset cleanup complexity)
+    
+    - `move` / `mv`: Move/rename notes (simplified path handling)
+    
+    - `clean`: Clean orphaned resources (simplified cleanup logic)
+
+- **Test Suite Reorganization**: Completely restructured test suite
+  
+  - **Removed Test Files** (~4,900 lines):
+    
+    - `tests/core/`: All core module tests (8 test files)
+      
+      - `test_assets_manager.py` (618 lines)
+      
+      - `test_file_manager.py` (319 lines)
+      
+      - `test_frontmatter_manager.py` (435 lines)
+      
+      - `test_graph_handler_simple.py` (163 lines)
+      
+      - `test_note_cleaner.py` (480 lines)
+      
+      - `test_note_creator.py` (372 lines)
+      
+      - `test_note_initializer.py` (255 lines)
+      
+      - `test_note_manager.py` (502 lines)
+      
+      - `test_note_remover.py` (153 lines)
+  
+  - **New Test Structure**:
+    
+    - `test_cli_commands.py`: CLI command testing (453 lines)
+    
+    - `test_cli_common.py`: CLI utility testing (202 lines)
+    
+    - `test_cli_integration.py`: Integration testing (405 lines)
+    
+    - `test_config.py`: Configuration testing (simplified to 397 lines)
+    
+    - `test_plugin.py`: Plugin testing (simplified to 670 lines)
+    
+    - `smoke_test.py`: Package smoke tests (refactored)
+    
+    - `test_help.py`: Help system tests
+  
+  - **Test Count**: Reduced from 227 tests to focused test suite on core functionality
+
+- **Documentation Updates**: Comprehensive documentation reorganization
+  
+  - **Removed Documentation**:
+    
+    - `docs/usage/exclusion.md`: Exclusion patterns (42 lines)
+    
+    - `docs/usage/sec.md`: Security features (24 lines)
+    
+    - `docs/usage/templating.md`: Template system (75 lines)
+  
+  - **Added Documentation**:
+    
+    - `docs/usage/meta.md`: Metadata handling (8 lines)
+  
+  - **Updated Documentation**:
+    
+    - `docs/getting-started.md`: Simplified getting started guide
+    
+    - `docs/usage/cli.md`: Updated CLI documentation
+    
+    - `docs/usage/config.md`: Simplified configuration guide
+    
+    - `docs/usage/network-graph.md`: Updated graph documentation
+    
+    - `docs/usage/recent-notes.md`: Updated recent notes guide
+
+- **Graph Module Restructuring**: Moved graph functionality to package root
+  
+  - `utils/graphps/graph.py` → `graph.py` (now 74 lines vs. original implementation)
+  
+  - `utils/graphps/handlers.py`: Removed (101 lines) - logic integrated into main module
+  
+  - Static assets moved: `utils/graphps/static/` → `static/`
+
+### Removed
+
+- **Asset Management System**: Complete removal of automatic asset directory management
+  
+  - Users now manage asset organization manually
+  
+  - No more automatic asset path processing during build
+  
+  - Removed asset catalog and tree structure validation
+
+- **Template System**: Removed note template functionality
+  
+  - No more template variables (`{{title}}`, `{{date}}`, etc.)
+  
+  - No template validation or creation tools
+  
+  - Users manage note templates manually if needed
+
+- **Frontmatter Management**: Removed comprehensive frontmatter system
+  
+  - No metadata registry or field validation
+  
+  - No custom metadata field support
+  
+  - Basic frontmatter parsing remains for title/date extraction
+
+- **Advanced Validation**: Removed structure compliance checking
+  
+  - No asset tree validation
+  
+  - No note directory initialization
+  
+  - Simplified file scanning without complex validation
+
+### Fixed
+
+- **Code Complexity**: Resolved over-engineering issues from v2.x architecture
+  
+  - Removed unnecessary abstraction layers
+  
+  - Eliminated redundant validation logic
+  
+  - Simplified error handling and logging
+
+- **Maintenance Burden**: Addressed difficulty in maintaining large codebase
+  
+  - Reduced total lines of code by ~77% (12,000 → 2,700 lines)
+  
+  - Eliminated 6,000+ lines of test code for removed features
+  
+  - Simplified dependency tree and module interactions
+
+### Migration Guide
+
+For users upgrading from v2.x to v3.0.0:
+
+1. **Configuration Changes**:
+   
+   - Remove deprecated options: `assets_dir`, `notes_template`, `cache_size`, `exclude_patterns`, `use_git_timestamps`, `timestamp_zone`
+   
+   - Keep only: `enabled`, `notes_root`, `recent_notes_config`, `graph_config`
+
+2. **Asset Management**:
+   
+   - Plugin no longer manages assets automatically
+   
+   - Organize assets manually in your preferred structure
+   
+   - Use standard MkDocs asset handling
+
+3. **Template Usage**:
+   
+   - Plugin no longer provides template system
+   
+   - Create note templates manually if needed
+   
+   - Use external tools for template management
+
+4. **CLI Commands**:
+   
+   - `mkdocs-note init`: No longer available (not needed)
+   
+   - `mkdocs-note validate`: No longer available (validation removed)
+   
+   - `mkdocs-note template`: No longer available (template system removed)
+   
+   - Other commands (`new`, `remove`, `move`, `clean`) still available with simplified behavior
+
+5. **Custom Integrations**:
+   
+   - If you imported internal modules (e.g., `mkdocs_note.utils.assetps`), these no longer exist
+   
+   - Update imports to use new structure: `mkdocs_note.utils.meta`, `mkdocs_note.utils.scanner`
+
+### Technical Details
+
+- **Code Statistics**:
+  
+  - Files changed: 61 files
+  
+  - Insertions: +2,702 lines
+  
+  - Deletions: -9,329 lines
+  
+  - Net reduction: -6,627 lines (-77% of v2.x codebase)
+
+- **Dependency Updates**:
+  
+  - Removed custom logging dependencies
+  
+  - Simplified MkDocs integration
+
+- **Performance Improvements**:
+  
+  - Faster build times due to reduced processing overhead
+  
+  - Lower memory footprint
+  
+  - Simpler file scanning logic
 
 ## 2.1.5 - 2025-10-30
 
