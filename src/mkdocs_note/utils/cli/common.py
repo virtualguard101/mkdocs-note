@@ -15,7 +15,7 @@ log = get_plugin_logger(__name__)
 
 def get_plugin_config() -> MkDocsConfig:
 	"""Get the plugin configuration.
-	
+
 	Returns:
 		MkdocsNoteConfig: The plugin configuration
 	"""

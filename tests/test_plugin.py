@@ -43,14 +43,15 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		"""Test is_note_index_page method."""
 		# Create a mock file
 		mock_file = Mock()
-		mock_file.src_uri = "docs/index.md"
+		# src_uri is relative to docs_dir, so 'index.md' not 'docs/index.md'
+		mock_file.src_uri = "index.md"
 
 		# Test with default notes_root
 		result = self.plugin.is_note_index_page(mock_file)
 		self.assertTrue(result)
 
 		# Test with non-index file
-		mock_file.src_uri = "docs/some-other-page.md"
+		mock_file.src_uri = "some-other-page.md"
 		result = self.plugin.is_note_index_page(mock_file)
 		self.assertFalse(result)
 
@@ -147,12 +148,13 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 
 		# Create mock files
 		mock_file1 = Mock()
-		mock_file1.page.abs_url = "/note1/"
+		# The function uses f.page.url, not f.page.abs_url
+		mock_file1.page.url = "/note1/"
 		mock_file1.note_title = "Note 1"
 		mock_file1.note_date = datetime.now()
 
 		mock_file2 = Mock()
-		mock_file2.page.abs_url = "/note2/"
+		mock_file2.page.url = "/note2/"
 		mock_file2.note_title = "Note 2"
 		mock_file2.note_date = datetime.now()
 
