@@ -112,13 +112,16 @@ plugins:
       recent_notes_config:
         enabled: true
         insert_marker: "<!-- recent_notes -->"
-        insert_num: 5
+        insert_num: 10
       graph_config:
         enabled: true
         name: "title"
         debug: false
-  # - redirects:
-  #     redirect_maps:
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_submodules: true
 
 # extra_css:
 

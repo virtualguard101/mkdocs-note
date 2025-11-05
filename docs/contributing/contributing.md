@@ -13,6 +13,10 @@ First off, thank you for considering contributing to MkDocs Note! It's people li
 
 There are many ways to contribute, from writing documentation and tutorials to reporting bugs and submitting code changes.
 
+For developers, you'd better to read [Architecture Overview](architecture.md) first in order to understand the project framework and design philosophy.
+
+For more details of plugin's api, you can refer to [API References](../references/index.md).
+
 ### Reporting Bugs
 
 If you find a bug, please open an issue and provide the following information:

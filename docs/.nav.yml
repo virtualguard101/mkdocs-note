@@ -19,6 +19,13 @@ nav:
 
   - API Reference:
     - references/index.md
+    - Frontend or Entry Point:
+      - Command Line Interface: references/cli-api.md
+      - Plugin Core: references/core-api.md
+    - Independent Modules:
+      - Plugin Configuration Module: references/config-api.md
+      - Network Graph Visualization Module: references/graph-api.md
+    - Utils Layers: references/utils-layers.md
 
   - About:
     - Changelog: about/changelog.md

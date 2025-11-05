@@ -7,7 +7,7 @@ publish: true
 
 # Asset Management
 
-The plugin automatically manages assets for each note using a **co-located structure**:
+The plugin automatically manages assets for each note using a **co-located structure** by its [CLI](cli.md):
 
 ## Co-Located Asset Organization
 
