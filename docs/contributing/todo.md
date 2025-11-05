@@ -17,7 +17,7 @@ View on [GitHub](https://github.com/virtualguard101/mkdocs-note/blob/dev/docs/co
 
 ### Site Enhancement
 
-- [ ] Try to add the feature that can manage links between each notes and combine it with [mkdocs-network-graph-plugin](https://github.com/develmusa/mkdocs-network-graph-plugin). [#20 | By virtualguard101](https://github.com/virtualguard101/mkdocs-note/issues/20)
+- [x] Try to add the feature that can manage links between each notes and combine it with [mkdocs-network-graph-plugin](https://github.com/develmusa/mkdocs-network-graph-plugin). [#20 | By virtualguard101](https://github.com/virtualguard101/mkdocs-note/issues/20)
 
 ### CLI Enhancement
 
