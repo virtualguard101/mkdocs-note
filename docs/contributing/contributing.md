@@ -1,5 +1,5 @@
 ---
-date: 2025-10-15 01:06:51
+date: 2025-11-05 11:00:00
 title: Contributing
 permalink: 
 publish: true
@@ -54,13 +54,7 @@ To get started with local development, follow these steps:
 
 4.  **Run Tests**
 
-    To make sure everything is set up correctly, run the test suite:
-
-    ```bash
-    ./tests/test.sh
-    ```
-
-    Or use `pytest` directly:
+    To make sure everything is set up correctly, use `pytest` run the test suite:
 
     ```bash
     uv run pytest

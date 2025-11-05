@@ -41,19 +41,55 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 
 	def test_is_note_index_page(self):
 		"""Test is_note_index_page method."""
-		# Create a mock file
-		mock_file = Mock()
-		# src_uri is relative to docs_dir, so 'index.md' not 'docs/index.md'
-		mock_file.src_uri = "index.md"
+		import tempfile
+		import os
 
-		# Test with default notes_root
-		result = self.plugin.is_note_index_page(mock_file)
-		self.assertTrue(result)
+		# Create a temporary directory structure
+		with tempfile.TemporaryDirectory() as temp_dir:
+			# Create notes_root directory
+			notes_root = os.path.join(temp_dir, "docs")
+			os.makedirs(notes_root, exist_ok=True)
 
-		# Test with non-index file
-		mock_file.src_uri = "some-other-page.md"
-		result = self.plugin.is_note_index_page(mock_file)
-		self.assertFalse(result)
+			# Create index.md in notes_root
+			index_file = os.path.join(notes_root, "index.md")
+			with open(index_file, "w") as f:
+				f.write("# Index")
+
+			# Create a non-index file
+			other_file = os.path.join(notes_root, "some-other-page.md")
+			with open(other_file, "w") as f:
+				f.write("# Other Page")
+
+			# Create a subdirectory with its own index.md
+			sub_dir = os.path.join(notes_root, "subdir")
+			os.makedirs(sub_dir, exist_ok=True)
+			sub_index_file = os.path.join(sub_dir, "index.md")
+			with open(sub_index_file, "w") as f:
+				f.write("# Sub Index")
+
+			# Set notes_root in config
+			self.plugin.config.notes_root = notes_root
+
+			# Test 1: index.md directly under notes_root should return True
+			mock_file = Mock()
+			mock_file.src_uri = "index.md"
+			mock_file.abs_src_path = index_file
+			result = self.plugin.is_note_index_page(mock_file)
+			self.assertTrue(result, "index.md directly under notes_root should be True")
+
+			# Test 2: non-index file should return False
+			mock_file = Mock()
+			mock_file.src_uri = "some-other-page.md"
+			mock_file.abs_src_path = other_file
+			result = self.plugin.is_note_index_page(mock_file)
+			self.assertFalse(result, "Non-index file should be False")
+
+			# Test 3: index.md in subdirectory should return False
+			mock_file = Mock()
+			mock_file.src_uri = "subdir/index.md"
+			mock_file.abs_src_path = sub_index_file
+			result = self.plugin.is_note_index_page(mock_file)
+			self.assertFalse(result, "index.md in subdirectory should be False")
 
 	def test_on_files(self):
 		"""Test on_files event handler."""
