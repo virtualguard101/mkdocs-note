@@ -24,6 +24,7 @@ dependencies = [
     "mkdocs-minify-plugin>=0.8.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.0",
     "mkdocs-awesome-nav>=3.2.0",
+    "mkdocstrings-python>=1.18.2",
 ]
 
 [project.urls]
