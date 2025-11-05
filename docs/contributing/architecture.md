@@ -1,948 +1,1111 @@
 ---
-date: 2025-11-05 00:25:00
+date: 2025-11-05 12:05:00
 title: Architecture Overview
 permalink: 
-publish: false
+publish: true
 ---
 
-# Architecture Overview (v2.0.0+)
+# Architecture Overview (v3.0.0+)
 
-This document describes the complete architecture of the MkDocs-Note plugin in v2.0.0+, including modular refactoring, frontmatter metadata system, and co-located resource management.
-
----
-
-## 1. Project Overview
-
-### 1.1 Project Positioning
-
-MkDocs-Note is a note management plugin designed specifically for MkDocs and Material for MkDocs theme. Through modular architecture and extensible metadata system, it provides users with powerful and flexible note and document management capabilities.
-
-### 1.2 Core Design Philosophy
-
-- **Modular Layering**: Modules are divided by functional domains with clear responsibilities and easy extensibility
-
-- **Co-located Resources**: Resources are placed alongside note files for easy management and movement
-
-- **Metadata-driven**: Extensible metadata system based on frontmatter
-
-- **Interface-friendly**: Complete CLI tools and plugin API
+This document describes the complete architecture of the MkDocs-Note plugin in v3.0.0+, which adopts a simplified, lightweight design philosophy focused on core documentation needs.
 
 ---
 
-## 2. Architecture Evolution
+## Project Overview
 
-### 2.1 From v1.x to v2.0.0
+### Project Positioning
 
-- **v1.x Architecture Issues**:
+MkDocs Note is now a **lightweight documentation plugin** designed specifically for MkDocs and Material for MkDocs theme. It focuses on essential note management features with minimal complexity.
 
-    - Single `core/` directory containing all business logic
+It just a simple python-based tool that help you manage your notes in MkDocs documentation site, why not make it simpler and concise?
 
-    - Unclear module responsibilities
+### Core Design Philosophy
 
-    - Adding new features required modifying core code
+- **Simplicity First**: Minimal code, focused features, easy to understand and maintain
 
-- **v2.0.0 Architecture Improvements**:
+- **Co-located Resources**: Asset directories placed alongside note files following the pattern `note_file.parent / "assets" / note_file.stem`
 
-    - **Modular Refactoring**: Split `core/` by functional domains into `utils/` subpackages
+- **Metadata-driven**: Simple frontmatter-based metadata (date, title, publish status)
 
-    - **Clear Layering**: Separation of data layer, processing layer, and operation layer
-
-    - **Open-Closed Principle**: Extend functionality through registration mechanism without modifying core
-
-### 2.2 Refactoring Motivation
-
-Based on [Issue #15](https://github.com/virtualguard101/mkdocs-note/issues/15), the following goals were achieved:
-
-1. ✅ Use frontmatter to manage note metadata
-
-2. ✅ Template variables are replaced only in frontmatter, keeping content clean
-
-3. ✅ Improve project extensibility and maintainability
+- **MkDocs Integration**: Seamless integration with MkDocs ecosystem, leveraging existing infrastructure
 
 ---
 
-## 3. Modular Architecture
+## Architecture Evolution
 
-### 3.1 Overall Architecture Diagram
+### Architecture Timeline
+
+| Version | Date | Philosophy | Code Size | Complexity |
+|---------|------|------------|-----------|------------|
+| v1.x | Early | Basic functionality | ~3,000 lines | Low |
+| v2.0.0 | Oct, 2025 | Feature-rich, modular | ~12,000 lines | High |
+| v3.0.0 | 2025-11-04 | Lightweight, simple | ~2,700 lines | Low |
+
+### From v2.x to v3.0.0 (Major Simplification)
+
+**v2.x Problems**:
+
+- ❌ Over-engineered: Complex modular architecture (`assetps/`, `dataps/`, `docsps/`, `fileps/`, `graphps/`)
+
+- ❌ Too many abstractions: 9,300+ lines of code, hard to maintain
+
+- ❌ Feature creep: Template system, validation, initialization commands
+
+- ❌ High maintenance burden: Many moving parts, potential bugs
+
+**v3.0.0 Solutions** ([PR #60](https://github.com/virtualguard101/mkdocs-note/pull/60)):
+
+- ✅ **Flat Structure**: Moved core modules to package root
+
+- ✅ **Minimal Utils**: Only essential utilities (`meta.py`, `scanner.py`, `cli/`)
+
+- ✅ **Removed Features**: Asset management system, template system, validation commands
+
+- ✅ **Retained Core**: Recent notes, network graph, basic CLI commands
+
+- ✅ **Code Reduction**: From ~12,000 to ~2,700 lines (77% reduction)
+
+### Design Trade-offs
+
+**What We Removed**:
+
+- ❌ Asset management subsystem (`utils/assetps/`)
+
+- ❌ Data models and frontmatter system (`utils/dataps/`)
+
+- ❌ Document operations (creator, cleaner, mover, remover - `utils/docsps/`)
+
+- ❌ File I/O abstraction layer (`utils/fileps/`)
+
+- ❌ Advanced CLI commands (`init`, `validate`, `template`)
+
+- ❌ Custom logging module
+
+**What We Kept**:
+
+- ✅ Recent notes display
+
+- ✅ Network graph visualization
+
+- ✅ Basic CLI: `new`, `remove`, `move`, `clean`
+
+- ✅ Simple metadata extraction
+
+---
+
+## Simplified Architecture (v3.0.0+)
+
+### Overall Structure Diagram
 
 ```
 mkdocs-note/
 ├── src/mkdocs_note/
 │   ├── __init__.py              # Package initialization
 │   ├── plugin.py                # MkDocs plugin entry point
+│   ├── cli.py                   # Command-line interface entry point
 │   ├── config.py                # Configuration management
-│   ├── logger.py                # Logging utilities
-│   ├── cli.py                   # Command-line interface
+│   ├── graph.py                 # Network graph functionality
 │   │
-│   └── utils/                   # Utility and processor modules (new architecture)
-│       ├── assetps/             # Asset Processors
-│       │   ├── __init__.py
-│       │   └── handlers.py      # AssetsCatalogTree, AssetsManager, AssetsProcessor
-│       │
-│       ├── dataps/              # Data Processors
-│       │   ├── __init__.py
-│       │   ├── meta.py          # Data models: NoteInfo, AssetsInfo, NoteFrontmatter, AssetTreeInfo
-│       │   └── frontmatter/     # Frontmatter management subsystem
-│       │       ├── __init__.py
-│       │       └── handlers.py  # MetadataRegistry, FrontmatterParser, FrontmatterManager
-│       │
-│       ├── docsps/              # Document Processors
-│       │   ├── __init__.py
-│       │   ├── handlers.py      # NoteProcessor, CacheManager, IndexUpdater, RecentNotesUpdater
-│       │   ├── creator.py       # NoteCreator - note creation
-│       │   ├── cleaner.py       # NoteCleaner - orphaned resource cleanup
-│       │   ├── initializer.py   # NoteInitializer - structure initialization
-│       │   ├── remover.py       # NoteRemover - note deletion
-│       │   └── mover.py         # NoteMover - note movement
-│       │
-│       ├── fileps/              # File Processors
-│       │   ├── __init__.py
-│       │   └── handlers.py      # NoteScanner, AssetScanner - file scanning
-│       │
-│       ├── graphps/             # Graph Processors
-│       │   ├── __init__.py
-│       │   ├── graph.py         # Network graph underlying engine, which migrated from mkdocs-network-graph-plugin
-│       │   └── handlers.py      # GraphHandler - network graph management, configuration, static asset copying
-│       └── pathps/              # Path Processors
-│           └── __init__.py      # Path utilities (reserved)
+│   ├── static/                  # Static assets for graph visualization
+│   │   ├── graph.js
+│   │   └── graph.css
+│   │
+│   └── utils/                   # Minimal utility modules
+│       ├── __init__.py
+│       ├── meta.py              # Metadata extraction (title, date, frontmatter validation)
+│       ├── scanner.py           # File scanning
+│       └── cli/                 # CLI command implementations
+│           ├── __init__.py
+│           ├── commands.py      # NewCommand, RemoveCommand, MoveCommand, CleanCommand
+│           └── common.py        # Common utilities (asset paths, directory cleanup)
 │
 └── tests/                       # Test suite
-    ├── core/                    # Core functionality tests
+    ├── __init__.py
     ├── smoke_test.py            # Smoke tests
     ├── test_config.py           # Configuration tests
     ├── test_plugin.py           # Plugin tests
+    ├── test_cli_*.py            # CLI tests
     └── test.sh                  # Test runner script
 ```
 
-### 3.2 Module Naming Convention
+### Module Responsibilities
 
-**`ps` Suffix Meaning**: Processors
+| Module | Responsibility | Key Functions |
+|--------|---------------|---------------|
+| `plugin.py` | MkDocs plugin integration | File processing, recent notes insertion, graph integration |
+| `cli.py` | CLI entry point | Command registration, argument parsing, error handling |
+| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`) |
+| `graph.py` | Network graph | Node/edge creation, link detection, static asset management |
+| `utils/meta.py` | Metadata | Frontmatter validation, title/date extraction |
+| `utils/scanner.py` | File scanning | Note file discovery and validation |
+| `utils/cli/commands.py` | CLI commands | `new`, `remove`, `move`, `clean` implementations |
+| `utils/cli/common.py` | CLI utilities | Asset directory paths, directory cleanup |
 
-Module responsibility domains:
-
-| Module | Responsibility | Contents |
-|--------|---------------|----------|
-| `assetps/` | Asset processing | Asset scanning, directory management, path conversion |
-| `dataps/` | Data processing | Data models, metadata management, frontmatter system |
-| `docsps/` | Document operations | Note processing, creation, deletion, movement, cleanup |
-| `fileps/` | File I/O | File scanning, validation |
-| `graphps/` | Graph processing | Network graph generation, link detection, visualization |
-| `pathps/` | Path processing | Path calculation, standardization (reserved for extension) |
-
-### 3.3 Dependency Diagram
+### Dependency Diagram
 
 ```mermaid
 graph TB
-    subgraph "External Interface Layer"
+    subgraph "Entry Points"
         Plugin[plugin.py<br/>MkdocsNotePlugin]
-        CLI[cli.py<br/>CLI Commands]
+        CLI[cli.py<br/>CLI Entry]
     end
     
-    subgraph "Configuration and Utility Layer"
-        Config[config.py<br/>PluginConfig]
-        Logger[logger.py<br/>Logger]
+    subgraph "Independet Modules"
+        Config[config.py<br/>MkdocsNoteConfig]
+        Graph[graph.py<br/>Graph<br/>add_static_resources<br/>inject_graph_script<br/>copy_static_assets]
     end
     
-    subgraph "utils/ - Modular Processor Layer"
-        subgraph "docsps/ - Document Operations"
-            DocsHandlers[handlers.py<br/>NoteProcessor<br/>CacheManager<br/>IndexUpdater<br/>RecentNotesUpdater]
-            Creator[creator.py<br/>NoteCreator]
-            Cleaner[cleaner.py<br/>NoteCleaner]
-            Initializer[initializer.py<br/>NoteInitializer]
-            Remover[remover.py<br/>NoteRemover]
-            Mover[mover.py<br/>NoteMover]
-        end
+    subgraph "Utils Layer"
+        Meta[utils/meta.py<br/>validate_frontmatter<br/>extract_date<br/>extract_title]
+        Scanner[utils/scanner.py<br/>scan_notes]
         
-        subgraph "assetps/ - Asset Processing"
-            AssetsHandlers[handlers.py<br/>AssetsCatalogTree<br/>AssetsManager<br/>AssetsProcessor]
-        end
-        
-        subgraph "dataps/ - Data Processing"
-            Meta[meta.py<br/>NoteInfo<br/>AssetsInfo<br/>NoteFrontmatter<br/>AssetTreeInfo]
-            FrontmatterHandlers[frontmatter/handlers.py<br/>MetadataRegistry<br/>FrontmatterParser<br/>FrontmatterManager]
-        end
-        
-        subgraph "graphps/ - Graph Processing"
-            GraphHandlers[handlers.py<br/>GraphHandler]
-            Graph[graph.py<br/>Graph]
-        end
-        
-        subgraph "fileps/ - File Processing"
-            FileHandlers[handlers.py<br/>NoteScanner<br/>AssetScanner]
+        subgraph "CLI Submodule"
+            Commands[cli/commands.py<br/>NewCommand<br/>RemoveCommand<br/>MoveCommand<br/>CleanCommand]
+            Common[cli/common.py<br/>get_asset_directory<br/>cleanup_empty_directories]
         end
     end
     
     Plugin --> Config
-    Plugin --> Logger
-    Plugin --> FileHandlers
-    Plugin --> DocsHandlers
-    Plugin --> AssetsHandlers
-    Plugin --> GraphHandlers
+    Plugin --> Scanner
+    Plugin --> Meta
+    Plugin --> Graph
     
-    CLI --> Config
-    CLI --> Logger
-    CLI --> Creator
-    CLI --> Initializer
-    CLI --> Remover
-    CLI --> Cleaner
-    CLI --> Mover
+    CLI -->|For Type Checking| Config
+    CLI --> Commands
     
-    DocsHandlers --> FileHandlers
-    DocsHandlers --> AssetsHandlers
-    DocsHandlers --> FrontmatterHandlers
-    DocsHandlers --> Meta
+    Commands --> Common
+    Scanner --> Meta
     
-    Creator --> Initializer
-    Creator --> FrontmatterHandlers
-    
-    Cleaner --> FileHandlers
-    Mover --> FileHandlers
-    Initializer --> FileHandlers
-    
-    GraphHandlers --> Graph
-    GraphHandlers --> Meta
-    
-    AssetsHandlers --> Meta
-    FrontmatterHandlers --> Meta
+    Common -.->|uses MkDocsConfig Instance| Plugin
 ```
 
 ---
 
-## 4. Core Modules
+## Core Modules Detail
 
-### 4.1 dataps/ - Data Processing Layer
+### plugin.py - MkDocs Plugin Entry
 
-#### 4.1.1 meta.py - Data Models
+**Responsibility**: MkDocs plugin integration and orchestration
 
-**Responsibility**: Define core data structures
-
-**Core Classes**:
+**Key Components**:
 
 ```python
-@dataclass
-class NoteFrontmatter:
-    """Frontmatter metadata"""
-    date: Optional[str] = None
-    permalink: Optional[str] = None
-    publish: Optional[bool] = True
-    custom: Dict[str, Any] = field(default_factory=dict)
-
-@dataclass
-class NoteInfo:
-    """Complete note information"""
-    file_path: Path
-    title: str
-    relative_url: str
-    modified_date: str
-    file_size: int
-    modified_time: float
-    assets_list: List['AssetsInfo']
-    frontmatter: Optional[NoteFrontmatter] = None
-
-@dataclass
-class AssetsInfo:
-    """Asset file information"""
-    file_path: Path
-    file_name: str
-    relative_path: str
-    index_in_list: int
-    exists: bool = True
-
-@dataclass
-class AssetTreeInfo:
-    """Asset tree structure analysis information"""
-    note_name: str
-    asset_dir: Path
-    expected_structure: List[Path]
-    actual_structure: List[Path]
-    is_compliant: bool
-    missing_dirs: List[Path]
-    extra_dirs: List[Path]
+class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
+    """MkDocs Note Plugin entry point."""
+    
+    notes_list: list[File] = []
+    
+    # Event Hooks:
+    def on_config(config)           # Add static resources for graph
+    def on_pre_build(config)        # Initialize graph if enabled
+    def on_files(files, config)     # Scan and validate notes
+    def on_nav(nav, config, files)  # Store files reference
+    def on_page_markdown(markdown)  # Insert recent notes
+    def on_post_page(output)        # Inject graph script
+    def on_post_build(config)       # Build graph, copy static assets
 ```
 
-#### 4.1.2 frontmatter/handlers.py - Metadata Management System
+**Recent Notes Insertion**:
+- Scans notes using `scanner.scan_notes()`
+- Validates frontmatter with `meta.validate_frontmatter()`
+- Sorts by `note_date` (extracted from frontmatter)
+- Replaces marker with HTML list
 
-**Responsibility**: Provide extensible frontmatter metadata management
+### cli.py - Command Line Interface
 
-**Core Components**:
+**Responsibility**: Standalone CLI for note management
 
-```mermaid
-classDiagram
-    class MetadataField {
-        +str name
-        +Type field_type
-        +Any default
-        +bool required
-        +Callable validator
-        +str description
-        +validate(value) bool
-    }
+**Architecture**:
+```python
+@click.group()
+def cli():
+    """MkDocs Note CLI - Manage notes and their assets structure."""
     
-    class MetadataRegistry {
-        -Dict~str_MetadataField~ _fields
-        +register(field) void
-        +unregister(field_name) void
-        +get_field(name) MetadataField
-        +validate_data(data) Tuple~bool_List~
-    }
-    
-    class FrontmatterParser {
-        -Pattern FRONTMATTER_PATTERN
-        +parse(content) Tuple~Dict_str~
-        +parse_file(path) Tuple~Dict_str~
-        +generate(frontmatter, body) str
-        +update_frontmatter(content, updates) str
-    }
-    
-    class FrontmatterManager {
-        -MetadataRegistry registry
-        -FrontmatterParser parser
-        +register_field(field) void
-        +create_default_frontmatter() Dict
-        +parse_file(path) Tuple~Dict_str~
-        +create_note_content(fm, body) str
-    }
-    
-    MetadataRegistry --> MetadataField
-    FrontmatterParser --> MetadataRegistry
-    FrontmatterManager --> MetadataRegistry
-    FrontmatterManager --> FrontmatterParser
+# Commands:
+@cli.command("new")      # Create new note
+@cli.command("remove")   # Remove note (alias: rm)
+@cli.command("move")     # Move/rename note (alias: mv)
+@cli.command("clean")    # Clean orphaned assets
 ```
 
-- **Design Highlights**:
+**Key Features**:
+- Custom command grouping (aliases shown together)
+- Configuration loading from `mkdocs.yml` or defaults
+- Rich feedback with emojis (✅ ❌ 📝 📁)
+- Confirmation prompts (skip with `--yes`)
+- Dry-run support for `clean` command
 
-    - ✅ **Open-Closed Principle**: Extend fields through registration mechanism without modifying core code
+### config.py - Configuration Management
 
-    - ✅ **Type Safety**: Field definitions include type and validation
+**Responsibility**: Plugin configuration schema
 
-    - ✅ **Global Registry**: Unified management of all metadata fields
+**Configuration Options**:
 
-### 4.2 docsps/ - Document Operations Layer
+```python
+class MkdocsNoteConfig(Config):
+    enabled: bool = True
+    notes_root: Path = "docs"
+    
+    recent_notes_config: dict = {
+        "enabled": False,
+        "insert_marker": "<!-- recent_notes -->",
+        "insert_num": 10,
+    }
+    
+    graph_config: dict = {
+        "enabled": False,
+        "name": "title",      # or "file_name"
+        "debug": False,
+    }
+```
 
-#### 4.2.1 handlers.py - Core Note Processing
+### graph.py - Network Graph Visualization
 
-**Responsibility**: Note processing, index updates, cache management
+**Responsibility**: Generate and visualize note relationships
 
-**Core Classes**:
+**Core Class**:
+
+```python
+class Graph:
+    LINK_PATTERN = r"\[[^\]]+\]\((?P<url>.*?)\)|\[\[(?P<wikilink>[^\]]+)\]\]"
+    
+    def _create_nodes(files)         # Create nodes from documentation pages
+    def _create_edges(files)         # Parse markdown for links
+    def _find_links(markdown)        # Extract links using regex
+    def to_dict()                    # Export graph data
+```
+
+**Supporting Functions**:
+- `add_static_resources()`: Add D3.js and custom JS/CSS to MkDocs config
+- `inject_graph_script()`: Inject graph options into HTML
+- `copy_static_assets()`: Copy graph.js and graph.css to site directory
+
+**Link Detection**:
+- Markdown links: `[text](url)`
+- Wiki links: `[[page]]`
+- Handles URL escaping, query strings, fragments
+
+### utils/meta.py - Metadata Extraction
+
+**Responsibility**: Simple frontmatter validation and metadata extraction
+
+**Key Functions**:
+
+```python
+def validate_frontmatter(f: File) -> bool:
+    """Validate frontmatter, extract date and title.
+    
+    Required fields:
+    - date: datetime object
+    - title: string
+    - publish: bool (default True)
+    
+    Side effects: Sets f.note_date and f.note_title
+    """
+
+def extract_date(f: File) -> Optional[datetime]:
+    """Extract date from validated file."""
+
+def extract_title(f: File) -> Optional[str]:
+    """Extract title from validated file."""
+```
+
+**Validation Rules**:
+- ❌ Skip if `publish: false`
+- ❌ Error if missing `date` or `title`
+- ❌ Error if wrong type
+- ✅ Store metadata as file attributes
+
+### utils/scanner.py - File Scanning
+
+**Responsibility**: Scan and filter note files
+
+**Key Function**:
+
+```python
+def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
+    """Scan notes directory, return (valid_notes, invalid_files).
+    
+    Filtering:
+    1. Only documentation pages (is_documentation_page())
+    2. Within notes_root directory
+    3. Valid frontmatter (validate_frontmatter())
+    
+    Returns:
+        (valid_notes, invalid_files)
+    """
+```
+
+**MkDocs Integration**:
+- Uses `mkdocs.structure.files.Files`
+- Leverages `is_documentation_page()` for file type filtering
+- Works with MkDocs' path resolution
+
+### utils/cli/commands.py - CLI Command Implementations
+
+**Command Classes**:
 
 | Class | Responsibility | Key Methods |
 |-------|---------------|-------------|
-| `NoteProcessor` | Note metadata extraction | `process_note()`, `_extract_frontmatter()`, `_get_git_commit_time()` |
-| `CacheManager` | Cache and change detection | `should_update_notes()`, `should_update_content()` |
-| `IndexUpdater` | Index file updates | `update_index()`, `_generate_html_list()` |
-| `RecentNotesUpdater` | Recent notes update orchestration | `update()` |
+| `NewCommand` | Create new note | `_generate_note_basic_meta()`, `execute()` |
+| `RemoveCommand` | Remove note and assets | `_remove_single_document()`, `_remove_docs_directory()` |
+| `MoveCommand` | Move/rename note and assets | `_move_single_document()`, `_move_docs_directory()` |
+| `CleanCommand` | Clean orphaned assets | `_scan_note_files()`, `_find_orphaned_assets()` |
 
-#### 4.2.2 creator.py - Note Creator
-
-**Responsibility**: Create new notes based on templates
-
-- **Core Features**:
-
-    - Template loading and variable substitution
-
-    - Frontmatter template support
-
-    - Automatic asset directory creation
-
-    - Structure compliance validation
-
-**Template Processing Flow**:
-
-```mermaid
-sequenceDiagram
-    participant Creator as NoteCreator
-    participant FM as FrontmatterManager
-    participant FS as FileSystem
+**Common Pattern**:
+```python
+class XxxCommand:
+    def _validate_before_execution() -> int
+        # Returns 0 (fail), 1 (single file), 2 (directory)
     
-    Creator->>FS: Read template file
-    Creator->>FM: parse_file(template_path)
-    FM-->>Creator: (frontmatter_dict, body)
-    
-    alt Has frontmatter
-        Creator->>Creator: _replace_variables_in_dict(frontmatter)
-        Creator->>Creator: _replace_variables_in_text(body)
-        Creator->>FM: create_note_content(processed_fm, processed_body)
-        FM-->>Creator: note_content
-    else No frontmatter (legacy)
-        Creator->>Creator: _generate_legacy_template_content()
-    end
-    
-    Creator->>FS: Write note file
-    Creator->>Creator: _create_asset_directory()
-    Creator->>FS: Create asset directory
+    def execute(path) -> None
+        # Main execution logic
 ```
 
-#### 4.2.3 Other Processors
+### utils/cli/common.py - CLI Utilities
 
-| Module | Class | Responsibility |
-|--------|-------|---------------|
-| `cleaner.py` | `NoteCleaner` | Find and clean orphaned resources |
-| `initializer.py` | `NoteInitializer` | Initialize directory structure, validate compliance |
-| `remover.py` | `NoteRemover` | Delete notes and resources |
-| `mover.py` | `NoteMover` | Move/rename notes and directories |
-
-### 4.3 assetps/ - Asset Processing Layer
-
-#### 4.3.1 handlers.py - Asset Management
-
-**Core Classes**:
-
-```mermaid
-classDiagram
-    class AssetsCatalogTree {
-        -Path _root
-        -Path _notes_dir
-        -Dict _catalog
-        +add_node(path, assets)
-        +get_assets(path) List
-        +get_asset_dir_for_note(note) Path
-    }
-    
-    class AssetsManager {
-        -PluginConfig config
-        -AssetsCatalogTree catalog_tree
-        +catalog_generator(assets, note) str
-        +catalog_updater(catalog) bool
-    }
-    
-    class AssetsProcessor {
-        -Pattern image_pattern
-        +process_assets(note_info) List~AssetsInfo~
-        +update_markdown_content(content, note_file) str
-        -_process_image_reference(path, note, idx) AssetsInfo
-    }
-    
-    AssetsManager --> AssetsCatalogTree
-```
-
-**Co-located Resource Pattern** (v2.0.0+):
+**Utility Functions**:
 
 ```python
-def _get_asset_directory(note_file_path: Path) -> Path:
-    """
-    Asset directory calculation rule:
-    note_file.parent / "assets" / note_file.stem
+def get_asset_directory(note_path: Path) -> Path:
+    """Co-located asset structure: note.parent / 'assets' / note.stem"""
+    return note_path.parent / "assets" / note_path.stem
+
+def cleanup_empty_directories(start_dir: Path, stop_at: Path):
+    """Recursively remove empty parent directories."""
     
-    Example:
-        Note: docs/notes/dsa/anal/iter.md
-        Assets: docs/notes/dsa/anal/assets/iter/
-    """
-    return note_file_path.parent / "assets" / note_file_path.stem
+def ensure_parent_directory(path: Path):
+    """Create parent directory if needed."""
 ```
 
-### 4.4 fileps/ - File Processing Layer
-
-#### 4.4.1 handlers.py - File Scanning
-
-**Responsibility**: File scanning and validation
-
-**Core Classes**:
-
-| Class | Method | Function |
-|-------|--------|----------|
-| `NoteScanner` | `scan_notes()` | Recursively scan notes directory |
-| `NoteScanner` | `_is_valid_note_file()` | Validate file validity |
-| `AssetScanner` | `scan_assets()` | Scan asset files |
-
-**Filtering Rules**:
-- ✅ Extension check: `.md`, `.ipynb`
-- ✅ Exclusion patterns: `index.md`, `README.md`
-- ✅ Exclusion directories: `__pycache__`, `.git`, `node_modules`
-
-### 4.5 pathps/ - Path Processing Layer
-
-**Status**: Reserved for extension, currently empty
-
-- **Planned Usage**:
-
-    - Path standardization
-
-    - Relative path calculation
-
-    - Cross-platform path processing
+**Asset Directory Pattern**:
+```
+docs/notes/python/intro.md
+                 └─ assets/intro/  (asset directory)
+```
 
 ---
 
-## 5. Data Models
+## Data Models (Simplified)
 
-### 5.1 Data Flow Diagram
+### Core Data Structure
+
+In v3.0.0+, we **leverage MkDocs' existing data structures** instead of creating custom models:
+
+**Primary Data Object**: `mkdocs.structure.files.File`
+
+```python
+# MkDocs File object (extended by plugin)
+class File:
+    src_path: str              # Source path relative to docs_dir
+    abs_src_path: str          # Absolute source path
+    url: str                   # URL path for the file
+    content_string: str        # File content
+    page: Optional[Page]       # Associated Page object
+    
+    # Plugin-added attributes (via setattr):
+    note_date: datetime        # From frontmatter
+    note_title: str            # From frontmatter
+```
+
+### Frontmatter Schema
+
+**Minimal Required Fields**:
+
+```yaml
+---
+date: 2025-11-05 12:00:00    # datetime (required)
+title: My Note Title         # string (required)
+permalink:                   # string (optional)
+publish: true                # bool (default: true)
+---
+```
+
+**Processed by MkDocs**:
+- Uses `mkdocs.utils.meta.get_data()` for parsing
+- YAML frontmatter automatically converted to Python types
+- `date` becomes `datetime` object
+
+### Graph Data Model
+
+**Graph JSON Structure**:
+
+```json
+{
+  "nodes": [
+    {
+      "id": "notes/python/intro.md",
+      "path": "/abs/path/to/notes/python/intro.md",
+      "name": "Python Introduction",
+      "url": "notes/python/intro/"
+    }
+  ],
+  "edges": [
+    {
+      "source": "notes/python/intro.md",
+      "target": "notes/python/basics.md"
+    }
+  ]
+}
+```
+
+### Data Flow Diagram
 
 ```mermaid
 graph LR
     subgraph "Input"
-        Files[Note Files]
-        Template[Template Files]
-        Config[Configuration]
+        NoteFiles[Note Files<br/>.md]
+        MkDocsConfig[mkdocs.yml]
     end
     
-    subgraph "Processing"
-        Scanner[NoteScanner]
-        Processor[NoteProcessor]
-        FMParser[FrontmatterParser]
-        AssetsProc[AssetsProcessor]
+    subgraph "Plugin Processing"
+        Scanner[scanner.scan_notes]
+        MetaValidator[meta.validate_frontmatter]
+        GraphBuilder[Graph.__call__]
     end
     
-    subgraph "Data Models"
-        NoteFM[NoteFrontmatter]
-        AssetsInfo[AssetsInfo]
-        NoteInfo[NoteInfo]
+    subgraph "MkDocs Objects"
+        FileList[Files<br/>Collection]
+        FileObj[File<br/>+ note_date<br/>+ note_title]
+        GraphData[Graph JSON<br/>nodes + edges]
     end
     
     subgraph "Output"
-        Index[Index Page]
-        ProcessedNotes[Processed Notes]
+        IndexPage[Index Page<br/>with Recent Notes]
+        SiteOutput[Site Output<br/>+ graph.json]
     end
     
-    Files --> Scanner
-    Scanner --> Processor
-    Processor --> FMParser
-    Processor --> AssetsProc
+    NoteFiles --> FileList
+    MkDocsConfig --> Scanner
     
-    FMParser --> NoteFM
-    AssetsProc --> AssetsInfo
-    NoteFM --> NoteInfo
-    AssetsInfo --> NoteInfo
+    FileList --> Scanner
+    Scanner --> MetaValidator
+    MetaValidator --> FileObj
     
-    NoteInfo --> Index
-    NoteInfo --> ProcessedNotes
+    FileObj --> GraphBuilder
+    GraphBuilder --> GraphData
     
-    Config --> Scanner
-    Config --> Processor
-    Template --> Processor
-```
-
-### 5.2 Data Model Relationships
-
-```mermaid
-classDiagram
-    class NoteInfo {
-        +Path file_path
-        +str title
-        +str relative_url
-        +str modified_date
-        +int file_size
-        +float modified_time
-        +List~AssetsInfo~ assets_list
-        +NoteFrontmatter frontmatter
-    }
-    
-    class NoteFrontmatter {
-        +str date
-        +str permalink
-        +bool publish
-        +Dict custom
-        +to_dict() Dict
-        +from_dict(data) NoteFrontmatter
-    }
-    
-    class AssetsInfo {
-        +Path file_path
-        +str file_name
-        +str relative_path
-        +int index_in_list
-        +bool exists
-    }
-    
-    class AssetTreeInfo {
-        +str note_name
-        +Path asset_dir
-        +List~Path~ expected_structure
-        +List~Path~ actual_structure
-        +bool is_compliant
-        +List~Path~ missing_dirs
-        +List~Path~ extra_dirs
-    }
-    
-    NoteInfo "1" --> "0..1" NoteFrontmatter : has
-    NoteInfo "1" --> "*" AssetsInfo : contains
+    FileObj --> IndexPage
+    GraphData --> SiteOutput
 ```
 
 ---
 
-## 6. Workflows and Data Flow
+## Workflows and Data Flow
 
-### 6.1 Plugin Build-time Workflow
+### Plugin Build-time Workflow (v3.0.0+)
 
 ```mermaid
 sequenceDiagram
     participant MkDocs
     participant Plugin
-    participant Scanner as NoteScanner
-    participant Processor as NoteProcessor
-    participant FMParser as FrontmatterParser
-    participant AssetsProc as AssetsProcessor
+    participant Scanner
+    participant Meta
+    participant Graph
     
     MkDocs->>Plugin: on_config(config)
-    Plugin->>Plugin: Initialize AssetsProcessor
+    Plugin->>Plugin: Add static resources (D3.js, graph.js/css)
     Plugin-->>MkDocs: config
     
-    MkDocs->>Plugin: on_files(files)
+    MkDocs->>Plugin: on_pre_build(config)
+    Plugin->>Graph: new Graph(config)
+    Plugin-->>MkDocs: void
+    
+    MkDocs->>Plugin: on_files(files, config)
     activate Plugin
     
-    Plugin->>Scanner: scan_notes()
-    Scanner-->>Plugin: note_files[]
+    Plugin->>Scanner: scan_notes(files, config)
+    activate Scanner
     
-    loop For each note file
-        Plugin->>Processor: process_note(file)
-        activate Processor
-        
-        Processor->>FMParser: parse_file(file)
-        FMParser-->>Processor: (frontmatter, body)
-        
-        Processor->>AssetsProc: process_assets(note_info)
-        AssetsProc-->>Processor: assets_list[]
-        
-        Processor->>Processor: Extract title, URL, timestamp
-        Processor-->>Plugin: NoteInfo
-        deactivate Processor
+    loop For each file in files
+        Scanner->>Scanner: Check if in notes_root
+        Scanner->>Meta: validate_frontmatter(file)
+        Meta->>Meta: Check publish, date, title
+        Meta->>Meta: setattr(file, 'note_date', date)
+        Meta->>Meta: setattr(file, 'note_title', title)
+        Meta-->>Scanner: valid/invalid
     end
     
-    Plugin->>Plugin: Sort by timestamp
-    Plugin->>Plugin: Save recent notes list
+    Scanner-->>Plugin: (valid_notes[], invalid_files[])
+    deactivate Scanner
+    
+    Plugin->>Plugin: Sort notes by note_date
+    Plugin->>Plugin: Remove invalid files from files
     Plugin-->>MkDocs: files
     deactivate Plugin
     
+    MkDocs->>Plugin: on_nav(nav, config, files)
+    Plugin->>Plugin: Store files reference
+    Plugin-->>MkDocs: nav
+    
     loop For each page
         MkDocs->>Plugin: on_page_markdown(markdown, page)
-        activate Plugin
         
-        alt Is index page
-            Plugin->>Plugin: _insert_recent_notes()
-        else Is note page
-            Plugin->>AssetsProc: update_markdown_content()
-            AssetsProc-->>Plugin: updated_markdown
+        alt Is index page in notes_root
+            Plugin->>Plugin: insert_recent_note_links()
+            Plugin->>Plugin: Replace marker with HTML list
         end
         
         Plugin-->>MkDocs: markdown
-        deactivate Plugin
     end
+    
+    loop For each page
+        MkDocs->>Plugin: on_post_page(output, page)
+        Plugin->>Plugin: inject_graph_script(output)
+        Plugin-->>MkDocs: output
+    end
+    
+    MkDocs->>Plugin: on_post_build(config)
+    
+    alt Graph enabled
+        Plugin->>Graph: __call__(files)
+        Graph->>Graph: _create_nodes(files)
+        Graph->>Graph: _create_edges(files)
+        Plugin->>Plugin: Write graph.json
+    end
+    
+    Plugin->>Plugin: copy_static_assets()
+    Plugin-->>MkDocs: void
 ```
 
-### 6.2 CLI Command Workflows
+### CLI Command Workflows (v3.0.0+)
 
-#### 6.2.1 new Command (Note Creation)
+#### new Command (Note Creation)
 
 ```mermaid
 sequenceDiagram
     participant User
     participant CLI
-    participant Creator
-    participant Initializer
-    participant FMManager as FrontmatterManager
+    participant NewCmd as NewCommand
+    participant Common
     participant FS as FileSystem
     
     User->>CLI: mkdocs-note new note.md
-    CLI->>Creator: validate_note_creation(path)
+    CLI->>CLI: Load config
+    CLI->>NewCmd: execute(note_path)
+    activate NewCmd
     
-    Creator->>Initializer: validate_asset_tree_compliance()
-    Initializer-->>Creator: (is_compliant, errors)
+    NewCmd->>NewCmd: _validate_before_execution()
     
-    alt Not compliant
-        Creator-->>CLI: Validation failed
-        CLI-->>User: Error + suggest running init
+    alt File exists
+        NewCmd-->>CLI: Error
+        CLI-->>User: ❌ File already exists
     end
     
-    CLI->>Creator: create_new_note(path, template)
-    activate Creator
+    NewCmd->>Common: ensure_parent_directory(note_path)
+    Common->>FS: mkdir -p parent/
     
-    Creator->>FS: Read template
-    Creator->>FMManager: parse_file(template)
-    FMManager-->>Creator: (frontmatter, body)
+    NewCmd->>NewCmd: _generate_note_basic_meta()
+    Note over NewCmd: Generate frontmatter:<br/>date, title, permalink, publish
     
-    Creator->>Creator: _replace_variables_in_dict(frontmatter)
-    Creator->>Creator: _replace_variables_in_text(body)
+    NewCmd->>FS: Write note file
     
-    Creator->>FMManager: create_note_content(fm, body)
-    FMManager-->>Creator: content
+    NewCmd->>Common: get_asset_directory(note_path)
+    Common-->>NewCmd: asset_dir
     
-    Creator->>FS: Create note file
-    Creator->>Creator: _create_asset_directory()
-    Creator->>FS: Create asset directory
+    NewCmd->>FS: mkdir -p asset_dir/
     
-    Creator-->>CLI: success
-    deactivate Creator
+    NewCmd-->>CLI: success
+    deactivate NewCmd
     
-    CLI-->>User: Success message
+    CLI-->>User: ✅ Note created<br/>📝 Note: path<br/>📁 Assets: path
 ```
 
-#### 6.2.2 clean Command (Orphaned Resource Cleanup)
+#### clean Command (Orphaned Asset Cleanup)
 
 ```mermaid
 sequenceDiagram
     participant User
     participant CLI
-    participant Cleaner
-    participant Scanner
+    participant CleanCmd as CleanCommand
+    participant Common
     participant FS
     
-    User->>CLI: mkdocs-note clean
-    CLI->>Cleaner: find_orphaned_assets()
-    activate Cleaner
+    User->>CLI: mkdocs-note clean [--dry-run] [--yes]
+    CLI->>CLI: Load config
+    CLI->>CleanCmd: new CleanCommand()
     
-    Cleaner->>Scanner: scan_notes()
-    Scanner-->>Cleaner: note_files[]
+    CLI->>CleanCmd: _scan_note_files(notes_root)
+    activate CleanCmd
+    CleanCmd->>FS: Scan for .md, .ipynb
+    CleanCmd-->>CLI: note_files[]
     
-    Cleaner->>Cleaner: Build expected asset set
+    CLI->>CleanCmd: _find_orphaned_assets(note_files)
+    
     loop For each note
-        Cleaner->>Cleaner: Calculate asset directory path
-        Cleaner->>Cleaner: Add to expected_set
+        CleanCmd->>Common: get_asset_directory(note)
+        CleanCmd->>CleanCmd: Add to expected_set
     end
     
-    Cleaner->>FS: Scan all assets/ subdirectories
-    loop For each asset directory
-        alt Not in expected set
-            Cleaner->>Cleaner: Add to orphaned_list
+    CleanCmd->>FS: Scan all assets/ directories
+    loop For each asset dir
+        alt Not in expected_set
+            CleanCmd->>CleanCmd: Add to orphaned_list
         end
     end
     
-    Cleaner-->>CLI: orphaned_dirs[]
-    deactivate Cleaner
+    CleanCmd-->>CLI: orphaned_dirs[]
+    deactivate CleanCmd
     
-    CLI->>User: Display orphaned resources list
+    alt No orphans
+        CLI-->>User: ✅ No orphaned assets
+    end
     
-    alt User confirms
-        CLI->>Cleaner: clean_orphaned_assets(dry_run)
-        Cleaner->>FS: Delete orphaned resources
-        Cleaner->>Cleaner: _cleanup_empty_parent_dirs()
-        Cleaner-->>CLI: Deletion count
-        CLI-->>User: Completion message
+    CLI-->>User: Show orphaned directories
+    
+    alt --dry-run
+        CLI-->>User: 💡 Run without --dry-run to remove
+    else User confirms (or --yes)
+        CLI->>CleanCmd: execute(dry_run=False)
+        CleanCmd->>FS: Remove orphaned directories
+        CleanCmd->>Common: cleanup_empty_directories()
+        CleanCmd-->>CLI: success
+        CLI-->>User: ✅ Removed N directories
+    else User cancels
+        CLI-->>User: ⚠️ Cancelled
+    end
+```
+
+#### move Command (Note Move/Rename)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant MoveCmd as MoveCommand
+    participant Common
+    participant FS
+    
+    User->>CLI: mkdocs-note mv source.md dest.md [--yes]
+    CLI->>CLI: Load config
+    CLI->>MoveCmd: new MoveCommand()
+    
+    alt Source doesn't exist
+        CLI-->>User: ❌ Source does not exist
+    end
+    
+    alt User confirms (or --yes)
+        CLI->>MoveCmd: execute(source, dest)
+        activate MoveCmd
+        
+        MoveCmd->>MoveCmd: _validate_before_execution()
+        
+        MoveCmd->>Common: ensure_parent_directory(dest)
+        MoveCmd->>Common: get_asset_directory(source)
+        Common-->>MoveCmd: source_asset_dir
+        MoveCmd->>Common: get_asset_directory(dest)
+        Common-->>MoveCmd: dest_asset_dir
+        
+        MoveCmd->>FS: Move source → dest
+        
+        alt Assets exist
+            MoveCmd->>FS: Move source_asset_dir → dest_asset_dir
+            MoveCmd->>Common: cleanup_empty_directories()
+        end
+        
+        MoveCmd-->>CLI: success
+        deactivate MoveCmd
+        
+        CLI-->>User: ✅ Successfully moved<br/>📝 From: source<br/>📝 To: dest<br/>📁 Assets moved
+    else User cancels
+        CLI-->>User: ⚠️ Cancelled
     end
 ```
 
 ---
 
-## 7. Design Principles
+## Design Principles (v3.0.0+)
 
-### 7.1 Modular Design
+### Simplicity First
 
-- **Separation of Concerns**:
+**Core Philosophy**: Minimal complexity, maximum clarity
 
-    - `dataps/`: Data definition and metadata management
+- ✅ **Flat Structure**: Core modules at package root, not buried in nested subpackages
 
-    - `docsps/`: Document-level business logic
+- ✅ **Direct Dependencies**: Minimize abstraction layers
 
-    - `assetps/`: Asset processing logic
+- ✅ **Standard Library**: Prefer Python/MkDocs built-ins over custom solutions
 
-    - `fileps/`: Low-level file I/O
+- ✅ **Code Minimalism**: ~2,700 lines vs. ~12,000 lines in v2.x
 
-- **Advantages**:
-
-    - ✅ Single Responsibility Principle
-
-    - ✅ Easy unit testing
-
-    - ✅ Reduced coupling
-
-    - ✅ Easy extensibility
-
-### 7.2 Open-Closed Principle
-
-- **Implementation**:
-
-    - `MetadataRegistry`: Add new fields through registration without modifying core
-
-    - `FrontmatterManager`: Provides facade interface, hiding implementation details
-
-**Extension Example**:
+**Example**:
 ```python
-from mkdocs_note.utils.dataps.frontmatter.handlers import (
-    MetadataField, 
-    register_field
-)
+# v3.0.0: Direct, simple
+from mkdocs.utils import meta
+frontmatter, body = meta.get_data(content)
 
-# Register custom field
-custom_field = MetadataField(
-    name="author",
-    field_type=str,
-    default=None,
-    required=False,
-    description="Note author"
-)
-register_field(custom_field)
+# v2.x: Over-abstracted
+from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterParser
+parser = FrontmatterParser()
+frontmatter, body = parser.parse(content)
 ```
 
-### 7.3 Dependency Inversion Principle
+### Leverage MkDocs Infrastructure
 
-- **Implementation**:
+**Principle**: Don't reinvent what MkDocs provides
 
-    - High-level modules (`docsps/handlers.py`) depend on abstractions (data models)
+- ✅ **Use MkDocs File objects**: Extend with `setattr()` instead of custom wrappers
 
-    - Low-level modules (`fileps/handlers.py`) implement specific functionality
+- ✅ **Use MkDocs logging**: `get_plugin_logger(__name__)` instead of custom logger
 
-    - Decoupled through interfaces and data classes
+- ✅ **Use MkDocs meta parsing**: `mkdocs.utils.meta.get_data()` for frontmatter
 
-### 7.4 Test-First
+- ✅ **Follow MkDocs conventions**: Plugin hooks, configuration schema
 
-- **Test Coverage**:
+**Benefits**:
+- Better compatibility with MkDocs ecosystem
+- Less maintenance burden
+- Familiar API for MkDocs developers
 
-    - ✅ Unit tests: 227 tests, 100% pass rate
+### Co-located Resources
 
-    - ✅ Smoke tests: Basic functionality verification
+**Pattern**: Assets live next to their notes
 
-    - ✅ Integration tests: Complete workflow verification
-
-- **Testing Principles**:
-
-    - Use temporary files to avoid polluting project files
-
-    - Mock external dependencies (Git, file system)
-
-    - Independent and repeatable
-
----
-
-## 8. Key Technical Decisions
-
-### 8.1 Why Choose Modular Refactoring?
-
-- **Problems**:
-
-    - v1.x's `core/` directory contained all logic, making it difficult to maintain
-
-    - Adding new features required modifying multiple core files
-
-    - Unclear boundaries between modules
-
-- **Solution**:
-
-    - Split by functional domains: assets, data, documents, files
-
-    - Use `ps` suffix to establish naming convention
-
-    - Each subpackage focuses on single responsibility
-
-- **Benefits**:
-
-    - Code is easier to understand and maintain
-
-    - New feature development is faster
-
-    - Tests are easier to write
-
-### 8.2 Why Adopt Co-located Resource Structure?
-
-**v1.x Problems** (Centralized structure):
 ```
-docs/notes/assets/dsa.assets/anal/iter/  # Resources in centralized directory
-docs/notes/dsa/anal/iter.md              # Note in original location
+docs/notes/python/intro.md
+                └─ assets/intro/  (assets for intro.md)
 ```
 
-- Easy to miss resources when moving notes
-
-- Complex path calculation
-
-- Difficult to manage intuitively
-
-**v2.0.0 Solution** (Co-located):
-```
-docs/notes/dsa/anal/iter.md          # Note
-docs/notes/dsa/anal/assets/iter/     # Resources right next to it
+**Implementation**:
+```python
+def get_asset_directory(note_path: Path) -> Path:
+    return note_path.parent / "assets" / note_path.stem
 ```
 
-- ✅ Notes and resources are together, easy to see at a glance
+**Advantages**:
 
-- ✅ Move together when relocating
+- ✅ Easy to understand and manage
 
-- ✅ Simple path calculation
+- ✅ Move note → assets move with it (CLI commands handle this)
 
-- ✅ Intuitive
+- ✅ No complex path calculations
 
-### 8.3 Why Use Frontmatter?
+- ✅ Intuitive for users
 
-- **Advantages**:
+### Fail Fast, Fail Clear
 
-    - ✅ **Standard Format**: YAML frontmatter is the standard in Markdown ecosystem
-
-    - ✅ **Extensible**: Add new fields through registration mechanism
-
-    - ✅ **Type Safe**: Field definitions include type validation
-
-    - ✅ **Separation of Concerns**: Metadata separated from content
-
-- **Design**:
-
-    - Variable substitution only occurs in frontmatter
-
-    - Content body remains clean, free from template syntax
-
-    - Supports legacy notes without frontmatter
-
----
-
-## 9. Performance Optimization
-
-### 9.1 Caching Mechanism
+**Principle**: Clear error messages, early validation
 
 ```python
-class CacheManager:
-    """Cache Manager
-    
-    Detects changes through hash values to avoid unnecessary updates
-    """
-    def should_update_notes(self, notes: List[NoteInfo]) -> bool:
-        current_hash = self._calculate_notes_hash(notes)
-        if self._last_notes_hash != current_hash:
-            self._last_notes_hash = current_hash
-            return True
-        return False
+# Frontmatter validation
+if not frontmatter.get("publish", False):
+    logger.debug(f"Skipping {f.src_uri} because it is not published")
+    return False
+
+if "date" not in frontmatter:
+    logger.error(f"Invalid frontmatter for {f.src_uri}: 'date' is required")
+    return False
 ```
 
-### 9.2 Git Timestamp Caching
+**CLI Error Handling**:
+```python
+if not note_path.exists():
+    click.echo(f"❌ Error: File does not exist: {note_path}", err=True)
+    sys.exit(1)
+```
 
-- Git commands have timeout protection (5 seconds)
+### Testing Strategy
 
-- Automatically falls back to file system time on failure
+**Test Coverage**:
 
-- Avoids repeated Git calls
+- ✅ Plugin tests: Core MkDocs integration
+
+- ✅ CLI tests: Command execution, argument parsing
+
+- ✅ Smoke tests: End-to-end workflows
+
+- ✅ Config tests: Configuration validation
+
+**Testing Principles**:
+
+- Use temporary directories for file operations
+
+- Test both success and failure paths
+
+- Clear, descriptive test names
+
+- Minimal test fixtures
 
 ---
 
-## 10. Migration Guide
+## Key Technical Decisions (v3.0.0+)
 
-### 10.1 Migrating from v1.x to v2.0.0
+### Why Simplify from v2.x to v3.0.0?
 
-#### Step 1: Migrate Asset Files
+**Problem Statement**: v2.x was over-engineered for the actual use cases
 
-```bash
-# Old structure (v1.x)
-docs/notes/assets/dsa.assets/anal/iter/
+**v2.x Issues**:
 
-# New structure (v2.0.0)
-docs/notes/dsa/anal/assets/iter/
+- ❌ **Complexity**: 9+ subpackages, 12,000+ lines of code
 
-# Migration command example
-mv docs/notes/assets/dsa.assets/anal/iter/ docs/notes/dsa/anal/assets/
+- ❌ **Maintenance Burden**: Many abstractions, hard to debug
+
+- ❌ **Feature Creep**: Template system, validation, initialization - rarely used
+
+- ❌ **Learning Curve**: New contributors struggled to understand architecture
+
+**v3.0.0 Solution**:
+
+- ✅ **Radical Simplification**: Removed 77% of code
+
+- ✅ **Focus on Core**: Kept only essential features (recent notes, graph, basic CLI)
+
+- ✅ **Flat Structure**: Easy to navigate and understand
+
+- ✅ **Better Integration**: Leverage MkDocs infrastructure instead of reimplementing
+
+**Result**:
+
+- Faster build times
+
+- Easier to maintain
+
+- Clearer purpose
+
+- Better reliability
+
+### Why Keep Co-located Asset Structure?
+
+**Decision**: Retain co-located pattern from v2.x
+
+```
+docs/notes/python/intro.md
+                └─ assets/intro/  (co-located)
 ```
 
-#### Step 2: Update Configuration (Optional)
+**Rationale**:
 
+- ✅ **User-friendly**: Easy to understand and manage
+
+- ✅ **Portable**: Move note → assets move with it
+
+- ✅ **Simple**: One function, one rule
+
+- ✅ **Proven**: Worked well in v2.x
+
+**Implementation**:
+```python
+# Single source of truth
+def get_asset_directory(note_path: Path) -> Path:
+    return note_path.parent / "assets" / note_path.stem
+```
+
+### Why Use MkDocs' Built-in Frontmatter Parsing?
+
+**Decision**: Use `mkdocs.utils.meta.get_data()` instead of custom parser
+
+**Rationale**:
+
+- ✅ **Standard**: MkDocs already has YAML frontmatter support
+
+- ✅ **Type Conversion**: Automatic conversion (dates, booleans)
+
+- ✅ **Well-tested**: Proven by MkDocs ecosystem
+
+- ✅ **Less Code**: No need to maintain custom parser
+
+**Comparison**:
+```python
+# v2.x: Custom parser (~200 lines)
+from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterParser
+parser = FrontmatterParser()
+fm, body = parser.parse_file(path)
+
+# v3.0.0: Built-in (~5 lines)
+from mkdocs.utils import meta
+with open(path) as f:
+    fm, body = meta.get_data(f.read())
+```
+
+### Why Remove Template System?
+
+**Decision**: Remove template system with variable substitution
+
+**v2.x Template System**:
+
+- Template files with `{date}`, `{title}` placeholders
+
+- Complex variable replacement logic
+
+- Template registry and loading mechanism
+
+**Why Remove**:
+
+- ❌ **Low Usage**: Most users used default template
+
+- ❌ **Complexity**: ~500 lines of code for rare feature
+
+- ❌ **Maintenance**: Breaking changes when frontmatter changed
+
+**v3.0.0 Approach**:
+```python
+# Simple, direct frontmatter generation
+def _generate_note_basic_meta(self, file_path: Path) -> str:
+    return f"""---
+date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+title: {file_path.stem.replace('-', ' ').title()}
+permalink: 
+publish: true
+---
+"""
+```
+
+**Benefits**:
+
+- ✅ **Maintainable**: 10 lines vs. 500 lines
+
+- ✅ **Flexible**: Users can edit after creation
+
+### Why Keep Network Graph?
+
+**Decision**: Retain graph visualization despite simplification
+
+**Rationale**:
+- ✅ **Self-contained**: `graph.py` is independent, ~190 lines
+
+- ✅ **Migrated Code**: Already ported from mkdocs-network-graph-plugin
+
+- ✅ **Low Maintenance**: Stable, minimal dependencies
+
+**Integration**:
+
+- Uses D3.js for rendering (CDN)
+
+- Generates `graph.json` with nodes and edges
+
+- Injects JavaScript configuration via HTML hook
+
+---
+
+## Migration Guide
+
+### Migrating from v2.x to v3.0.0
+
+!!! warning "Breaking Changes"
+    `v3.0.0` removes many features from `v2.x`.
+    Please review the [changelog](../about/changelog.md#300---2025-11-04-Architecture-Simplification) before upgrading.
+
+#### Step 1: Review Removed Features
+
+**No longer available in v3.0.0**:
+
+- ❌ Template system (`notes_template` config)
+
+- ❌ Asset management system
+
+- ❌ `init` and `validate` CLI commands
+
+- ❌ Custom frontmatter registry
+
+- ❌ `assets_dir` configuration option
+
+**Still available**:
+
+- ✅ Recent notes display
+
+- ✅ Network graph visualization
+
+- ✅ Basic CLI: `new`, `remove`, `move`, `clean`
+
+- ✅ Frontmatter metadata (`date`, `title`, `publish`, `permalink`)
+
+#### Step 2: Update Configuration
+
+**Old (v2.x) config**:
 ```yaml
 plugins:
   - mkdocs-note:
-      notes_dir: "docs/notes"  # Required
-      # assets_dir: "..."       # Can be removed, deprecated
+      notes_root: "docs/notes"
+      assets_dir: "docs/notes/assets"  # ❌ Removed
+      notes_template: "template.md"    # ❌ Removed
+      recent_notes_config:
+        enabled: true
+        insert_num: 10
 ```
 
-#### Step 3: Validate Migration
+**New (v3.0.0) config**:
+```yaml
+plugins:
+  - mkdocs-note:
+      notes_root: "docs/notes"  # ✅ Still supported
+      recent_notes_config:      # ✅ Still supported
+        enabled: true
+        insert_num: 10
+      graph_config:             # ✅ Enhanced
+        enabled: true
+        name: "title"
+```
+
+#### Step 3: Update Frontmatter (if needed)
+
+**v3.0.0 requires** these fields:
+```yaml
+---
+date: 2025-11-05 12:00:00  # Required: datetime
+title: My Note              # Required: string
+publish: true               # Optional: bool (default: true)
+permalink:                  # Optional: string
+---
+```
+
+Notes without valid frontmatter will be **excluded** from builds.
+
+#### Step 4: Test Your Build
 
 ```bash
-mkdocs-note validate
+# Clean previous builds
+rm -rf site/
+
+# Build with v3.0.0
+mkdocs build
+
+# Check for errors
+# - Missing frontmatter errors
+# - Invalid date/title errors
 ```
 
-### 10.2 Code Import Updates
+### For Plugin Developers
 
-If your code directly imports internal plugin modules:
+**Module path changes**:
 
 ```python
-# v1.x (old)
-from mkdocs_note.core.note_manager import NoteProcessor
-from mkdocs_note.core.data_models import NoteInfo
-from mkdocs_note.core.frontmatter_manager import FrontmatterManager
-
-# v2.0.0 (new)
-from mkdocs_note.utils.docsps.handlers import NoteProcessor
+# v2.x: Complex paths
 from mkdocs_note.utils.dataps.meta import NoteInfo
+from mkdocs_note.utils.docsps.handlers import NoteProcessor
 from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterManager
+
+# v3.0.0: Simplified (or don't import internals)
+# Most internal APIs are NOT intended for external use
+# Use plugin configuration instead
 ```
+
+**Recommendation**: Don't depend on internal APIs. Use:
+- Plugin configuration (`mkdocs.yml`)
+- CLI commands
+- Frontmatter metadata
+
+---
+
+## References
+
+### External Resources
+
+- [MkDocs Documentation](https://www.mkdocs.org/)
+
+- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
+
+- [MkDocs Network Graph Plugin](https://github.com/develmusa/mkdocs-network-graph-plugin) (graph.py origin)
+
+- [Keep a Changelog](https://keepachangelog.com/)
+
+- [Semantic Versioning](https://semver.org/)
+
+### Design Philosophy References
+
+- [YAGNI (You Aren't Gonna Need It)](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)
+
+- [KISS (Keep It Simple, Stupid)](https://en.wikipedia.org/wiki/KISS_principle)
+
+- [The Zen of Python](https://peps.python.org/pep-0020/) ("Simple is better than complex")
 
 ---
