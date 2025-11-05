@@ -159,7 +159,9 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 				insert_num=self.config.recent_notes_config["insert_num"],
 				replace_marker=self.config.recent_notes_config["insert_marker"],
 			)
-			log.debug(f"Recent notes inserted into {page.file.src_uri}")
+			log.info(
+				f"Inserted {self.config.recent_notes_config['insert_num']} recent notes into {page.file.src_uri}"
+			)
 
 		return markdown
 
@@ -217,10 +219,6 @@ def insert_recent_note_links(
 	for f in notes_list[:insert_num]:
 		title = extract_title(f)
 		date = extract_date(f).strftime("%Y-%m-%d %H:%M:%S")
-		# Use f.url (relative URL) or f.page.url if page is available
-		url = f.page.url if hasattr(f, "page") and f.page else f.url
-		# No indentation to avoid Markdown treating it as code block
-		content += f'<li><div style="display:flex; justify-content:space-between; align-items:center;"><a href="{url}">{title}</a><span style="font-size:0.8em; color:#888;">{date}</span></div></li>\n'
+		content += f'<li><div style="display:flex; justify-content:space-between; align-items:center;"><a href="{f.page.abs_url}">{title}</a><span style="font-size:0.8em; color:#888;">{date}</span></div></li>\n'
 	content += "</ul>\n"
-	log.info(f"Insert {insert_num} recent notes into index page")
 	return markdown.replace(replace_marker, content)

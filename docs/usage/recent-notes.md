@@ -31,6 +31,13 @@ By default, the marker is `<!-- recent_notes -->`.
 In the index file which under the notes root directory, you should add the marker as follows in where you want to insert the links if you use the default marker we have just talk about above:
 
 ```markdown
+---
+date: xxxx-xx-xx xx:xx:xx
+title: My Documentation
+permalink: 
+publish: true
+---
+
 # My Documentation
 
 ## Recent Updates
