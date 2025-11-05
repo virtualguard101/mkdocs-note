@@ -20,31 +20,19 @@ MkDocs Note is a plugin for [MkDocs](https://www.mkdocs.org/) that automatically
 >[!IMPORTANT]
 > **Breaking Changes**
 >
-> Since `v2.0.0`, the plugin uses a co-located asset structure instead of the old unified tree structure, where assets are stored next to their notes. This makes it easier to manage and move notes with their assets together. 
+> Since `v3`, we greatly simplifies the plugin's framework architecture, and removed some features that are not essential to the core functionality of the plugin in order to make it more lightweight and easier to maintain.
 >
-> However, you need to manually move your existing assets to the new location.
->
-> By the way, I think the plugin after `v2.0.0` can not only as a "notebook manager", but also an efficient documentations manager because of its powerful and flexible asset management system.
+> More details are available in the [Changelog](https://blog.virtualguard101.com/mkdocs-note/about/changelog/#300---2025-11-04-Architecture-Simplification) and [pull request #60](https://github.com/virtualguard101/mkdocs-note/pull/60).
 
 ## Features
 
 - **Recent Notes Display**: Automatically displays a list of recent notes on your notes index page
 
-<!-- - **Multi-format Support**: Supports both Markdown (.md) and Jupyter Notebook (.ipynb) files -->
-
-- **Smart Filtering**: Excludes index files and other specified patterns from the recent notes list
-
 - **Flexible Configuration**: Highly customizable note directory, file patterns, and display options
 
-- **Automatic Updates**: Notes list updates automatically when you build your documentation
-
-- **Command Line Interface**: Built-in CLI commands for note management (`mkdocs note init`, `mkdocs note new`, etc.)
+- **Command Line Interface**: Built-in CLI commands for note management ( `mkdocs note new`, `mkdocs note mv`, etc.)
 
 - **Asset Management**: Automatic asset directory creation and management for each note
-
-- **Template System**: Configurable note templates with variable substitution
-
-- **Structure Validation**: Ensures compliant asset tree structure for consistent organization
 
 - **Network Graph Visualization**: Interactive network graph showing relationships between notes with automatic link detection
 
@@ -77,7 +65,7 @@ plugins:
   - mkdocs-note
 ```
 
-The usage and configuration details are available in the [Mkdocs-Based Documentation](https://blog.virtualguard101.com/mkdocs-note) since `v2.0.0`, refer it to get help or more infomation.
+The usage and configuration details are available in the [Mkdocs-Based Documentation](https://blog.virtualguard101.com/mkdocs-note) since `v2`, refer it to get help or more infomation.
 
 ## Contributing
 
