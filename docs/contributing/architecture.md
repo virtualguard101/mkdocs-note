@@ -17,6 +17,8 @@ This document describes the complete architecture of the MkDocs-Note plugin in v
 
 MkDocs Note is now a **lightweight documentation plugin** designed specifically for MkDocs and Material for MkDocs theme. It focuses on essential note management features with minimal complexity.
 
+It just a simple python-based tool that help you manage your notes in MkDocs documentation site, why not make it simpler and concise?
+
 ### Core Design Philosophy
 
 - **Simplicity First**: Minimal code, focused features, easy to understand and maintain
