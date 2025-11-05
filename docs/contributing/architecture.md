@@ -170,13 +170,13 @@ graph TB
     Plugin --> Meta
     Plugin --> Graph
     
-    CLI -->|For Type Checking| Config
+    CLI ---> Config
     CLI --> Commands
     
     Commands --> Common
     Scanner --> Meta
     
-    Common -.->|uses MkDocsConfig Instance| Plugin
+    Common -->|Get MkDocsConfig Instance| Plugin
 ```
 
 ---
