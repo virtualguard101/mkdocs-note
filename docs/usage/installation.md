@@ -59,3 +59,5 @@ Then you can run the tests for installation verification:
 ```bash
 uv run pytest
 ```
+
+More details about development setup, please refer to [Contributing](../contributing/contributing.md#Development-Setup).

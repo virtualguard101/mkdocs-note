@@ -172,9 +172,27 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		Returns:
 			bool: True if the page is a note index page, False otherwise.
 		"""
-		# src_uri is relative to docs_dir, so we just check for 'index.md'
-		# when notes_root is the docs_dir itself
-		return f.src_uri == "index.md"
+		from pathlib import Path
+
+		# Check if file ends with index.md
+		if not f.src_uri.endswith("index.md"):
+			return False
+
+		# Check if file is the index.md directly under notes_root
+		try:
+			notes_dir = (
+				Path(self.config.notes_root)
+				if isinstance(self.config.notes_root, str)
+				else self.config.notes_root
+			)
+			file_path = Path(f.abs_src_path)
+			# Get the relative path from notes_root to the file
+			rel_path = file_path.relative_to(notes_dir)
+			# If the relative path is exactly "index.md", it's the index page
+			return str(rel_path) == "index.md"
+		except (ValueError, AttributeError):
+			# File is not within notes_root
+			return False
 
 
 def insert_recent_note_links(
@@ -204,4 +222,5 @@ def insert_recent_note_links(
 		# No indentation to avoid Markdown treating it as code block
 		content += f'<li><div style="display:flex; justify-content:space-between; align-items:center;"><a href="{url}">{title}</a><span style="font-size:0.8em; color:#888;">{date}</span></div></li>\n'
 	content += "</ul>\n"
+	log.info(f"Insert {insert_num} recent notes into index page")
 	return markdown.replace(replace_marker, content)

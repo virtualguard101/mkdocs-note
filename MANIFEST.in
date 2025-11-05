@@ -1,3 +1,3 @@
 include LICENSE
 include README.md
-recursive-include src/mkdocs_note/utils/graphps/static *
+recursive-include src/mkdocs_note/static *

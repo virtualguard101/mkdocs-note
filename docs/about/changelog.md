@@ -1,5 +1,5 @@
 ---
-date: 2025-11-05 00:20:00
+date: 2025-11-05 10:53:00
 title: Changelog
 permalink: 
 publish: true
@@ -11,6 +11,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 3.0.1 - 2025-11-05
+
+### Fixed
+
+- Fixed issue where [recent notes](../usage/recent-notes.md) were not inserted into index page if notes_root was not default value (`docs`).
+
+- Fixed issue that cannot copy static assets to output directory which can make the [graph visualization](../usage/network-graph.md) not working.
 
 ## 3.0.0 - 2025-11-04 (Architecture Simplification)
 
