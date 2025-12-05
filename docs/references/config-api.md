@@ -3,6 +3,8 @@ date: 2025-11-05 21:55:37
 title: Plugin Configuration Module
 permalink: 
 publish: true
+hide:
+- navigation
 ---
 
 # Plugin Configuration Module
