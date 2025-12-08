@@ -12,6 +12,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.0.3 - 2025-12-08
+
+### Changed
+
+- Optimized link graph rendering for large sites: faster D3 settling via adjustable `alpha_decay`, `velocity_decay`, and `max_ticks`; automatic fallback to limited hops when the full graph exceeds `max_full_nodes` / `max_full_edges`.
+- Reduced DOM overhead on big graphs by hiding labels/arrowheads past configurable thresholds and debouncing resize redraws.
+- Added graph performance options to configuration and documentation to help tune behavior on 100+ note sites.
+
 ## 3.0.2 - 2025-11-05
 
 ### Fixed

@@ -10,7 +10,8 @@ nav:
     - Command Line Interface: usage/cli.md
     - Asset Management: usage/asset-manager.md
     - Network Graph Visualization: usage/network-graph.md
-    - Configuration Options: usage/config.md
+    # - Configuration Options: usage/config.md
+    # - Metadate of Documents: usage/meta.md
 
   - Contributing Guide:
     - contributing/contributing.md

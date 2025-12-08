@@ -14,7 +14,19 @@ document$.subscribe(function() {
         }
     }
 
-    const graphOptions = window.graph_options || {};
+    const graphOptions = {
+        base_path: '/',
+        debug: false,
+        max_full_nodes: 220,
+        max_full_edges: 400,
+        fallback_hops: 2,
+        label_threshold: 120,
+        arrow_threshold: 160,
+        alpha_decay: 0.08,
+        velocity_decay: 0.45,
+        max_ticks: 180,
+        ...window.graph_options,
+    };
 
     const VIEWBOX_SIZE = 24;
 
@@ -100,6 +112,7 @@ document$.subscribe(function() {
 
     let currentGraph = null;
     let fullGraphData = null;
+    let resizeTimer = null;
 
     function filterGraph(nodes, edges, startNodeId, hops) {
         if (graphOptions.debug) console.log(`Filtering graph with startNodeId: ${startNodeId} and hops: ${hops}`);
@@ -266,42 +279,31 @@ document$.subscribe(function() {
 
  		const g = svg.append("g");
 
- 		     const defs = svg.append("defs");
-
- 		     defs.append("marker")
- 		         .attr("id", "arrowhead")
- 		         .attr("class", "arrowhead")
- 		         .attr("viewBox", ARROWHEAD.VIEW_BOX)
- 		         .attr("refX", ARROWHEAD.REFX)
- 		         .attr("refY", ARROWHEAD.REFY)
- 		         .attr("orient", "auto")
- 		         .attr("markerWidth", ARROWHEAD.MARKER_WIDTH)
- 		         .attr("markerHeight", ARROWHEAD.MARKER_HEIGHT)
- 		         .attr("xoverflow", "visible")
- 		         .append("svg:path")
- 		         .attr("d", ARROWHEAD.D)
- 		         .style("stroke", "none");
-
- 		     defs.append("marker")
- 		         .attr("id", "arrowhead-start")
- 		         .attr("class", "arrowhead")
- 		         .attr("viewBox", ARROWHEAD.VIEW_BOX)
- 		         .attr("refX", ARROWHEAD.REFX)
- 		         .attr("refY", ARROWHEAD.REFY)
- 		         .attr("orient", "auto-start-reverse")
- 		         .attr("markerWidth", ARROWHEAD.MARKER_WIDTH)
- 		         .attr("markerHeight", ARROWHEAD.MARKER_HEIGHT)
- 		         .attr("xoverflow", "visible")
- 		         .append("svg:path")
- 		         .attr("d", ARROWHEAD.D)
- 		         .style("stroke", "none");
-
-        const draw = function(graph) {
+         const draw = function(graph) {
             if (!fullGraphData) {
                 fullGraphData = graph;
             }
 
-            const basePath = window.graph_options?.base_path || '/';
+            const tooLargeForFull = isModal && hops === 'full' && (
+                (graphOptions.max_full_nodes && fullGraphData.nodes.length > graphOptions.max_full_nodes) ||
+                (graphOptions.max_full_edges && fullGraphData.edges.length > graphOptions.max_full_edges)
+            );
+            const effectiveHops = tooLargeForFull
+                ? String(graphOptions.fallback_hops ?? '2')
+                : (isModal ? hops : '1');
+
+            if (tooLargeForFull && isModal) {
+                const warning = document.createElement('div');
+                warning.className = 'graph-warning';
+                warning.textContent = `Graph truncated for performance (showing ${effectiveHops} hops).`;
+                graphHeader.appendChild(warning);
+            }
+
+            const disableLabels = graphOptions.label_threshold && fullGraphData.nodes.length > graphOptions.label_threshold;
+
+            const disableArrows = graphOptions.arrow_threshold && fullGraphData.nodes.length > graphOptions.arrow_threshold;
+
+            const basePath = graphOptions.base_path || '/';
             const currentPath = window.location.pathname.replace(basePath, '').replace(/\/$/, "");
             const startNode = fullGraphData.nodes.find(n => {
                 const nodeUrl = n.url.replace(/\/$/, "");
@@ -314,7 +316,39 @@ document$.subscribe(function() {
             const {
                 nodes: nodesData,
                 edges: linksData
-            } = filterGraph(fullGraphData.nodes, fullGraphData.edges, startNode?.id, isModal ? hops : '1');
+            } = filterGraph(fullGraphData.nodes, fullGraphData.edges, startNode?.id, effectiveHops);
+
+            if (!disableArrows) {
+                const defs = svg.append("defs");
+
+                defs.append("marker")
+                    .attr("id", "arrowhead")
+                    .attr("class", "arrowhead")
+                    .attr("viewBox", ARROWHEAD.VIEW_BOX)
+                    .attr("refX", ARROWHEAD.REFX)
+                    .attr("refY", ARROWHEAD.REFY)
+                    .attr("orient", "auto")
+                    .attr("markerWidth", ARROWHEAD.MARKER_WIDTH)
+                    .attr("markerHeight", ARROWHEAD.MARKER_HEIGHT)
+                    .attr("xoverflow", "visible")
+                    .append("svg:path")
+                    .attr("d", ARROWHEAD.D)
+                    .style("stroke", "none");
+
+                defs.append("marker")
+                    .attr("id", "arrowhead-start")
+                    .attr("class", "arrowhead")
+                    .attr("viewBox", ARROWHEAD.VIEW_BOX)
+                    .attr("refX", ARROWHEAD.REFX)
+                    .attr("refY", ARROWHEAD.REFY)
+                    .attr("orient", "auto-start-reverse")
+                    .attr("markerWidth", ARROWHEAD.MARKER_WIDTH)
+                    .attr("markerHeight", ARROWHEAD.MARKER_HEIGHT)
+                    .attr("xoverflow", "visible")
+                    .append("svg:path")
+                    .attr("d", ARROWHEAD.D)
+                    .style("stroke", "none");
+            }
 
            const processedLinksMap = new Map();
            for (const link of linksData) {
@@ -340,7 +374,9 @@ document$.subscribe(function() {
                 .force("center", d3.forceCenter(width / 2, height / 2))
                 .force("x", d3.forceX(width / 2).strength(FORCE_CONFIG.X_STRENGTH))
                 .force("y", d3.forceY(height / 2).strength(FORCE_CONFIG.Y_STRENGTH))
-                .force("collide", d3.forceCollide(d => (d.id === startNode?.id ? NODE_CONFIG.CIRCLE_RADIUS * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.CIRCLE_RADIUS) + 2));
+                .force("collide", d3.forceCollide(d => (d.id === startNode?.id ? NODE_CONFIG.CIRCLE_RADIUS * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.CIRCLE_RADIUS) + 2))
+                .alphaDecay(graphOptions.alpha_decay ?? 0.08)
+                .velocityDecay(graphOptions.velocity_decay ?? 0.45);
 
             if (isTwoNodes) {
                 nodesData[0].fx = width / 2;
@@ -358,8 +394,8 @@ document$.subscribe(function() {
                 .data(processedLinks)
                 .enter().append("line")
                 .attr("class", "link")
-    .attr("marker-end", "url(#arrowhead)")
-                .attr("marker-start", d => d.bidirectional ? "url(#arrowhead-start)" : null);
+                .attr("marker-end", disableArrows ? null : "url(#arrowhead)")
+                .attr("marker-start", d => disableArrows ? null : (d.bidirectional ? "url(#arrowhead-start)" : null));
 
             const node = g.append("g")
                 .attr("class", "nodes")
@@ -385,11 +421,15 @@ document$.subscribe(function() {
                     window.location.href = new URL(d.url, window.location.origin + basePath).href;
                 });
 
-            node.append("text")
-				.text(d => d.name)
-				            .attr("x", d => d.id === startNode?.id ? NODE_CONFIG.LABEL_X_OFFSET * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.LABEL_X_OFFSET)
-				            .attr("dy", NODE_CONFIG.LABEL_DY_OFFSET);
+            if (!disableLabels) {
+                node.append("text")
+                    .text(d => d.name)
+                    .attr("x", d => d.id === startNode?.id ? NODE_CONFIG.LABEL_X_OFFSET * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.LABEL_X_OFFSET)
+                    .attr("dy", NODE_CONFIG.LABEL_DY_OFFSET);
+            }
 
+            const maxTicks = graphOptions.max_ticks ?? 180;
+            let tickCount = 0;
 				        simulation.on("tick", () => {
 				            link.each(function(d) {
                     const sourceNode = nodesData.find(n => n.id === (d.source.id || d.source));
@@ -407,8 +447,9 @@ document$.subscribe(function() {
                         return;
                     }
 
-                    const sourceRadius = (sourceNode.id === startNode?.id ? NODE_CONFIG.CIRCLE_RADIUS * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.CIRCLE_RADIUS) + LINK_CONFIG.STROKE_MARGIN + (d.bidirectional ? ARROWHEAD.MARKER_WIDTH : 0);
-                    const targetRadius = (targetNode.id === startNode?.id ? NODE_CONFIG.CIRCLE_RADIUS * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.CIRCLE_RADIUS) + LINK_CONFIG.STROKE_MARGIN + ARROWHEAD.MARKER_WIDTH;
+                    const arrowPadding = disableArrows ? 0 : ARROWHEAD.MARKER_WIDTH;
+                    const sourceRadius = (sourceNode.id === startNode?.id ? NODE_CONFIG.CIRCLE_RADIUS * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.CIRCLE_RADIUS) + LINK_CONFIG.STROKE_MARGIN + (d.bidirectional ? arrowPadding : 0);
+                    const targetRadius = (targetNode.id === startNode?.id ? NODE_CONFIG.CIRCLE_RADIUS * NODE_CONFIG.CURRENT_NODE_MULTIPLIER : NODE_CONFIG.CIRCLE_RADIUS) + LINK_CONFIG.STROKE_MARGIN + arrowPadding;
 
                     const sourceX = sourceNode.x + (dx / distance) * sourceRadius;
                     const sourceY = sourceNode.y + (dy / distance) * sourceRadius;
@@ -424,6 +465,12 @@ document$.subscribe(function() {
 
                 node
                     .attr("transform", d => `translate(${d.x},${d.y})`);
+
+                tickCount += 1;
+                if (tickCount >= maxTicks) {
+                    simulation.alphaTarget(SIMULATION_CONFIG.ALPHA_TARGET_INACTIVE);
+                    simulation.stop();
+                }
             });
 
             currentGraph = { svg, simulation };
@@ -470,9 +517,14 @@ document$.subscribe(function() {
     draw_graph("#graph", '1');
 
     window.addEventListener('resize', () => {
-       const modal = document.getElementById('modal_background');
-       const container = modal ? '#modal_graph_content' : '#graph';
-       destroy_graph();
-       draw_graph(container, modal ? 'full' : '1');
+       if (resizeTimer) {
+           clearTimeout(resizeTimer);
+       }
+       resizeTimer = setTimeout(() => {
+           const modal = document.getElementById('modal_background');
+           const container = modal ? '#modal_graph_content' : '#graph';
+           destroy_graph();
+           draw_graph(container, modal ? 'full' : '1');
+       }, 200);
     });
 });

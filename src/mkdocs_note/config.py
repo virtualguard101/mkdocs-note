@@ -36,6 +36,14 @@ class MkdocsNoteConfig(Config):
 			"enabled": False,
 			"name": "title",  # Node naming strategy: "title" or "file_name"
 			"debug": False,  # Enable debug logging for graph generation
+			"max_full_nodes": 220,  # Max nodes allowed in full graph view before fallback
+			"max_full_edges": 400,  # Max edges allowed in full graph view before fallback
+			"fallback_hops": 2,  # Hop depth to use when graph is too large
+			"label_threshold": 120,  # Hide labels when node count exceeds this value
+			"arrow_threshold": 160,  # Hide arrowheads when node count exceeds this value
+			"alpha_decay": 0.08,  # Force simulation alphaDecay for faster settling
+			"velocity_decay": 0.45,  # Force simulation velocityDecay to damp movement
+			"max_ticks": 180,  # Maximum ticks before simulation stops to prevent lockups
 		},
 	)
 	"""Configuration for the network graph visualization.

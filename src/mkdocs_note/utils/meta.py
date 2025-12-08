@@ -13,7 +13,7 @@ def validate_frontmatter(f: File) -> bool:
 	"""Validate the frontmatter of the file
 
 	Args:
-	    file (File): The file to validate
+	    f (File): The file to validate
 
 	Returns:
 	    bool: True if the frontmatter is valid, False otherwise

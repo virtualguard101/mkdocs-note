@@ -105,8 +105,11 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		Returns:
 			str: The output content.
 		"""
-		debug = self.config.graph_config.get("debug", False)
-		output = inject_graph_script(output=output, config=config, debug=debug)
+		output = inject_graph_script(
+			output=output,
+			config=config,
+			graph_config=self.config.graph_config,
+		)
 		return output
 
 	def on_post_build(

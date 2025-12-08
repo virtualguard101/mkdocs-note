@@ -1,5 +1,5 @@
 ---
-date: 2025-11-05 00:00:00
+date: 2025-12-08 15:51:00
 title: Network Graph Visualization
 permalink: 
 publish: true
@@ -49,6 +49,14 @@ plugins:
 |--------|------|---------|-------------|
 | `name` | string | `"title"` | Node naming strategy: `"title"` uses page title, `"file_name"` uses filename |
 | `debug` | boolean | `false` | Enable debug logging for graph generation |
+| `max_full_nodes` | integer | `220` | Maximum nodes allowed in the “Full” modal view before falling back |
+| `max_full_edges` | integer | `400` | Maximum edges allowed in the “Full” modal view before falling back |
+| `fallback_hops` | integer | `2` | Hop depth to render when the full graph exceeds thresholds |
+| `label_threshold` | integer | `120` | Hide node labels when node count exceeds this value |
+| `arrow_threshold` | integer | `160` | Hide arrowheads when node count exceeds this value |
+| `alpha_decay` | float | `0.08` | D3 force simulation alphaDecay (higher = settles faster) |
+| `velocity_decay` | float | `0.45` | D3 velocityDecay to damp movement |
+| `max_ticks` | integer | `180` | Max simulation ticks before it stops to avoid long-running layouts |
 
 ## Usage
 
@@ -83,6 +91,13 @@ The network graph integrates with the existing recent notes feature and appears 
 3. Links between notes are detected and visualized
 
 ## Customization
+
+### Performance tuning for large graphs
+
+- For 100+ notes, keep the defaults above or lower `max_full_nodes` / `max_full_edges` to force the modal to show a smaller hop view when the graph is very large.
+- Increase `alpha_decay` or `velocity_decay` if the layout still jitters; decrease slightly if you prefer slower but smoother settling.
+- If labels or arrowheads clutter the view, lower `label_threshold` and `arrow_threshold` to hide them earlier.
+- Use `fallback_hops` to pick how many hops are shown when the full graph is too large (e.g., set to `1` for the current page plus its neighbors).
 
 ### CSS Variables
 

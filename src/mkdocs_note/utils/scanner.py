@@ -4,17 +4,18 @@ from mkdocs.structure.files import File, Files
 from mkdocs.plugins import get_plugin_logger
 
 from mkdocs_note.utils.meta import validate_frontmatter
+from mkdocs_note.config import MkdocsNoteConfig
 
 
 logger = get_plugin_logger(__name__)
 
 
-def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
+def scan_notes(files: Files, config: MkdocsNoteConfig) -> tuple[list[File], list[File]]:
 	"""Scan notes directory, return all supported note files
 
 	Args:
 		files (Files): The list of files to scan
-		config: Plugin configuration
+		config (MkdocsNoteConfig): Plugin configuration
 
 	Returns:
 		tuple[list[File], list[File]]: (valid notes, invalid files)

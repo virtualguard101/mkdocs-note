@@ -25,7 +25,7 @@ def get_version():
 	"""Get the version of mkdocs-note package.
 
 	Returns:
-	    str: Version string from package metadata
+	    (str): Version string from package metadata
 	"""
 	try:
 		return metadata.version("mkdocs-note")

@@ -3,6 +3,7 @@
 Migrated from [mkdocs-network-graph-plugin](https://github.com/develmusa/mkdocs-network-graph-plugin/blob/main/src/mkdocs_graph_plugin/graph.py).
 """
 
+import json
 import os
 import re
 import shutil
@@ -137,13 +138,17 @@ def add_static_resouces(config: MkDocsConfig) -> None:
 		config["extra_css"].append("css/graph.css")
 
 
-def inject_graph_script(output: str, config: MkDocsConfig, debug: bool = False) -> str:
+def inject_graph_script(
+	output: str,
+	config: MkDocsConfig,
+	graph_config: dict,
+) -> str:
 	"""Inject the graph script into the HTML page.
 
 	Args:
 		output (str): The HTML output.
 		config (MkDocsConfig): The MkDocs configuration.
-		debug (bool): Whether to enable debug mode.
+		graph_config (dict): Graph configuration for the frontend.
 
 	Returns:
 		str: The HTML with the graph script injected.
@@ -157,13 +162,21 @@ def inject_graph_script(output: str, config: MkDocsConfig, debug: bool = False) 
 	else:
 		base_path = "/"
 
+	frontend_options = {
+		"debug": bool(graph_config.get("debug", False)),
+		"base_path": base_path,
+		"max_full_nodes": graph_config.get("max_full_nodes"),
+		"max_full_edges": graph_config.get("max_full_edges"),
+		"fallback_hops": graph_config.get("fallback_hops"),
+		"label_threshold": graph_config.get("label_threshold"),
+		"arrow_threshold": graph_config.get("arrow_threshold"),
+		"alpha_decay": graph_config.get("alpha_decay"),
+		"velocity_decay": graph_config.get("velocity_decay"),
+		"max_ticks": graph_config.get("max_ticks"),
+	}
+
 	options_script = (
-		"<script>"
-		f"window.graph_options = {{"
-		f"    debug: {str(debug).lower()},"
-		f"    base_path: '{base_path}'"
-		f"}};"
-		"</script>"
+		f"<script>window.graph_options = {json.dumps(frontend_options)};</script>"
 	)
 	if "</body>" in output:
 		return output.replace("</body>", f"{options_script}</body>")
