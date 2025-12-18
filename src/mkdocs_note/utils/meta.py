@@ -1,5 +1,6 @@
+import posixpath
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union, Callable
 
 from mkdocs.utils import meta
 from mkdocs.plugins import get_plugin_logger
@@ -7,6 +8,24 @@ from mkdocs.structure.files import File
 
 
 logger = get_plugin_logger(__name__)
+
+
+def set_file_dest_uri(f: File, value: Union[str, Callable[[str], str]]) -> None:
+	"""Set the uri of the mkdocs object file.
+
+	Args:
+		f (File): The documentation file to set the uri for.
+		value (Union[str, Callable[[str], str]]): The uri to set. If a string, it will be used as is. If a callable, it will be called with the current uri and should return the new uri.
+	"""
+	f.dest_uri = value if isinstance(value, str) else value(f.dest_uri)
+
+	def delattr_if_exists(obj, attr):
+		if hasattr(obj, attr):
+			delattr(obj, attr)
+
+	# 删掉 cached_property 的缓存
+	delattr_if_exists(f, "url")
+	delattr_if_exists(f, "abs_dest_path")
 
 
 def validate_frontmatter(f: File) -> bool:
@@ -41,6 +60,19 @@ def validate_frontmatter(f: File) -> bool:
 		if "title" not in frontmatter:
 			logger.error(f"Invalid frontmatter for {f.src_uri}: 'title' is required")
 			return False
+
+		if "permalink" not in frontmatter:
+			logger.error(
+				f"Invalid frontmatter for {f.src_uri}: 'permalink' is required"
+			)
+			return False
+
+		permalink = frontmatter["permalink"]
+
+		if not f.use_directory_urls:
+			set_file_dest_uri(f, posixpath.join("p", permalink + ".html"))
+		else:
+			set_file_dest_uri(f, posixpath.join("p", permalink, "index.html"))
 
 		title = frontmatter["title"]
 		if not isinstance(title, str):
