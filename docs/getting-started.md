@@ -1,7 +1,7 @@
 ---
 date: 2025-11-04 23:45:00
 title: Getting Started
-permalink: 
+permalink: usage/getting-started
 publish: true
 ---
 

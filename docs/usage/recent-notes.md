@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 00:15:04
 title: Recent Notes Insertion
-permalink: 
+permalink: usage/recent-notes
 publish: true
 ---
 

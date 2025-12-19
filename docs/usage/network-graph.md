@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 00:00:00
 title: Network Graph Visualization
-permalink: 
+permalink: usage/network-graph
 publish: true
 ---
 

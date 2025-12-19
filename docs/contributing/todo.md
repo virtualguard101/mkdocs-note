@@ -1,7 +1,7 @@
 ---
 date: 2025-10-17 15:44:22
 title: Todo
-permalink: 
+permalink: contributing/todo
 publish: true
 ---
 

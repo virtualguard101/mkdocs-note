@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 21:25:00
 title: API References
-permalink: 
+permalink: references
 publish: true
 ---
 

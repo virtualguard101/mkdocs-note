@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 21:42:47
 title: Plugin Core
-permalink: 
+permalink: references/core-api
 publish: true
 hide:
 - navigation

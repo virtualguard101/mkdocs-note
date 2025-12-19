@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 22:00:32
 title: Graph Visualization Module
-permalink: 
+permalink: references/graph-api
 publish: true
 hide:
 - navigation

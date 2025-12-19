@@ -1,7 +1,7 @@
 ---
 date: 2025-10-17 12:03:38
 title: License
-permalink: 
+permalink: about/license
 publish: true
 ---
 

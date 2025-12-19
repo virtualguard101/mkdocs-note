@@ -1,7 +1,7 @@
 ---
 date: 2025-10-17 11:41:05
 title: Asset Management
-permalink: 
+permalink: usage/asset-manager
 publish: true
 ---
 

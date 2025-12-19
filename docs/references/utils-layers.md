@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 22:06:28
 title: Utils Layers
-permalink: 
+permalink: references/utils-layers
 publish: true
 hide:
 - navigation

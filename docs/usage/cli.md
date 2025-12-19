@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 20:30:00
 title: Command Line Interface
-permalink: 
+permalink: usage/cli
 publish: true
 ---
 

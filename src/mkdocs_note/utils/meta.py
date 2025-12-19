@@ -6,7 +6,6 @@ from mkdocs.utils import meta
 from mkdocs.plugins import get_plugin_logger
 from mkdocs.structure.files import File
 
-
 logger = get_plugin_logger(__name__)
 
 
@@ -61,18 +60,19 @@ def validate_frontmatter(f: File) -> bool:
 			logger.error(f"Invalid frontmatter for {f.src_uri}: 'title' is required")
 			return False
 
-		if "permalink" not in frontmatter:
-			logger.error(
-				f"Invalid frontmatter for {f.src_uri}: 'permalink' is required"
-			)
-			return False
+		if f.src_uri.endswith("index.md"):
+			if "permalink" not in frontmatter or not frontmatter["permalink"]:
+				logger.error(
+					f"Invalid frontmatter for {f.src_uri}: 'permalink' is required"
+				)
+				return False
 
-		permalink = frontmatter["permalink"]
+			permalink = frontmatter["permalink"]
 
-		if not f.use_directory_urls:
-			set_file_dest_uri(f, posixpath.join("p", permalink + ".html"))
-		else:
-			set_file_dest_uri(f, posixpath.join("p", permalink, "index.html"))
+			if not f.use_directory_urls:
+				set_file_dest_uri(f, posixpath.join("p", permalink + ".html"))
+			else:
+				set_file_dest_uri(f, posixpath.join("p", permalink, "index.html"))
 
 		title = frontmatter["title"]
 		if not isinstance(title, str):

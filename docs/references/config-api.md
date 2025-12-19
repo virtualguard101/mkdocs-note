@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 21:55:37
 title: Plugin Configuration Module
-permalink: 
+permalink: references/config-api
 publish: true
 hide:
 - navigation

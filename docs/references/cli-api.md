@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 21:28:00
 title: CLI API
-permalink: 
+permalink: references/cli-api
 publish: true
 hide:
 - navigation

@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 11:00:00
 title: Contributing
-permalink: 
+permalink: contributing
 publish: true
 ---
 

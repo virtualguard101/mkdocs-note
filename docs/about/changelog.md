@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 10:53:00
 title: Changelog
-permalink: 
+permalink: about/changelog
 publish: true
 ---
 

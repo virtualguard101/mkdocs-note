@@ -1,7 +1,7 @@
 ---
 date: 2025-11-05 12:05:00
 title: Architecture Overview
-permalink: 
+permalink: contributing/architecture
 publish: true
 ---
 

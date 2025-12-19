@@ -1,7 +1,7 @@
 ---
 date: 2025-10-16 14:21:04
 title: User Guide
-permalink: 
+permalink: usage
 publish: true
 ---
 
