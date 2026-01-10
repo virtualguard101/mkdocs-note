@@ -1,5 +1,5 @@
 ---
-date: 2025-11-05 20:30:00
+date: 2026-01-10 22:09:00
 title: Command Line Interface
 permalink: 
 publish: true
@@ -60,13 +60,10 @@ Create a new note file with proper asset structure.
 
     ```bash
     # Create a simple note
-    mkdocs-note new docs/notes/my-note.md
+    mkdocs-note new my-permalink docs/notes/my-note.md
 
     # Create a note in nested directory
-    mkdocs-note new docs/notes/python/intro.md
-
-    # Using template (feature planned)
-    mkdocs-note new docs/notes/article.md --template templates/article.md
+    mkdocs-note new python-intro docs/notes/python/intro.md
     ```
 
 - **Output:**
@@ -76,7 +73,8 @@ Create a new note file with proper asset structure.
     ```
     ✅ Successfully created note
     📝 Note: docs/notes/my-note.md
-    📁 Assets: docs/notes/assets/my-note/
+    🔗 Permalink: my-permalink
+    📁 Assets: docs/notes/assets/my-permalink/
     ```
 
 ### `remove`

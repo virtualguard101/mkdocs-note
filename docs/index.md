@@ -1,11 +1,14 @@
 ---
-date: 2025-10-15 00:57:12
+date: 2026-01-10 22:10:12
 title: Welcome
 permalink: 
 publish: true
 ---
 
 # Welcome
+
+!!! tip "Notice"
+    `v3.1.0` is now avaliable, the release now make some changes in [Commands Line Interface](usage/cli.md), See [Changelog](about/changelog.md#310---2026-01-10) for more details.
 
 ## Mkdocs Note
 

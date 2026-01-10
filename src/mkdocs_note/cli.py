@@ -127,23 +127,21 @@ def cli(ctx):
 
 
 @cli.command("new")
+@click.argument("permalink", required=True)
 @click.argument("file_path", required=True)
-@click.option(
-	"--template",
-	"-t",
-	type=click.Path(exists=True, path_type=Path),
-	help="Custom template file to use",
-)
 @click.pass_context
-def new_command(ctx, file_path, template):
+def new_command(ctx, permalink, file_path):
 	"""Create a new note file with proper asset structure.
 
 	\b
 	Examples:
-	    mkdocs-note new docs/notes/my-note.md
-	    mkdocs-note new docs/notes/python/intro.md
+	    mkdocs-note new my-permalink docs/notes/my-note.md
+	    mkdocs-note new python-intro docs/notes/python/intro.md
 
-	FILE_PATH: Path where the new note file should be created
+	\b
+	Arguments:
+	    PERMALINK: The permalink value for frontmatter and asset directory name
+	    FILE_PATH: Path where the new note file should be created
 	"""
 	try:
 		# Load configuration and setup environment
@@ -153,6 +151,13 @@ def new_command(ctx, file_path, template):
 		# Convert to Path
 		note_path = Path(file_path)
 
+		# Validate permalink
+		if not permalink or not permalink.strip():
+			click.echo("❌ Error: Permalink cannot be empty", err=True)
+			sys.exit(1)
+
+		permalink = permalink.strip()
+
 		# Check if file already exists
 		if note_path.exists():
 			click.echo(f"❌ Error: File already exists: {note_path}", err=True)
@@ -160,15 +165,16 @@ def new_command(ctx, file_path, template):
 
 		# Create the note using NewCommand
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
-		# Get asset directory path
-		asset_dir = cli_common.get_asset_directory(note_path)
+		# Get asset directory path based on permalink
+		asset_dir = cli_common.get_asset_directory_by_permalink(note_path, permalink)
 
 		# Check if creation was successful
 		if note_path.exists():
 			click.echo("✅ Successfully created note")
 			click.echo(f"📝 Note: {note_path}")
+			click.echo(f"🔗 Permalink: {permalink}")
 			click.echo(f"📁 Assets: {asset_dir}")
 			sys.exit(0)
 		else:
@@ -220,8 +226,15 @@ def remove_command(ctx, file_path, keep_assets, yes):
 			click.echo(f"❌ Error: File does not exist: {note_path}", err=True)
 			sys.exit(1)
 
-		# Get asset directory before removal
-		asset_dir = cli_common.get_asset_directory(note_path)
+		# Get asset directory before removal (based on permalink if available)
+		permalink = cli_common.get_permalink_from_file(note_path)
+		if permalink:
+			asset_dir = cli_common.get_asset_directory_by_permalink(
+				note_path, permalink
+			)
+		else:
+			# Fallback to filename-based for backwards compatibility
+			asset_dir = cli_common.get_asset_directory(note_path)
 		asset_exists = asset_dir.exists()
 
 		# Confirmation prompt (unless --yes)
@@ -238,9 +251,11 @@ def remove_command(ctx, file_path, keep_assets, yes):
 		# Check if removal was successful
 		if not note_path.exists():
 			click.echo(f"✅ Successfully removed note: {note_path}")
+			if permalink:
+				click.echo(f"🔗 Permalink: {permalink}")
 			if not keep_assets and asset_exists:
 				click.echo(f"📁 Removed assets: {asset_dir}")
-			else:
+			elif keep_assets:
 				click.echo(f"📁 Kept assets: {asset_dir}")
 			sys.exit(0)
 		else:
@@ -420,7 +435,7 @@ def clean_command(ctx, dry_run, yes):
 				sys.exit(0)
 
 		# Actually clean
-		click.echo("\n🗑️  Removing orphaned assets...")
+		click.echo("\n🗑️ Removing orphaned assets...")
 		command.execute(dry_run=False)
 
 		click.echo(

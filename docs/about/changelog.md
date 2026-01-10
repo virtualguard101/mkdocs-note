@@ -1,5 +1,5 @@
 ---
-date: 2025-11-05 10:53:00
+date: 2026-01-10 22:35:00
 title: Changelog
 permalink: 
 publish: true
@@ -11,6 +11,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 3.1.0 - 2026-01-10
+
+### Changed
+
+- [Commands Line Interface](../usage/cli.md) and [Asset manager](../usage/asset-manager.md) now use permalink to determine asset directory, instead of filename.
+
+- Keep forward compatibility if can't identify permalink from note file.
+
+- Affacted CLI commands: `new`, `remove`, `move`. For users, only notice that `new` command now requires a permalink argument.
 
 ## 3.0.2 - 2025-11-05
 

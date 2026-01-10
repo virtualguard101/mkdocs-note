@@ -3,9 +3,11 @@ Common utilities and data structures for CLI operations.
 """
 
 from pathlib import Path
+from typing import Optional
 
 from mkdocs.plugins import get_plugin_logger
 from mkdocs.config.defaults import MkDocsConfig
+from mkdocs.utils import meta
 
 from mkdocs_note.plugin import MkdocsNotePlugin as plugin
 
@@ -23,9 +25,10 @@ def get_plugin_config() -> MkDocsConfig:
 
 
 def get_asset_directory(note_path: Path) -> Path:
-	"""Get the asset directory path for a note file.
+	"""Get the asset directory path for a note file based on filename.
 
 	Uses co-located asset structure: note_file.parent / "assets" / note_file.stem
+	__This is the legacy method based on filename stem__.
 
 	Args:
 	    note_path: Path to the note file
@@ -41,6 +44,50 @@ def get_asset_directory(note_path: Path) -> Path:
 	    PosixPath('docs/notes/python/assets/intro')
 	"""
 	return note_path.parent / "assets" / note_path.stem
+
+
+def get_asset_directory_by_permalink(note_path: Path, permalink: str) -> Path:
+	"""Get the asset directory path for a note file based on permalink.
+
+	Uses co-located asset structure: note_file.parent / "assets" / permalink
+
+	Args:
+	    note_path: Path to the note file
+	    permalink: The permalink value from frontmatter
+
+	Returns:
+	    Path: The asset directory path
+
+	Examples:
+	    >>> get_asset_directory_by_permalink(Path("docs/notes/my-note.md"), "my-permalink")
+	    PosixPath('docs/notes/assets/my-permalink')
+	"""
+	return note_path.parent / "assets" / permalink
+
+
+def get_permalink_from_file(note_path: Path) -> Optional[str]:
+	"""Extract permalink value from note file's frontmatter.
+
+	Args:
+	    note_path: Path to the note file
+
+	Returns:
+	    Optional[str]: The permalink value if found, None otherwise
+
+	Examples:
+	    >>> get_permalink_from_file(Path("docs/notes/my-note.md"))
+	    'my-permalink'
+	"""
+	try:
+		content = note_path.read_text(encoding="utf-8")
+		_, frontmatter = meta.get_data(content)
+		permalink = frontmatter.get("permalink")
+		if permalink and isinstance(permalink, str) and permalink.strip():
+			return permalink.strip()
+		return None
+	except Exception as e:
+		log.error(f"Error reading permalink from {note_path}: {e}")
+		return None
 
 
 def is_excluded_name(name: str, exclude_patterns: list[str]) -> bool:

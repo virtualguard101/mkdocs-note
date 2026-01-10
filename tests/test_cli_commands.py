@@ -39,35 +39,38 @@ class TestNewCommand(unittest.TestCase):
 	def test_create_simple_note(self):
 		"""Test creating a simple note file."""
 		note_path = self.root_dir / "test.md"
+		permalink = "test-permalink"
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
 		# Check note file was created
 		self.assertTrue(note_path.exists())
 		self.assertTrue(note_path.is_file())
 
-		# Check asset directory was created
-		asset_dir = common.get_asset_directory(note_path)
+		# Check asset directory was created using permalink
+		asset_dir = common.get_asset_directory_by_permalink(note_path, permalink)
 		self.assertTrue(asset_dir.exists())
 		self.assertTrue(asset_dir.is_dir())
 
 	def test_create_nested_note(self):
 		"""Test creating a note in nested directories."""
 		note_path = self.root_dir / "python" / "intro.md"
+		permalink = "python-intro"
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
 		# Check note file was created
 		self.assertTrue(note_path.exists())
-		# Check asset directory was created
-		asset_dir = common.get_asset_directory(note_path)
+		# Check asset directory was created using permalink
+		asset_dir = common.get_asset_directory_by_permalink(note_path, permalink)
 		self.assertTrue(asset_dir.exists())
 
 	def test_note_content_has_frontmatter(self):
 		"""Test that created note has proper frontmatter."""
 		note_path = self.root_dir / "test-note.md"
+		permalink = "test-permalink"
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
 		content = note_path.read_text(encoding="utf-8")
 
@@ -75,24 +78,28 @@ class TestNewCommand(unittest.TestCase):
 		self.assertTrue(content.startswith("---"))
 		self.assertIn("date:", content)
 		self.assertIn("title:", content)
-		self.assertIn("permalink:", content)
+		self.assertIn(f"permalink: {permalink}", content)
 		self.assertIn("publish:", content)
 
 	def test_note_title_generation(self):
 		"""Test that note title is generated from filename."""
 		note_path = self.root_dir / "my-test-note.md"
+		permalink = "my-test-note"
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
 		content = note_path.read_text(encoding="utf-8")
 		# Title should be "My Test Note" (converted from filename)
 		self.assertIn("title: My Test Note", content)
+		# Permalink should match the provided value
+		self.assertIn(f"permalink: {permalink}", content)
 
 	def test_note_date_format(self):
 		"""Test that note has proper date format."""
 		note_path = self.root_dir / "test.md"
+		permalink = "test"
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
 		content = note_path.read_text(encoding="utf-8")
 
@@ -113,9 +120,10 @@ class TestNewCommand(unittest.TestCase):
 		"""Test that creating an existing note doesn't overwrite."""
 		note_path = self.root_dir / "existing.md"
 		note_path.write_text("# Existing content")
+		permalink = "existing"
 
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
 		# Original content should remain
 		content = note_path.read_text()
@@ -140,10 +148,21 @@ class TestRemoveCommand(unittest.TestCase):
 
 	def test_remove_single_note(self):
 		"""Test removing a single note file."""
-		# Create a note with asset directory
+		# Create a note with permalink and asset directory
+		permalink = "test-permalink"
 		note_path = self.root_dir / "test.md"
-		note_path.write_text("# Test note")
-		asset_dir = common.get_asset_directory(note_path)
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Test Note
+permalink: {permalink}
+publish: true
+---
+
+# Test note
+"""
+		note_path.write_text(note_content)
+		# Asset directory should be based on permalink
+		asset_dir = common.get_asset_directory_by_permalink(note_path, permalink)
 		asset_dir.mkdir(parents=True)
 		(asset_dir / "image.png").write_text("fake image")
 
@@ -157,9 +176,19 @@ class TestRemoveCommand(unittest.TestCase):
 
 	def test_remove_note_keep_assets(self):
 		"""Test removing a note but keeping its assets."""
+		permalink = "test-keep-assets"
 		note_path = self.root_dir / "test.md"
-		note_path.write_text("# Test note")
-		asset_dir = common.get_asset_directory(note_path)
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Test Note
+permalink: {permalink}
+publish: true
+---
+
+# Test note
+"""
+		note_path.write_text(note_content)
+		asset_dir = common.get_asset_directory_by_permalink(note_path, permalink)
 		asset_dir.mkdir(parents=True)
 
 		command = RemoveCommand()
@@ -171,14 +200,49 @@ class TestRemoveCommand(unittest.TestCase):
 
 	def test_remove_note_without_assets(self):
 		"""Test removing a note that has no asset directory."""
+		permalink = "test-no-assets"
 		note_path = self.root_dir / "test.md"
-		note_path.write_text("# Test note")
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Test Note
+permalink: {permalink}
+publish: true
+---
+
+# Test note
+"""
+		note_path.write_text(note_content)
 
 		command = RemoveCommand()
 		command.execute(note_path, remove_assets=True)
 
 		# Should not raise exception
 		self.assertFalse(note_path.exists())
+
+	def test_remove_note_without_permalink_fallback(self):
+		"""Test removing a note without permalink falls back to filename-based asset directory."""
+		note_path = self.root_dir / "test.md"
+		# Note without permalink (old format)
+		note_content = """---
+date: 2025-01-15 10:00:00
+title: Test Note
+publish: true
+---
+
+# Test note
+"""
+		note_path.write_text(note_content)
+		# Create asset directory using filename (backwards compatibility)
+		asset_dir = common.get_asset_directory(note_path)
+		asset_dir.mkdir(parents=True)
+		(asset_dir / "image.png").write_text("fake image")
+
+		command = RemoveCommand()
+		command.execute(note_path, remove_assets=True)
+
+		# Note should be removed, and asset directory should be removed (based on filename)
+		self.assertFalse(note_path.exists())
+		self.assertFalse(asset_dir.exists())
 
 	def test_remove_non_existent_note(self):
 		"""Test removing a note that doesn't exist."""
@@ -192,17 +256,36 @@ class TestRemoveCommand(unittest.TestCase):
 
 	def test_remove_directory_of_notes(self):
 		"""Test removing all notes in a directory."""
-		# Create multiple notes
+		# Create multiple notes with permalinks
 		notes_dir = self.root_dir / "notes"
 		notes_dir.mkdir()
-		(notes_dir / "note1.md").write_text("# Note 1")
-		(notes_dir / "note2.md").write_text("# Note 2")
+
+		# Create notes with frontmatter containing permalinks
+		(notes_dir / "note1.md").write_text("""---
+date: 2025-01-15 10:00:00
+title: Note 1
+permalink: note1-permalink
+publish: true
+---
+
+# Note 1
+""")
+		(notes_dir / "note2.md").write_text("""---
+date: 2025-01-15 10:00:00
+title: Note 2
+permalink: note2-permalink
+publish: true
+---
+
+# Note 2
+""")
 		(notes_dir / "note3.ipynb").write_text('{"cells": []}')
 
-		# Create asset directories
-		for note in ["note1", "note2", "note3"]:
-			asset_dir = notes_dir / "assets" / note
-			asset_dir.mkdir(parents=True)
+		# Create asset directories based on permalinks
+		asset_dir1 = notes_dir / "assets" / "note1-permalink"
+		asset_dir2 = notes_dir / "assets" / "note2-permalink"
+		asset_dir1.mkdir(parents=True)
+		asset_dir2.mkdir(parents=True)
 
 		command = RemoveCommand()
 		command.execute(notes_dir, remove_assets=True)
@@ -211,6 +294,9 @@ class TestRemoveCommand(unittest.TestCase):
 		self.assertFalse((notes_dir / "note1.md").exists())
 		self.assertFalse((notes_dir / "note2.md").exists())
 		self.assertFalse((notes_dir / "note3.ipynb").exists())
+		# Asset directories should be removed
+		self.assertFalse(asset_dir1.exists())
+		self.assertFalse(asset_dir2.exists())
 
 
 class TestMoveCommand(unittest.TestCase):
@@ -230,10 +316,159 @@ class TestMoveCommand(unittest.TestCase):
 		shutil.rmtree(self.temp_dir, ignore_errors=True)
 
 	def test_move_simple_note(self):
-		"""Test moving a simple note file."""
-		# Create source note with assets
+		"""Test moving a simple note file with permalink."""
+		permalink = "my-permalink"
+		# Create source note with permalink and assets
 		source = self.root_dir / "old.md"
-		source.write_text("# Old note")
+		source_content = f"""---
+date: 2025-01-15 10:00:00
+title: Old Note
+permalink: {permalink}
+publish: true
+---
+
+# Old note
+"""
+		source.write_text(source_content)
+		source_asset = common.get_asset_directory_by_permalink(source, permalink)
+		source_asset.mkdir(parents=True)
+		(source_asset / "image.png").write_text("image")
+
+		# Move to destination
+		dest = self.root_dir / "new.md"
+		command = MoveCommand()
+		command.execute(source, dest)
+
+		# Check source is gone and destination exists
+		self.assertFalse(source.exists())
+		self.assertTrue(dest.exists())
+		dest_content = dest.read_text()
+		self.assertIn("# Old note", dest_content)
+		# Permalink should be preserved after move
+		self.assertIn(f"permalink: {permalink}", dest_content)
+
+		# Check assets: Since source and dest are in the same directory,
+		# assets directory should stay in place (based on permalink, not filename)
+		dest_asset = common.get_asset_directory_by_permalink(dest, permalink)
+		# Assets directory should still exist at the same location (same parent dir)
+		self.assertTrue(dest_asset.exists())
+		self.assertTrue((dest_asset / "image.png").exists())
+		# Source and dest asset dirs are the same when in same directory
+		self.assertEqual(source_asset, dest_asset)
+
+	def test_move_to_different_directory(self):
+		"""Test moving a note to a different directory with permalink."""
+		permalink = "my-note"
+		source = self.root_dir / "source" / "note.md"
+		source.parent.mkdir()
+		source_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {permalink}
+publish: true
+---
+
+# Note
+"""
+		source.write_text(source_content)
+		source_asset = common.get_asset_directory_by_permalink(source, permalink)
+		source_asset.mkdir(parents=True)
+		(source_asset / "image.png").write_text("image")
+
+		dest = self.root_dir / "destination" / "note.md"
+		command = MoveCommand()
+		command.execute(source, dest)
+
+		# Check move was successful
+		self.assertFalse(source.exists())
+		self.assertTrue(dest.exists())
+		# Assets should be moved based on permalink to destination directory
+		dest_asset = common.get_asset_directory_by_permalink(dest, permalink)
+		self.assertTrue(dest_asset.exists())
+		self.assertTrue((dest_asset / "image.png").exists())
+		# Source asset directory should be gone (moved to dest)
+		self.assertFalse(source_asset.exists())
+
+	def test_move_to_existing_directory(self):
+		"""Test moving a note to an existing directory (destination is a directory)."""
+		permalink = "test-permalink"
+		# Create source file with permalink
+		source = self.root_dir / "test.md"
+		source_content = f"""---
+date: 2025-01-15 10:00:00
+title: Test
+permalink: {permalink}
+publish: true
+---
+
+# Test
+"""
+		source.write_text(source_content)
+		source_asset = common.get_asset_directory_by_permalink(source, permalink)
+		source_asset.mkdir(parents=True)
+		(source_asset / "image.png").write_text("test image")
+
+		# Create destination directory (not a file path)
+		dest_dir = self.root_dir / "dest_dir"
+		dest_dir.mkdir()
+
+		command = MoveCommand()
+		command.execute(source, dest_dir)
+
+		# Check file was moved (to dest_dir/test.md)
+		final_dest = dest_dir / source.name
+		self.assertFalse(source.exists())
+		self.assertTrue(final_dest.exists())
+
+		# Check assets were moved based on permalink
+		dest_asset = common.get_asset_directory_by_permalink(final_dest, permalink)
+		self.assertTrue(
+			dest_asset.exists(), f"Asset directory should exist at {dest_asset}"
+		)
+		self.assertTrue((dest_asset / "image.png").exists())
+		# Source asset directory should be gone
+		self.assertFalse(
+			source_asset.exists(),
+			f"Source asset directory should be removed: {source_asset}",
+		)
+
+	def test_move_note_without_assets(self):
+		"""Test moving a note that has no assets."""
+		permalink = "my-note"
+		source = self.root_dir / "note.md"
+		source_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {permalink}
+publish: true
+---
+
+# Note
+"""
+		source.write_text(source_content)
+
+		dest = self.root_dir / "moved.md"
+		command = MoveCommand()
+		command.execute(source, dest)
+
+		# Should not raise exception
+		self.assertFalse(source.exists())
+		self.assertTrue(dest.exists())
+
+	def test_move_note_without_permalink_fallback(self):
+		"""Test moving a note without permalink falls back to filename-based asset directory."""
+		# Create source note without permalink (old format)
+		source = self.root_dir / "old.md"
+		source_content = """---
+date: 2025-01-15 10:00:00
+title: Old Note
+publish: true
+---
+
+# Old note
+"""
+		source.write_text(source_content)
+		# Create asset directory using filename (backwards compatibility)
 		source_asset = common.get_asset_directory(source)
 		source_asset.mkdir(parents=True)
 		(source_asset / "image.png").write_text("image")
@@ -246,43 +481,12 @@ class TestMoveCommand(unittest.TestCase):
 		# Check source is gone and destination exists
 		self.assertFalse(source.exists())
 		self.assertTrue(dest.exists())
-		self.assertEqual(dest.read_text(), "# Old note")
 
-		# Check assets were moved
+		# Check assets were moved (based on filename, not permalink)
 		self.assertFalse(source_asset.exists())
 		dest_asset = common.get_asset_directory(dest)
 		self.assertTrue(dest_asset.exists())
 		self.assertTrue((dest_asset / "image.png").exists())
-
-	def test_move_to_different_directory(self):
-		"""Test moving a note to a different directory."""
-		source = self.root_dir / "source" / "note.md"
-		source.parent.mkdir()
-		source.write_text("# Note")
-		source_asset = common.get_asset_directory(source)
-		source_asset.mkdir(parents=True)
-
-		dest = self.root_dir / "destination" / "note.md"
-		command = MoveCommand()
-		command.execute(source, dest)
-
-		# Check move was successful
-		self.assertFalse(source.exists())
-		self.assertTrue(dest.exists())
-		self.assertTrue(common.get_asset_directory(dest).exists())
-
-	def test_move_note_without_assets(self):
-		"""Test moving a note that has no assets."""
-		source = self.root_dir / "note.md"
-		source.write_text("# Note")
-
-		dest = self.root_dir / "moved.md"
-		command = MoveCommand()
-		command.execute(source, dest)
-
-		# Should not raise exception
-		self.assertFalse(source.exists())
-		self.assertTrue(dest.exists())
 
 	def test_move_non_existent_note(self):
 		"""Test moving a note that doesn't exist."""
@@ -296,16 +500,36 @@ class TestMoveCommand(unittest.TestCase):
 		self.assertFalse(dest.exists())
 
 	def test_move_directory_of_notes(self):
-		"""Test moving a directory containing notes."""
-		# Create source directory with notes
+		"""Test moving a directory containing notes with permalinks."""
+		# Create source directory with notes that have permalinks
 		source_dir = self.root_dir / "source"
 		source_dir.mkdir()
-		(source_dir / "note1.md").write_text("# Note 1")
-		(source_dir / "note2.md").write_text("# Note 2")
+		(source_dir / "note1.md").write_text("""---
+date: 2025-01-15 10:00:00
+title: Note 1
+permalink: note1-permalink
+publish: true
+---
 
-		# Create assets
-		asset1 = common.get_asset_directory(source_dir / "note1.md")
-		asset2 = common.get_asset_directory(source_dir / "note2.md")
+# Note 1
+""")
+		(source_dir / "note2.md").write_text("""---
+date: 2025-01-15 10:00:00
+title: Note 2
+permalink: note2-permalink
+publish: true
+---
+
+# Note 2
+""")
+
+		# Create assets based on permalinks
+		asset1 = common.get_asset_directory_by_permalink(
+			source_dir / "note1.md", "note1-permalink"
+		)
+		asset2 = common.get_asset_directory_by_permalink(
+			source_dir / "note2.md", "note2-permalink"
+		)
 		asset1.mkdir(parents=True)
 		asset2.mkdir(parents=True)
 
@@ -317,16 +541,33 @@ class TestMoveCommand(unittest.TestCase):
 		# Check files were moved
 		self.assertTrue((dest_dir / "note1.md").exists())
 		self.assertTrue((dest_dir / "note2.md").exists())
-		self.assertTrue(common.get_asset_directory(dest_dir / "note1.md").exists())
-		self.assertTrue(common.get_asset_directory(dest_dir / "note2.md").exists())
+		# Assets should be moved based on permalinks
+		dest_asset1 = common.get_asset_directory_by_permalink(
+			dest_dir / "note1.md", "note1-permalink"
+		)
+		dest_asset2 = common.get_asset_directory_by_permalink(
+			dest_dir / "note2.md", "note2-permalink"
+		)
+		self.assertTrue(dest_asset1.exists())
+		self.assertTrue(dest_asset2.exists())
 
 	def test_move_cleans_up_empty_directories(self):
 		"""Test that moving notes cleans up empty parent directories."""
-		# Create deeply nested source
+		permalink = "my-note"
+		# Create deeply nested source with permalink
 		source = self.root_dir / "level1" / "level2" / "level3" / "note.md"
 		source.parent.mkdir(parents=True)
-		source.write_text("# Note")
-		source_asset = common.get_asset_directory(source)
+		source_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {permalink}
+publish: true
+---
+
+# Note
+"""
+		source.write_text(source_content)
+		source_asset = common.get_asset_directory_by_permalink(source, permalink)
 		source_asset.mkdir(parents=True)
 
 		# Move to root
@@ -336,6 +577,9 @@ class TestMoveCommand(unittest.TestCase):
 
 		# Check empty directories were cleaned up
 		self.assertFalse((self.root_dir / "level1" / "level2" / "level3").exists())
+		# Assets should be moved based on permalink
+		dest_asset = common.get_asset_directory_by_permalink(dest, permalink)
+		self.assertTrue(dest_asset.exists())
 
 
 class TestCleanCommand(unittest.TestCase):

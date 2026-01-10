@@ -11,6 +11,8 @@ import shutil
 
 from mkdocs_note.utils.cli.common import (
 	get_asset_directory,
+	get_asset_directory_by_permalink,
+	get_permalink_from_file,
 	is_excluded_name,
 	ensure_parent_directory,
 	cleanup_empty_directories,
@@ -49,6 +51,128 @@ class TestGetAssetDirectory(unittest.TestCase):
 		note_path = Path("docs/analysis/results.ipynb")
 		asset_dir = get_asset_directory(note_path)
 		self.assertEqual(asset_dir, Path("docs/analysis/assets/results"))
+
+
+class TestGetAssetDirectoryByPermalink(unittest.TestCase):
+	"""Test cases for get_asset_directory_by_permalink function."""
+
+	def test_simple_note_with_permalink(self):
+		"""Test asset directory for a simple note with permalink."""
+		note_path = Path("docs/notes/test.md")
+		permalink = "my-permalink"
+		asset_dir = get_asset_directory_by_permalink(note_path, permalink)
+		self.assertEqual(asset_dir, Path("docs/notes/assets/my-permalink"))
+
+	def test_nested_note_with_permalink(self):
+		"""Test asset directory for a nested note with permalink."""
+		note_path = Path("docs/notes/python/intro.md")
+		permalink = "python-intro"
+		asset_dir = get_asset_directory_by_permalink(note_path, permalink)
+		self.assertEqual(asset_dir, Path("docs/notes/python/assets/python-intro"))
+
+	def test_permalink_with_special_chars(self):
+		"""Test asset directory with permalink containing special characters."""
+		note_path = Path("docs/notes/my-note.md")
+		permalink = "my-note-2024"
+		asset_dir = get_asset_directory_by_permalink(note_path, permalink)
+		self.assertEqual(asset_dir, Path("docs/notes/assets/my-note-2024"))
+
+
+class TestGetPermalinkFromFile(unittest.TestCase):
+	"""Test cases for get_permalink_from_file function."""
+
+	def setUp(self):
+		"""Set up test fixtures - create a temporary directory."""
+		self.temp_dir = tempfile.mkdtemp()
+
+	def tearDown(self):
+		"""Clean up - remove temporary directory."""
+		shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+	def test_extract_permalink_from_file(self):
+		"""Test extracting permalink from a note file."""
+		note_path = Path(self.temp_dir) / "test.md"
+		permalink = "my-permalink"
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Test Note
+permalink: {permalink}
+publish: true
+---
+
+# Test note content
+"""
+		note_path.write_text(note_content, encoding="utf-8")
+
+		result = get_permalink_from_file(note_path)
+		self.assertEqual(result, permalink)
+
+	def test_extract_permalink_with_whitespace(self):
+		"""Test extracting permalink with surrounding whitespace."""
+		note_path = Path(self.temp_dir) / "test.md"
+		permalink = "my-permalink"
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Test Note
+permalink:   {permalink}   
+publish: true
+---
+
+# Test note content
+"""
+		note_path.write_text(note_content, encoding="utf-8")
+
+		result = get_permalink_from_file(note_path)
+		self.assertEqual(result, permalink)
+
+	def test_no_permalink_in_file(self):
+		"""Test when permalink is not present in frontmatter."""
+		note_path = Path(self.temp_dir) / "test.md"
+		note_content = """---
+date: 2025-01-15 10:00:00
+title: Test Note
+publish: true
+---
+
+# Test note content
+"""
+		note_path.write_text(note_content, encoding="utf-8")
+
+		result = get_permalink_from_file(note_path)
+		self.assertIsNone(result)
+
+	def test_empty_permalink_in_file(self):
+		"""Test when permalink is empty in frontmatter."""
+		note_path = Path(self.temp_dir) / "test.md"
+		note_content = """---
+date: 2025-01-15 10:00:00
+title: Test Note
+permalink: 
+publish: true
+---
+
+# Test note content
+"""
+		note_path.write_text(note_content, encoding="utf-8")
+
+		result = get_permalink_from_file(note_path)
+		self.assertIsNone(result)
+
+	def test_non_existent_file(self):
+		"""Test with non-existent file."""
+		note_path = Path(self.temp_dir) / "non_existent.md"
+
+		result = get_permalink_from_file(note_path)
+		self.assertIsNone(result)
+
+	def test_invalid_frontmatter(self):
+		"""Test with file that has invalid frontmatter."""
+		note_path = Path(self.temp_dir) / "test.md"
+		note_content = "# Just markdown, no frontmatter"
+		note_path.write_text(note_content, encoding="utf-8")
+
+		result = get_permalink_from_file(note_path)
+		self.assertIsNone(result)
 
 
 class TestIsExcludedName(unittest.TestCase):
