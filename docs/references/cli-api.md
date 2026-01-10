@@ -3,6 +3,8 @@ date: 2025-11-05 21:28:00
 title: CLI API
 permalink: 
 publish: true
+hide:
+- navigation
 ---
 
 # CLI API

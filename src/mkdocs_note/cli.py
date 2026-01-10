@@ -127,23 +127,21 @@ def cli(ctx):
 
 
 @cli.command("new")
+@click.argument("permalink", required=True)
 @click.argument("file_path", required=True)
-@click.option(
-	"--template",
-	"-t",
-	type=click.Path(exists=True, path_type=Path),
-	help="Custom template file to use",
-)
 @click.pass_context
-def new_command(ctx, file_path, template):
+def new_command(ctx, permalink, file_path):
 	"""Create a new note file with proper asset structure.
 
 	\b
 	Examples:
-	    mkdocs-note new docs/notes/my-note.md
-	    mkdocs-note new docs/notes/python/intro.md
+	    mkdocs-note new my-permalink docs/notes/my-note.md
+	    mkdocs-note new python-intro docs/notes/python/intro.md
 
-	FILE_PATH: Path where the new note file should be created
+	\b
+	Arguments:
+	    PERMALINK: The permalink value for frontmatter and asset directory name
+	    FILE_PATH: Path where the new note file should be created
 	"""
 	try:
 		# Load configuration and setup environment
@@ -153,6 +151,13 @@ def new_command(ctx, file_path, template):
 		# Convert to Path
 		note_path = Path(file_path)
 
+		# Validate permalink
+		if not permalink or not permalink.strip():
+			click.echo("❌ Error: Permalink cannot be empty", err=True)
+			sys.exit(1)
+
+		permalink = permalink.strip()
+
 		# Check if file already exists
 		if note_path.exists():
 			click.echo(f"❌ Error: File already exists: {note_path}", err=True)
@@ -160,15 +165,16 @@ def new_command(ctx, file_path, template):
 
 		# Create the note using NewCommand
 		command = NewCommand()
-		command.execute(note_path)
+		command.execute(permalink, note_path)
 
-		# Get asset directory path
-		asset_dir = cli_common.get_asset_directory(note_path)
+		# Get asset directory path based on permalink
+		asset_dir = cli_common.get_asset_directory_by_permalink(note_path, permalink)
 
 		# Check if creation was successful
 		if note_path.exists():
 			click.echo("✅ Successfully created note")
 			click.echo(f"📝 Note: {note_path}")
+			click.echo(f"🔗 Permalink: {permalink}")
 			click.echo(f"📁 Assets: {asset_dir}")
 			sys.exit(0)
 		else:
@@ -220,8 +226,15 @@ def remove_command(ctx, file_path, keep_assets, yes):
 			click.echo(f"❌ Error: File does not exist: {note_path}", err=True)
 			sys.exit(1)
 
-		# Get asset directory before removal
-		asset_dir = cli_common.get_asset_directory(note_path)
+		# Get asset directory before removal (based on permalink if available)
+		permalink = cli_common.get_permalink_from_file(note_path)
+		if permalink:
+			asset_dir = cli_common.get_asset_directory_by_permalink(
+				note_path, permalink
+			)
+		else:
+			# Fallback to filename-based for backwards compatibility
+			asset_dir = cli_common.get_asset_directory(note_path)
 		asset_exists = asset_dir.exists()
 
 		# Confirmation prompt (unless --yes)
@@ -238,9 +251,11 @@ def remove_command(ctx, file_path, keep_assets, yes):
 		# Check if removal was successful
 		if not note_path.exists():
 			click.echo(f"✅ Successfully removed note: {note_path}")
+			if permalink:
+				click.echo(f"🔗 Permalink: {permalink}")
 			if not keep_assets and asset_exists:
 				click.echo(f"📁 Removed assets: {asset_dir}")
-			else:
+			elif keep_assets:
 				click.echo(f"📁 Kept assets: {asset_dir}")
 			sys.exit(0)
 		else:
@@ -264,11 +279,16 @@ def rm_command(ctx, file_path, keep_assets, yes):
 
 @cli.command("move")
 @click.argument("source", required=True)
-@click.argument("destination", required=True)
+@click.argument("destination", required=False)
+@click.option(
+	"--permalink",
+	"-p",
+	help="Rename permalink value and asset directory name (destination argument is ignored in this mode)",
+)
 @click.option(
 	"--keep-source-assets",
 	is_flag=True,
-	help="Keep the source asset directory (don't move it)",
+	help="Keep the source asset directory (don't move it) [NOT IMPLEMENTED]",
 )
 @click.option(
 	"--yes",
@@ -277,22 +297,38 @@ def rm_command(ctx, file_path, keep_assets, yes):
 	help="Skip confirmation prompt",
 )
 @click.pass_context
-def move_command(ctx, source, destination, keep_source_assets, yes):
-	"""Move or rename a note file/directory and its asset directory.
+def move_command(ctx, source, destination, permalink, keep_source_assets, yes):
+	"""Move or rename a note file/directory and its asset directory, or rename permalink.
 
 	\b
 	Aliases: mv
 
 	\b
+	File Move Mode (default):
+	    Move or rename a note file/directory and its asset directory.
+
+	\b
 	Examples:
+	    # Move/rename file
 	    mkdocs-note move docs/notes/old.md docs/notes/new.md
 	    mkdocs-note mv docs/notes/test.md docs/notes/archive
+
+	    # Move entire directory
 	    mkdocs-note move docs/notes/drafts docs/notes/published --yes
 
 	\b
+	Permalink Rename Mode (use -p/--permalink):
+	    Rename permalink value in frontmatter and asset directory name.
+
+	\b
+	Examples:
+	    mkdocs-note move docs/notes/my-note.md -p new-permalink
+	    mkdocs-note mv docs/notes/test.md --permalink updated-slug
+
+	\b
 	Arguments:
-	    SOURCE: Current path of the note file or directory
-	    DESTINATION: Destination path (or parent directory if exists)
+	    SOURCE: Current path of the note file or directory (or file path for permalink mode)
+	    DESTINATION: Destination path (or parent directory if exists). Ignored if --permalink is used.
 	"""
 	try:
 		# Load configuration and setup environment
@@ -300,37 +336,112 @@ def move_command(ctx, source, destination, keep_source_assets, yes):
 		setup_cli_environment(config)
 
 		source_path = Path(source)
-		dest_path = Path(destination)
 
 		# Check if source exists
 		if not source_path.exists():
 			click.echo(f"❌ Error: Source does not exist: {source_path}", err=True)
 			sys.exit(1)
 
-		# Confirmation prompt (unless --yes)
-		if not yes:
-			asset_msg = "with assets" if not keep_source_assets else "(keeping assets)"
-			if not click.confirm(f"Move {source_path} → {dest_path} {asset_msg}?"):
-				click.echo("⚠️  Cancelled")
-				sys.exit(0)
+		# Permalink rename mode
+		if permalink:
+			if not source_path.is_file():
+				click.echo(
+					f"❌ Error: Permalink rename only works on files, not directories: {source_path}",
+					err=True,
+				)
+				sys.exit(1)
 
-		# Move the note using MoveCommand
-		# Note: Current MoveCommand doesn't have keep_source_assets parameter
-		# It always moves assets, so we need to handle this limitation
-		command = MoveCommand()
-		command.execute(source_path, dest_path)
+			# Get current permalink for confirmation message
+			current_permalink = cli_common.get_permalink_from_file(source_path)
 
-		# Check if move was successful
-		if dest_path.exists() and not source_path.exists():
-			click.echo("✅ Successfully moved")
-			click.echo(f"📝 From: {source_path}")
-			click.echo(f"📝 To: {dest_path}")
-			if not keep_source_assets:
-				click.echo("📁 Assets moved")
-			else:
-				click.echo("📁 Assets kept at source")
+			# Confirmation prompt (unless --yes)
+			if not yes:
+				current_msg = (
+					f"'{current_permalink}'" if current_permalink else "(none)"
+				)
+				if not click.confirm(
+					f"Rename permalink in {source_path} from {current_msg} to '{permalink}'?"
+				):
+					click.echo("⚠️  Cancelled")
+					sys.exit(0)
+
+			# Rename permalink using MoveCommand
+			command = MoveCommand()
+			command.execute(source_path, destination=None, permalink=permalink)
+
+			click.echo("✅ Successfully renamed permalink")
+			click.echo(f"📝 File: {source_path}")
+			click.echo(f"🔗 Permalink: {current_permalink or '(none)'} → {permalink}")
+			click.echo("📁 Asset directory renamed")
 			sys.exit(0)
+
+		# File move mode (original behavior)
 		else:
+			if destination is None:
+				click.echo(
+					"❌ Error: DESTINATION is required in file move mode", err=True
+				)
+				sys.exit(1)
+
+			dest_path = Path(destination)
+
+			# Confirmation prompt (unless --yes)
+			if not yes:
+				asset_msg = (
+					"with assets" if not keep_source_assets else "(keeping assets)"
+				)
+				if not click.confirm(f"Move {source_path} → {dest_path} {asset_msg}?"):
+					click.echo("⚠️  Cancelled")
+					sys.exit(0)
+
+			# Save source type before move (since source_path won't exist after move)
+			is_source_file = source_path.is_file()
+			is_source_dir = source_path.is_dir()
+			source_name = source_path.name
+
+			# Move the note using MoveCommand
+			# Note: Current MoveCommand doesn't have keep_source_assets parameter
+			# It always moves assets, so we need to handle this limitation
+			command = MoveCommand()
+			command.execute(source_path, dest_path)
+
+			# Check if move was successful
+			# For directory destinations, check if file exists in destination
+			if is_source_file:
+				# Determine final destination path
+				if dest_path.exists() and dest_path.is_dir():
+					# File moved into directory
+					final_dest = dest_path / source_name
+				else:
+					# File moved/renamed to dest_path
+					final_dest = dest_path
+
+				# Check if move was successful
+				if final_dest.exists() and not source_path.exists():
+					click.echo("✅ Successfully moved")
+					click.echo(f"📝 From: {source_path}")
+					click.echo(f"📝 To: {final_dest}")
+					if not keep_source_assets:
+						click.echo("📁 Assets moved")
+					else:
+						click.echo("📁 Assets kept at source")
+					sys.exit(0)
+			elif is_source_dir:
+				# Directory move - check if destination directory exists
+				if (
+					dest_path.exists()
+					and dest_path.is_dir()
+					and not source_path.exists()
+				):
+					click.echo("✅ Successfully moved")
+					click.echo(f"📝 From: {source_path}")
+					click.echo(f"📝 To: {dest_path}")
+					if not keep_source_assets:
+						click.echo("📁 Assets moved")
+					else:
+						click.echo("📁 Assets kept at source")
+					sys.exit(0)
+
 			click.echo("❌ Error: Failed to move note", err=True)
 			sys.exit(1)
 
@@ -341,16 +452,22 @@ def move_command(ctx, source, destination, keep_source_assets, yes):
 
 @cli.command("mv")
 @click.argument("source", required=True)
-@click.argument("destination", required=True)
-@click.option("--keep-source-assets", is_flag=True, help="Keep source assets")
+@click.argument("destination", required=False)
+@click.option(
+	"--permalink", "-p", help="Rename permalink value and asset directory name"
+)
+@click.option(
+	"--keep-source-assets", is_flag=True, help="Keep source assets [NOT IMPLEMENTED]"
+)
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation")
 @click.pass_context
-def mv_command(ctx, source, destination, keep_source_assets, yes):
+def mv_command(ctx, source, destination, permalink, keep_source_assets, yes):
 	"""Alias for 'move' command - Move or rename a note file/directory and its assets."""
 	ctx.invoke(
 		move_command,
 		source=source,
 		destination=destination,
+		permalink=permalink,
 		keep_source_assets=keep_source_assets,
 		yes=yes,
 	)
@@ -420,7 +537,7 @@ def clean_command(ctx, dry_run, yes):
 				sys.exit(0)
 
 		# Actually clean
-		click.echo("\n🗑️  Removing orphaned assets...")
+		click.echo("\n🗑️ Removing orphaned assets...")
 		command.execute(dry_run=False)
 
 		click.echo(

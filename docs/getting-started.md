@@ -1,5 +1,5 @@
 ---
-date: 2025-11-04 23:45:00
+date: 2026-01-10 22:04:00
 title: Getting Started
 permalink: 
 publish: true
@@ -34,7 +34,7 @@ The most highlighted feature of the plugin is the CLI commands to manage notes, 
 
 To create a note, you can use the following command:
 ```bash
-mkdocs-note new /path/to/note
+mkdocs-note new my-permalink /path/to/note
 ```
 
 It will create a note in the specified path and create a corresponding asset directory in the `assets` directory which will be co-located with the note.

@@ -184,13 +184,15 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 
 		# Create mock files
 		mock_file1 = Mock()
-		# The function uses f.page.url, not f.page.abs_url
-		mock_file1.page.url = "/note1/"
+		# The function uses f.page.abs_url, not f.page.url
+		mock_file1.page = Mock()
+		mock_file1.page.abs_url = "/note1/"
 		mock_file1.note_title = "Note 1"
 		mock_file1.note_date = datetime.now()
 
 		mock_file2 = Mock()
-		mock_file2.page.url = "/note2/"
+		mock_file2.page = Mock()
+		mock_file2.page.abs_url = "/note2/"
 		mock_file2.note_title = "Note 2"
 		mock_file2.note_date = datetime.now()
 

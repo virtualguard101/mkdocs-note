@@ -84,7 +84,7 @@ class TestNewCommandIntegration(unittest.TestCase):
 			Path("mkdocs.yml").write_text("site_name: Test\n")
 			Path("docs").mkdir()
 
-			result = self.runner.invoke(cli, ["new", "docs/test.md"])
+			result = self.runner.invoke(cli, ["new", "test-permalink", "docs/test.md"])
 
 			# Command should succeed
 			self.assertEqual(result.exit_code, 0, f"Output: {result.output}")
@@ -92,7 +92,7 @@ class TestNewCommandIntegration(unittest.TestCase):
 
 			# Check files were created
 			self.assertTrue(Path("docs/test.md").exists())
-			self.assertTrue(Path("docs/assets/test").exists())
+			self.assertTrue(Path("docs/assets/test-permalink").exists())
 
 	def test_new_with_nested_path(self):
 		"""Test creating a note in nested directories."""
@@ -100,11 +100,13 @@ class TestNewCommandIntegration(unittest.TestCase):
 			Path("mkdocs.yml").write_text("site_name: Test\n")
 			Path("docs").mkdir()
 
-			result = self.runner.invoke(cli, ["new", "docs/python/intro.md"])
+			result = self.runner.invoke(
+				cli, ["new", "python-intro", "docs/python/intro.md"]
+			)
 
 			self.assertEqual(result.exit_code, 0)
 			self.assertTrue(Path("docs/python/intro.md").exists())
-			self.assertTrue(Path("docs/python/assets/intro").exists())
+			self.assertTrue(Path("docs/python/assets/python-intro").exists())
 
 	def test_new_existing_file_fails(self):
 		"""Test that creating an existing note fails gracefully."""
@@ -113,7 +115,9 @@ class TestNewCommandIntegration(unittest.TestCase):
 			Path("docs").mkdir()
 			Path("docs/existing.md").write_text("# Existing")
 
-			result = self.runner.invoke(cli, ["new", "docs/existing.md"])
+			result = self.runner.invoke(
+				cli, ["new", "existing-permalink", "docs/existing.md"]
+			)
 
 			# Should fail with error message
 			self.assertNotEqual(result.exit_code, 0)
@@ -217,12 +221,22 @@ class TestMoveCommandIntegration(unittest.TestCase):
 		shutil.rmtree(self.temp_dir, ignore_errors=True)
 
 	def test_move_with_confirmation(self):
-		"""Test moving a note with user confirmation."""
+		"""Test moving a note with permalink and user confirmation."""
 		with self.runner.isolated_filesystem(temp_dir=self.temp_dir):
 			Path("mkdocs.yml").write_text("site_name: Test\n")
 			Path("docs").mkdir()
-			Path("docs/old.md").write_text("# Old")
-			Path("docs/assets/old").mkdir(parents=True)
+			permalink = "my-permalink"
+			old_content = f"""---
+date: 2025-01-15 10:00:00
+title: Old Note
+permalink: {permalink}
+publish: true
+---
+
+# Old
+"""
+			Path("docs/old.md").write_text(old_content)
+			Path(f"docs/assets/{permalink}").mkdir(parents=True)
 
 			result = self.runner.invoke(
 				cli, ["move", "docs/old.md", "docs/new.md"], input="y\n"
@@ -232,7 +246,11 @@ class TestMoveCommandIntegration(unittest.TestCase):
 			self.assertIn("Successfully moved", result.output)
 			self.assertFalse(Path("docs/old.md").exists())
 			self.assertTrue(Path("docs/new.md").exists())
-			self.assertTrue(Path("docs/assets/new").exists())
+			# Assets should be moved based on permalink, not filename
+			self.assertTrue(Path(f"docs/assets/{permalink}").exists())
+			# Old filename-based asset directory should not exist
+			self.assertFalse(Path("docs/assets/new").exists())
+			self.assertFalse(Path("docs/assets/old").exists())
 
 	def test_move_with_yes_flag(self):
 		"""Test moving with --yes flag."""
@@ -249,12 +267,22 @@ class TestMoveCommandIntegration(unittest.TestCase):
 			self.assertTrue(Path("docs/new.md").exists())
 
 	def test_move_to_different_directory(self):
-		"""Test moving note to different directory."""
+		"""Test moving note with permalink to different directory."""
 		with self.runner.isolated_filesystem(temp_dir=self.temp_dir):
 			Path("mkdocs.yml").write_text("site_name: Test\n")
 			Path("docs").mkdir()
-			Path("docs/note.md").write_text("# Note")
-			Path("docs/assets/note").mkdir(parents=True)
+			permalink = "note-permalink"
+			note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {permalink}
+publish: true
+---
+
+# Note
+"""
+			Path("docs/note.md").write_text(note_content)
+			Path(f"docs/assets/{permalink}").mkdir(parents=True)
 
 			result = self.runner.invoke(
 				cli, ["move", "docs/note.md", "docs/archive/note.md", "--yes"]
@@ -262,7 +290,10 @@ class TestMoveCommandIntegration(unittest.TestCase):
 
 			self.assertEqual(result.exit_code, 0)
 			self.assertTrue(Path("docs/archive/note.md").exists())
-			self.assertTrue(Path("docs/archive/assets/note").exists())
+			# Assets should be moved based on permalink
+			self.assertTrue(Path(f"docs/archive/assets/{permalink}").exists())
+			# Old location should be cleaned up
+			self.assertFalse(Path(f"docs/assets/{permalink}").exists())
 
 	def test_mv_alias(self):
 		"""Test that 'mv' alias works."""
@@ -336,9 +367,18 @@ class TestCleanCommandIntegration(unittest.TestCase):
 		with self.runner.isolated_filesystem(temp_dir=self.temp_dir):
 			Path("mkdocs.yml").write_text("site_name: Test\n")
 			Path("docs").mkdir()
-			# Create valid note with assets
-			Path("docs/note.md").write_text("# Note")
-			Path("docs/assets/note").mkdir(parents=True)
+			# Create valid note with permalink and assets
+			note_content = """---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: note-permalink
+publish: true
+---
+
+# Note
+"""
+			Path("docs/note.md").write_text(note_content)
+			Path("docs/assets/note-permalink").mkdir(parents=True)
 
 			result = self.runner.invoke(cli, ["clean", "--yes"])
 
@@ -365,7 +405,9 @@ class TestCLIWorkflow(unittest.TestCase):
 			Path("docs").mkdir()
 
 			# 1. Create a note
-			result = self.runner.invoke(cli, ["new", "docs/draft.md"])
+			result = self.runner.invoke(
+				cli, ["new", "draft-permalink", "docs/draft.md"]
+			)
 			self.assertEqual(result.exit_code, 0)
 			self.assertTrue(Path("docs/draft.md").exists())
 
@@ -389,16 +431,16 @@ class TestCLIWorkflow(unittest.TestCase):
 			Path("docs").mkdir()
 
 			# Create a note
-			result = self.runner.invoke(cli, ["new", "docs/test.md"])
+			result = self.runner.invoke(cli, ["new", "test-permalink", "docs/test.md"])
 			self.assertEqual(result.exit_code, 0)
 
 			# Manually remove just the note file (not through CLI)
 			Path("docs/test.md").unlink()
 
-			# Clean orphaned assets
+			# Clean orphaned assets (based on permalink)
 			result = self.runner.invoke(cli, ["clean", "--yes"])
 			self.assertEqual(result.exit_code, 0)
-			self.assertFalse(Path("docs/assets/test").exists())
+			self.assertFalse(Path("docs/assets/test-permalink").exists())
 
 
 if __name__ == "__main__":
