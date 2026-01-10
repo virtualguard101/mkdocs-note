@@ -581,6 +581,155 @@ publish: true
 		dest_asset = common.get_asset_directory_by_permalink(dest, permalink)
 		self.assertTrue(dest_asset.exists())
 
+	def test_rename_permalink(self):
+		"""Test renaming permalink value and asset directory."""
+		old_permalink = "old-permalink"
+		new_permalink = "new-permalink"
+
+		# Create note with old permalink and assets
+		note = self.root_dir / "note.md"
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {old_permalink}
+publish: true
+---
+
+# Note content
+"""
+		note.write_text(note_content)
+
+		# Create asset directory based on old permalink
+		old_asset_dir = common.get_asset_directory_by_permalink(note, old_permalink)
+		old_asset_dir.mkdir(parents=True)
+		(old_asset_dir / "image.png").write_text("image data")
+
+		# Rename permalink
+		command = MoveCommand()
+		command.execute(note, destination=None, permalink=new_permalink)
+
+		# Check permalink was updated in file
+		self.assertTrue(note.exists())  # File should not move
+		updated_content = note.read_text()
+		self.assertIn(f"permalink: {new_permalink}", updated_content)
+		self.assertNotIn(f"permalink: {old_permalink}", updated_content)
+
+		# Check asset directory was renamed
+		new_asset_dir = common.get_asset_directory_by_permalink(note, new_permalink)
+		self.assertTrue(new_asset_dir.exists())
+		self.assertTrue((new_asset_dir / "image.png").exists())
+		# Old asset directory should be gone
+		self.assertFalse(old_asset_dir.exists())
+
+	def test_rename_permalink_without_existing(self):
+		"""Test adding permalink to a note without existing permalink."""
+		new_permalink = "new-permalink"
+
+		# Create note without permalink
+		note = self.root_dir / "note.md"
+		note_content = """---
+date: 2025-01-15 10:00:00
+title: Note
+publish: true
+---
+
+# Note content
+"""
+		note.write_text(note_content)
+
+		# Create asset directory based on filename (fallback)
+		old_asset_dir = common.get_asset_directory(note)
+		old_asset_dir.mkdir(parents=True)
+		(old_asset_dir / "image.png").write_text("image data")
+
+		# Rename permalink (adding new permalink)
+		command = MoveCommand()
+		command.execute(note, destination=None, permalink=new_permalink)
+
+		# Check permalink was added to file
+		updated_content = note.read_text()
+		self.assertIn(f"permalink: {new_permalink}", updated_content)
+
+		# Check new asset directory was created
+		new_asset_dir = common.get_asset_directory_by_permalink(note, new_permalink)
+		self.assertTrue(new_asset_dir.exists())
+		# Assets should be moved from filename-based to permalink-based
+		self.assertTrue((new_asset_dir / "image.png").exists())
+		# Old asset directory should be gone
+		self.assertFalse(old_asset_dir.exists())
+
+	def test_rename_permalink_same_name_no_move(self):
+		"""Test that renaming permalink to the same name doesn't cause issues."""
+		permalink = "my-permalink"
+
+		# Create note with permalink
+		note = self.root_dir / "note.md"
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {permalink}
+publish: true
+---
+
+# Note content
+"""
+		note.write_text(note_content)
+
+		# Create asset directory
+		asset_dir = common.get_asset_directory_by_permalink(note, permalink)
+		asset_dir.mkdir(parents=True)
+		(asset_dir / "image.png").write_text("image data")
+
+		# Rename permalink to the same value
+		command = MoveCommand()
+		command.execute(note, destination=None, permalink=permalink)
+
+		# Check file still exists and permalink is still there
+		self.assertTrue(note.exists())
+		content = note.read_text()
+		self.assertIn(f"permalink: {permalink}", content)
+
+		# Check asset directory still exists
+		self.assertTrue(asset_dir.exists())
+		self.assertTrue((asset_dir / "image.png").exists())
+
+	def test_rename_permalink_file_stays_in_place(self):
+		"""Test that renaming permalink doesn't move the file, only updates permalink and assets."""
+		old_permalink = "old"
+		new_permalink = "new"
+
+		# Create note in a specific location
+		note = self.root_dir / "subdir" / "note.md"
+		note.parent.mkdir(parents=True)
+		note_content = f"""---
+date: 2025-01-15 10:00:00
+title: Note
+permalink: {old_permalink}
+publish: true
+---
+
+# Note content
+"""
+		note.write_text(note_content)
+
+		original_path = note.resolve()
+
+		# Rename permalink
+		command = MoveCommand()
+		command.execute(note, destination=None, permalink=new_permalink)
+
+		# File should stay in the same location
+		self.assertEqual(note.resolve(), original_path)
+		self.assertTrue(note.exists())
+
+		# Permalink should be updated
+		content = note.read_text()
+		self.assertIn(f"permalink: {new_permalink}", content)
+
+		# Asset directory should be renamed in the same location
+		new_asset_dir = common.get_asset_directory_by_permalink(note, new_permalink)
+		self.assertEqual(new_asset_dir.parent, note.parent / "assets")
+
 
 class TestCleanCommand(unittest.TestCase):
 	"""Test cases for CleanCommand class."""

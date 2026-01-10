@@ -1,5 +1,5 @@
 ---
-date: 2026-01-10 22:09:00
+date: 2026-01-10 23:40:00
 title: Command Line Interface
 permalink: 
 publish: true
@@ -131,7 +131,13 @@ Remove a note file and its corresponding asset directory.
 
 ### `move`
 
-Move or rename a note file/directory and its corresponding asset directory.
+Move or rename a note file/directory and its corresponding asset directory, or rename permalink value.
+
+The `move` command supports two modes:
+
+#### File Move Mode (default)
+
+Move or rename a note file/directory and its corresponding asset directory. The permalink value remains unchanged, and asset directories are moved based on their permalink.
 
 - **Usage:**
 
@@ -144,17 +150,23 @@ Move or rename a note file/directory and its corresponding asset directory.
 
     - `SOURCE` (required): Current path of the note file or directory
 
-    - `DESTINATION` (required): Destination path
+    - `DESTINATION` (required): Destination path (or parent directory if exists)
 
 - **Options:**
 
-    - `--keep-source-assets`: Keep the source asset directory (don't move it)
+    - `--keep-source-assets`: Keep the source asset directory (don't move it) [NOT IMPLEMENTED]
 
     - `--yes, -y`: Skip confirmation prompt
 
 - **Features:**
 
     - Moves both the note file and its corresponding asset directory by default
+
+    - Asset directories are identified by permalink, not filename
+
+    - If moving to a different directory, asset directory moves with the note
+
+    - If only renaming the file within the same directory, asset directory stays in place (based on permalink)
 
     - Supports moving single files or entire directories
 
@@ -171,17 +183,14 @@ Move or rename a note file/directory and its corresponding asset directory.
 - **Examples:**
 
     ```bash
-    # Rename a note
+    # Rename a note file (same directory, asset directory stays in place)
     mkdocs-note move docs/notes/old-name.md docs/notes/new-name.md
 
-    # Move to different directory
+    # Move to different directory (asset directory moves with note)
     mkdocs-note mv docs/notes/draft.md docs/notes/published/
 
     # Move entire directory
     mkdocs-note move docs/notes/drafts docs/notes/published --yes
-
-    # Move without moving assets
-    mkdocs-note mv docs/notes/test.md docs/archive/test.md --keep-source-assets
     ```
 
 - **Output:**
@@ -191,6 +200,60 @@ Move or rename a note file/directory and its corresponding asset directory.
     📝 From: docs/notes/old-name.md
     📝 To: docs/notes/new-name.md
     📁 Assets moved
+    ```
+
+#### Permalink Rename Mode
+
+Rename the permalink value in frontmatter and the asset directory name. The file location remains unchanged.
+
+- **Usage:**
+
+    ```bash
+    mkdocs-note move SOURCE -p PERMALINK [OPTIONS]
+    mkdocs-note mv SOURCE --permalink PERMALINK [OPTIONS]  # Alias
+    ```
+
+- **Arguments:**
+
+    - `SOURCE` (required): Path to the note file (must be a file, not a directory)
+
+    - `DESTINATION`: Ignored in permalink rename mode
+
+- **Options:**
+
+    - `--permalink, -p` (required): New permalink value
+
+    - `--yes, -y`: Skip confirmation prompt
+
+- **Features:**
+
+    - Updates the permalink value in the note file's frontmatter
+
+    - Renames the asset directory based on the new permalink value
+
+    - File location remains unchanged
+
+    - Only works on single files, not directories
+
+    - Prompts for confirmation before renaming (unless `--yes` is used)
+
+- **Examples:**
+
+    ```bash
+    # Rename permalink and asset directory
+    mkdocs-note move docs/notes/my-note.md -p new-permalink-slug
+
+    # Rename permalink without confirmation
+    mkdocs-note mv docs/notes/test.md --permalink updated-slug --yes
+    ```
+
+- **Output:**
+
+    ```
+    ✅ Successfully renamed permalink
+    📝 File: docs/notes/my-note.md
+    🔗 Permalink: old-permalink → new-permalink-slug
+    📁 Asset directory renamed
     ```
 
 ### `clean`

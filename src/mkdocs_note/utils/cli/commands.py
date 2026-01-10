@@ -384,22 +384,134 @@ class MoveCommand:
 		except Exception as e:
 			log.error(f"Error moving directory of documents: {e}")
 
-	def execute(self, source: Path, destination: Path) -> None:
+	def _rename_permalink(self, file_path: Path, new_permalink: str) -> None:
+		"""Rename permalink value in a note file and its asset directory.
+
+		Args:
+			file_path (Path): The path to the note file
+			new_permalink (str): The new permalink value
+		"""
+		try:
+			# Validate file exists
+			if not file_path.exists():
+				log.error(f"File does not exist: {file_path}")
+				return
+
+			if not file_path.is_file():
+				log.error(f"Path is not a file: {file_path}")
+				return
+
+			# Validate new permalink
+			if not new_permalink or not new_permalink.strip():
+				log.error("New permalink cannot be empty")
+				return
+
+			new_permalink = new_permalink.strip()
+
+			# Get current permalink
+			old_permalink = common.get_permalink_from_file(file_path)
+
+			if not old_permalink:
+				log.warning(
+					f"No permalink found in {file_path}. Creating new permalink: {new_permalink}"
+				)
+
+			# Determine asset directories based on permalink
+			if old_permalink:
+				old_asset_dir = common.get_asset_directory_by_permalink(
+					file_path, old_permalink
+				)
+				old_asset_dir = old_asset_dir.resolve()
+			else:
+				# Fallback to filename-based for backwards compatibility
+				old_asset_dir = common.get_asset_directory(file_path)
+				old_asset_dir = old_asset_dir.resolve()
+				log.debug(
+					f"No permalink found, using filename-based asset directory: {old_asset_dir}"
+				)
+
+			new_asset_dir = common.get_asset_directory_by_permalink(
+				file_path, new_permalink
+			)
+			new_asset_dir = new_asset_dir.resolve()
+
+			# Update permalink in file
+			if common.update_permalink_in_file(file_path, new_permalink):
+				log.info(
+					f"Successfully updated permalink in {file_path}: {old_permalink or '(none)'} → {new_permalink}"
+				)
+			else:
+				log.error(f"Failed to update permalink in {file_path}")
+				return
+
+			# Rename asset directory if it exists and name changed
+			if old_asset_dir != new_asset_dir:
+				if old_asset_dir.exists():
+					# Ensure destination asset parent directory exists
+					new_asset_dir.parent.mkdir(parents=True, exist_ok=True)
+
+					# If destination asset dir already exists, remove it first
+					if new_asset_dir.exists():
+						shutil.rmtree(new_asset_dir)
+
+					shutil.move(str(old_asset_dir), str(new_asset_dir))
+					log.info(
+						f"Successfully renamed asset directory: {old_asset_dir} → {new_asset_dir}"
+					)
+					# Clean up empty parent directories
+					root_dir = Path(common.get_plugin_config()["notes_root"])
+					common.cleanup_empty_directories(old_asset_dir.parent, root_dir)
+				else:
+					# Create new asset directory if old one doesn't exist
+					if not new_asset_dir.exists():
+						new_asset_dir.mkdir(parents=True, exist_ok=True)
+						log.debug(f"Created new asset directory: {new_asset_dir}")
+			else:
+				# Permalink changed but asset directory name is the same (shouldn't happen, but handle it)
+				log.debug(
+					f"Permalink changed but asset directory unchanged: {new_asset_dir}"
+				)
+		except Exception as e:
+			log.error(f"Error renaming permalink: {e}")
+
+	def execute(
+		self,
+		source: Path,
+		destination: Path | None = None,
+		permalink: str | None = None,
+	) -> None:
 		"""Execute the move command.
 
 		Args:
-			source (Path): The path to the source note file(s) to move
-			destination (Path): The path to the destination note file(s) to move
+			source (Path): The path to the source note file(s) to move, or file to rename permalink
+			destination (Path | None): The path to the destination note file(s) to move (ignored if permalink is provided)
+			permalink (str | None): If provided, rename permalink instead of moving file
 		"""
 		try:
-			# Validate before execution
-			pre_check = self._validate_before_execution(source, destination)
-			if pre_check == 0:
-				log.error(f"Validation failed for: {source}")
-			elif pre_check == 1:
-				self._move_single_document(source, destination)
-			elif pre_check == 2:
-				self._move_docs_directory(source, destination)
+			if permalink:
+				# Permalink rename mode: source is the file path, destination is ignored
+				if not source.exists():
+					log.error(f"Source does not exist: {source}")
+					return
+				if source.is_file():
+					self._rename_permalink(source, permalink)
+				else:
+					log.error(
+						f"Permalink rename only works on files, not directories: {source}"
+					)
+					return
+			else:
+				# File move mode: original behavior
+				if destination is None:
+					log.error("Destination is required in file move mode")
+					return
+				pre_check = self._validate_before_execution(source, destination)
+				if pre_check == 0:
+					log.error(f"Validation failed for: {source}")
+				elif pre_check == 1:
+					self._move_single_document(source, destination)
+				elif pre_check == 2:
+					self._move_docs_directory(source, destination)
 		except Exception as e:
 			log.error(f"Error executing move command: {e}")
 			return
