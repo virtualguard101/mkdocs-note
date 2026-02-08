@@ -31,6 +31,8 @@ date: {datetime.now().strftime(self.timestamp_format)}
 title: {file_path.stem.replace("-", " ").replace("_", " ").title()}
 permalink: {permalink}
 publish: true
+tags:
+  - 
 ---
 """
 
