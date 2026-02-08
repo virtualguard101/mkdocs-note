@@ -8,7 +8,7 @@ publish: true
 # Welcome
 
 !!! tip "Notice"
-    `v3.1.0` is now avaliable, the release now make some changes in [Commands Line Interface](usage/cli.md), See [Changelog](about/changelog.md#310---2026-01-10) for more details.
+    `v3.1.0+` is now avaliable, the release now make some changes in [Commands Line Interface](usage/cli.md), See [Changelog](about/changelog.md#310---2026-01-10) for more details.
 
 ## Mkdocs Note
 
