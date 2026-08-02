@@ -1,10 +1,9 @@
 from pathlib import Path
 
-from mkdocs.structure.files import File, Files
 from mkdocs.plugins import get_plugin_logger
+from mkdocs.structure.files import File, Files
 
 from mkdocs_note.utils.meta import validate_frontmatter
-
 
 logger = get_plugin_logger(__name__)
 
@@ -54,6 +53,6 @@ def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
 				invalid_files.append(f)
 	except Exception as e:
 		logger.error(f"Error scanning notes: {e}")
-		raise e
+		raise
 
 	return notes, invalid_files

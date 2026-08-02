@@ -1,6 +1,6 @@
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime
 
 from mkdocs.plugins import get_plugin_logger
 
@@ -27,7 +27,7 @@ class NewCommand:
 		log.debug(f"Generating note meta for: {file_path} with permalink: {permalink}")
 
 		return f"""---
-date: {datetime.now().strftime(self.timestamp_format)}
+date: {datetime.now(UTC).strftime(self.timestamp_format)}
 title: {file_path.stem.replace("-", " ").replace("_", " ").title()}
 permalink: {permalink}
 publish: false

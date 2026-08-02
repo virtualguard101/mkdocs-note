@@ -7,18 +7,173 @@ independent of MkDocs plugin system.
 """
 
 import sys
-import click
-from pathlib import Path
 from importlib import metadata
+from pathlib import Path
+from typing import Any
 
+import click
+import yaml
+from yaml.nodes import MappingNode, ScalarNode, SequenceNode
+
+import mkdocs_note.utils.cli.common as cli_common
 from mkdocs_note.config import MkdocsNoteConfig
 from mkdocs_note.utils.cli.commands import (
+	CleanCommand,
+	MoveCommand,
 	NewCommand,
 	RemoveCommand,
-	MoveCommand,
-	CleanCommand,
 )
-import mkdocs_note.utils.cli.common as cli_common
+from mkdocs_note.utils.notion.sync import SyncOptions, run_sync, setup_logging
+
+
+class _IgnoreUnknownLoader(yaml.SafeLoader):
+	"""SafeLoader that ignores MkDocs / pymdownx Python object tags."""
+
+
+def _ignore_unknown(loader: yaml.SafeLoader, tag_suffix: str, node: yaml.Node):
+	if isinstance(node, ScalarNode):
+		return loader.construct_scalar(node)
+	if isinstance(node, SequenceNode):
+		return loader.construct_sequence(node)
+	if isinstance(node, MappingNode):
+		return loader.construct_mapping(node)
+	return None
+
+
+_IgnoreUnknownLoader.add_multi_constructor("!", _ignore_unknown)
+_IgnoreUnknownLoader.add_multi_constructor("tag:yaml.org,2002:python/", _ignore_unknown)
+
+
+def _load_yaml_file(path: Path) -> dict[str, Any]:
+	"""Load YAML, tolerating MkDocs-specific tags."""
+	with path.open("r", encoding="utf-8") as f:
+		data = yaml.load(f, Loader=_IgnoreUnknownLoader)
+	return data if isinstance(data, dict) else {}
+
+
+def find_project_root(start: Path | None = None) -> Path:
+	"""Walk parents looking for ``mkdocs.yml`` / ``mkdocs.yaml``.
+
+	Args:
+	    start: Starting directory (default: cwd).
+
+	Returns:
+	    Path to the project root (falls back to cwd if not found).
+	"""
+	cur = (start or Path.cwd()).resolve()
+	for candidate in [cur, *cur.parents]:
+		if (candidate / "mkdocs.yml").is_file() or (
+			candidate / "mkdocs.yaml"
+		).is_file():
+			return candidate
+	return cur
+
+
+def load_mkdocs_plugin_section(project_root: Path) -> dict[str, Any]:
+	"""Load the ``mkdocs-note`` plugin config dict from ``mkdocs.yml``.
+
+	Args:
+	    project_root: Directory containing mkdocs.yml.
+
+	Returns:
+	    Plugin configuration mapping (may be empty). Includes ``_site_url``
+	    from the top-level mkdocs.yml when present.
+	"""
+	for name in ("mkdocs.yml", "mkdocs.yaml"):
+		path = project_root / name
+		if not path.is_file():
+			continue
+		data = _load_yaml_file(path)
+		result: dict[str, Any] = {}
+		if data.get("site_url"):
+			result["_site_url"] = data["site_url"]
+		plugins = data.get("plugins") or []
+		for entry in plugins:
+			if entry == "mkdocs-note":
+				return result
+			if isinstance(entry, dict) and "mkdocs-note" in entry:
+				cfg = entry["mkdocs-note"]
+				if isinstance(cfg, dict):
+					merged = dict(cfg)
+					merged.update({k: v for k, v in result.items() if k not in merged})
+					return merged
+				return result
+		return result
+	return {}
+
+
+def build_sync_options_from_config(
+	project_root: Path,
+	*,
+	full: bool = False,
+	base: str | None = None,
+	paths: tuple[str, ...] | None = None,
+	paths_file: Path | None = None,
+	section: tuple[str, ...] | None = None,
+	site_url: str | None = None,
+	state: Path | None = None,
+	database_id: str | None = None,
+	data_source_id: str | None = None,
+	token: str | None = None,
+	rebuild_state: bool = False,
+	no_images: bool = False,
+	dry_run: bool = False,
+	continue_on_error: bool = False,
+	verbose: bool = False,
+	delay: float | None = None,
+) -> SyncOptions:
+	"""Assemble ``SyncOptions`` from mkdocs.yml plugin section + CLI overrides."""
+	plugin = load_mkdocs_plugin_section(project_root)
+	ns = (
+		plugin.get("notion_sync") if isinstance(plugin.get("notion_sync"), dict) else {}
+	)
+
+	notes_root_raw = plugin.get("notes_root") or "docs"
+	docs_dir_raw = ns.get("docs_dir") or notes_root_raw or "docs"
+	nav_file_raw = ns.get("nav_file") or f"{docs_dir_raw}/.nav.yml"
+
+	def _abs(p: str | Path) -> Path:
+		path = Path(p)
+		return path if path.is_absolute() else (project_root / path)
+
+	resolved_site = (
+		site_url
+		if site_url is not None
+		else (ns.get("site_url") or plugin.get("_site_url") or "")
+	)
+
+	return SyncOptions(
+		project_root=project_root,
+		docs_dir=_abs(docs_dir_raw),
+		notes_root=_abs(notes_root_raw),
+		nav_file=_abs(nav_file_raw) if nav_file_raw else None,
+		database_id=database_id
+		if database_id is not None
+		else str(ns.get("database_id") or ""),
+		data_source_id=data_source_id
+		if data_source_id is not None
+		else str(ns.get("data_source_id") or ""),
+		title_property=str(ns.get("title_property") or "页面"),
+		tags_property=str(ns.get("tags_property") or "标签"),
+		site_url=str(resolved_site),
+		state_path=_abs(state)
+		if state is not None
+		else _abs(ns.get("state_path") or ".notion_sync_state.json"),
+		delay=float(delay if delay is not None else ns.get("delay", 0.35)),
+		token=token,
+		allow_cursor_mcp_token=bool(ns.get("allow_cursor_mcp_token", False)),
+		silence_mcp_token_warning=bool(ns.get("silence_mcp_token_warning", False)),
+		full=full,
+		base=base,
+		paths=list(paths) if paths else None,
+		paths_file=paths_file,
+		section=list(section) if section else None,
+		rebuild_state=rebuild_state,
+		no_images=no_images,
+		dry_run=dry_run,
+		continue_on_error=continue_on_error,
+		verbose=verbose,
+	)
 
 
 def get_version():
@@ -70,7 +225,7 @@ class CustomGroup(click.Group):
 
 		# Group commands by their main command (excluding aliases)
 		command_groups = {}
-		alias_map = {"rm": "remove", "mv": "move"}
+		alias_map = {"rm": "remove", "mv": "move", "ns": "notion-sync"}
 
 		for name, command in commands:
 			if name in alias_map:
@@ -531,10 +686,11 @@ def clean_command(ctx, dry_run, yes):
 			sys.exit(0)
 
 		# Confirmation prompt (unless --yes)
-		if not yes:
-			if not click.confirm(f"\nRemove these {len(orphaned_dirs)} directories?"):
-				click.echo("⚠️  Cancelled")
-				sys.exit(0)
+		if not yes and not click.confirm(
+			f"\nRemove these {len(orphaned_dirs)} directories?"
+		):
+			click.echo("⚠️  Cancelled")
+			sys.exit(0)
 
 		# Actually clean
 		click.echo("\n🗑️ Removing orphaned assets...")
@@ -548,6 +704,138 @@ def clean_command(ctx, dry_run, yes):
 	except Exception as e:
 		click.echo(f"❌ Unexpected error: {e}", err=True)
 		sys.exit(1)
+
+
+@cli.command("notion-sync")
+@click.option("--full", is_flag=True, help="Process all nav pages (ignore git diff)")
+@click.option(
+	"--base",
+	help="Git base ref for diff (default: GITHUB_EVENT_BEFORE / HEAD~1). "
+	"Use 'full' to force full sync.",
+)
+@click.option(
+	"--paths",
+	multiple=True,
+	help="Only sync these docs-relative paths (skip git diff). Repeatable.",
+)
+@click.option(
+	"--paths-file",
+	type=click.Path(path_type=Path),
+	help="Newline-separated docs-relative paths (handles spaces safely)",
+)
+@click.option("--site-url", default=None, help="Override site_url from mkdocs.yml")
+@click.option(
+	"--state",
+	type=click.Path(path_type=Path),
+	default=None,
+	help="Path to .notion_sync_state.json",
+)
+@click.option("--database-id", default=None, help="Notion wiki database / page ID")
+@click.option("--data-source-id", default=None, help="Notion data source ID")
+@click.option(
+	"--section",
+	multiple=True,
+	help="Limit to path prefixes, e.g. notes/. Repeatable.",
+)
+@click.option("--delay", type=float, default=None, help="Delay between API calls")
+@click.option("--token", default=None, help="Notion integration token")
+@click.option(
+	"--rebuild-state",
+	is_flag=True,
+	help="Remap pages from Notion wiki before syncing",
+)
+@click.option("--no-images", is_flag=True, help="Skip local image upload")
+@click.option("--dry-run", is_flag=True, help="Convert and log without writing Notion")
+@click.option(
+	"--continue-on-error",
+	is_flag=True,
+	help="Continue syncing after a page failure",
+)
+@click.option("-v", "--verbose", is_flag=True, help="Debug logging")
+@click.pass_context
+def notion_sync_command(
+	ctx,
+	full,
+	base,
+	paths,
+	paths_file,
+	site_url,
+	state,
+	database_id,
+	data_source_id,
+	section,
+	delay,
+	token,
+	rebuild_state,
+	no_images,
+	dry_run,
+	continue_on_error,
+	verbose,
+):
+	"""Sync MkDocs notes to a Notion wiki (incremental via git diff).
+
+	\b
+	Aliases: ns
+
+	\b
+	Examples:
+	    mkdocs-note notion-sync --dry-run
+	    mkdocs-note ns --full --section notes/
+	    mkdocs-note notion-sync --paths notes/intro.md
+	"""
+	setup_logging(verbose)
+	project_root = find_project_root()
+	try:
+		options = build_sync_options_from_config(
+			project_root,
+			full=full,
+			base=base,
+			paths=paths or None,
+			paths_file=paths_file,
+			section=section or None,
+			site_url=site_url,
+			state=state,
+			database_id=database_id,
+			data_source_id=data_source_id,
+			token=token,
+			rebuild_state=rebuild_state,
+			no_images=no_images,
+			dry_run=dry_run,
+			continue_on_error=continue_on_error,
+			verbose=verbose,
+			delay=delay,
+		)
+		code = run_sync(options)
+		sys.exit(code)
+	except KeyboardInterrupt:
+		click.echo("Interrupted", err=True)
+		sys.exit(130)
+	except Exception as e:
+		click.echo(f"❌ Unexpected error: {e}", err=True)
+		sys.exit(1)
+
+
+@cli.command("ns")
+@click.option("--full", is_flag=True)
+@click.option("--base", default=None)
+@click.option("--paths", multiple=True)
+@click.option("--paths-file", type=click.Path(path_type=Path), default=None)
+@click.option("--site-url", default=None)
+@click.option("--state", type=click.Path(path_type=Path), default=None)
+@click.option("--database-id", default=None)
+@click.option("--data-source-id", default=None)
+@click.option("--section", multiple=True)
+@click.option("--delay", type=float, default=None)
+@click.option("--token", default=None)
+@click.option("--rebuild-state", is_flag=True)
+@click.option("--no-images", is_flag=True)
+@click.option("--dry-run", is_flag=True)
+@click.option("--continue-on-error", is_flag=True)
+@click.option("-v", "--verbose", is_flag=True)
+@click.pass_context
+def ns_command(ctx, **kwargs):
+	"""Alias for 'notion-sync' — Sync notes to Notion wiki."""
+	ctx.invoke(notion_sync_command, **kwargs)
 
 
 if __name__ == "__main__":

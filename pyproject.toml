@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-note"
-version = "3.1.2"
+version = "3.2.0"
 description = "A MkDocs plugin to add note boxes to your documentation."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -71,8 +71,13 @@ quote-style = "double"
 
 # Per-file rule ignores
 [tool.ruff.lint.per-file-ignores]
-# 忽略 __init__.py 文件中的 F401 (导入未被使用)
+# Unused imports in package init
 "__init__.py" = ["F401"]
+# CLI / smoke tests intentionally catch Exception at top level for UX
+"src/mkdocs_note/cli.py" = ["BLE001"]
+"src/mkdocs_note/utils/cli/**" = ["BLE001"]
+"tests/smoke_test.py" = ["BLE001"]
+"scripts/**" = ["BLE001"]
 
 
 [tool.uv]

@@ -12,6 +12,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.2.0 - 2026-08-03
+
+### Added
+
+- Notion wiki sync via CLI: `mkdocs-note notion-sync` / `ns` (git-diff incremental by default).
+
+- Plugin config `notion_sync` for docs/nav paths, wiki IDs, tags/title properties, and delay.
+
+- Shared helpers: path-level frontmatter / tags in `utils.meta`, hierarchical page tree in `utils.tree`.
+
+- Notion package: `utils.notion.convert`, `utils.notion.client`, `utils.notion.sync`.
+
+- User guide: [Notion Sync](../usage/notion-sync.md).
+
+### Changed
+
+- Documentation for CLI and configuration options updated for Notion sync.
+
 ## 3.1.2 - 2026-04-08
 
 ### Changed

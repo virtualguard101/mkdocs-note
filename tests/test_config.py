@@ -1,6 +1,6 @@
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 # Add src to path to allow imports
 sys.path.insert(
@@ -42,6 +42,7 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 			"notes_root",
 			"recent_notes_config",
 			"graph_config",
+			"notion_sync",
 		]
 
 		for attr in required_attrs:
@@ -69,6 +70,18 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 				self.config.graph_config,
 				f"graph_config missing required key: {key}",
 			)
+
+	def test_notion_sync_defaults(self):
+		"""Test Notion sync configuration defaults."""
+		ns = self.config.notion_sync
+		self.assertEqual(ns["docs_dir"], "docs")
+		self.assertEqual(ns["nav_file"], "docs/.nav.yml")
+		self.assertEqual(ns["database_id"], "")
+		self.assertEqual(ns["data_source_id"], "")
+		self.assertEqual(ns["title_property"], "页面")
+		self.assertEqual(ns["tags_property"], "标签")
+		self.assertFalse(ns["allow_cursor_mcp_token"])
+		self.assertFalse(ns["silence_mcp_token_warning"])
 
 
 if __name__ == "__main__":

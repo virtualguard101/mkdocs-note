@@ -23,6 +23,7 @@ In `v3.0.x`, there only has commands to create, remove, move notes with there co
 | `remove` | Remove a note file and its corresponding asset directory. |
 | `move` | Move a note file and its corresponding asset directory to a new location. |
 | `clean` | Clean up orphaned asset directories. |
+| `notion-sync` (`ns`) | Sync notes to a Notion wiki (incremental via git diff). |
 
 ## Commands Detail
 
@@ -101,9 +102,13 @@ Remove a note file and its corresponding asset directory.
 - **Features:**
 
     - Removes both the note file and its corresponding asset directory by default
+
     - Supports removing single files or entire directories containing notes
+
     - Prompts for confirmation before deletion (unless `--yes` is used)
+
     - Automatically cleans up empty parent directories after removal
+
     - Supports both `.md` and `.ipynb` file formats
 
 - **Examples:**
@@ -327,3 +332,18 @@ mkdocs-note clean [OPTIONS]
     🗑️  Removing orphaned assets...
     ✅ Successfully removed 3 orphaned asset directories
     ```
+
+### `notion-sync`
+
+Sync MkDocs notes to a Notion wiki database (incremental via git diff by default).
+
+- **Aliases:** `ns`
+
+- **Usage:**
+
+    ```bash
+    mkdocs-note notion-sync [OPTIONS]
+    mkdocs-note ns --dry-run --full
+    ```
+
+- See [Notion Sync](notion-sync.md) for configuration, token setup, and behaviour details.

@@ -5,10 +5,11 @@ This module tests the complete CLI workflow including command parsing
 and execution through the Click interface.
 """
 
-import unittest
-import tempfile
 import shutil
+import tempfile
+import unittest
 from pathlib import Path
+
 from click.testing import CliRunner
 
 from mkdocs_note.cli import cli
