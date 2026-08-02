@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-import os
 import json
+import os
+from typing import ClassVar
 
-from mkdocs.structure.files import Files, File
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import BasePlugin, event_priority, get_plugin_logger
-from mkdocs.structure.pages import Page
+from mkdocs.structure.files import File, Files
 from mkdocs.structure.nav import Navigation
+from mkdocs.structure.pages import Page
 
 from mkdocs_note.config import MkdocsNoteConfig
-from mkdocs_note.utils import scanner
-from mkdocs_note.utils.meta import extract_title, extract_date
 from mkdocs_note.graph import (
 	Graph,
 	add_static_resouces,
-	inject_graph_script,
 	copy_static_assets,
+	inject_graph_script,
 )
-
+from mkdocs_note.utils import scanner
+from mkdocs_note.utils.meta import extract_date, extract_title
 
 log = get_plugin_logger(__name__)
 
@@ -26,7 +26,7 @@ log = get_plugin_logger(__name__)
 class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 	"""Mkdocs Note Plugin entry point."""
 
-	notes_list: list[File] = []
+	notes_list: ClassVar[list[File]] = []
 
 	@event_priority(100)
 	def on_files(self, files: Files, config: MkDocsConfig) -> Files:
@@ -85,7 +85,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			graph_file = os.path.join(output_dir, "graph.json")
 			with open(graph_file, "w") as f:
 				json.dump(self._graph.to_dict(), f)
-		except (IOError, OSError) as e:
+		except OSError as e:
 			log.error(f"Error writing graph file: {e}")
 
 	def on_post_page(
@@ -128,7 +128,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		log.info("Copying static assets...")
 		try:
 			copy_static_assets(static_dir=self.static_dir, config=config)
-		except (IOError, OSError) as e:
+		except OSError as e:
 			log.error(f"Error copying static assets: {e}")
 
 	def on_page_markdown(

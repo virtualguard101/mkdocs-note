@@ -6,11 +6,11 @@ Migrated from [mkdocs-network-graph-plugin](https://github.com/develmusa/mkdocs-
 import os
 import re
 import shutil
-from typing import Iterator, Optional
-from urllib.parse import unquote, urlsplit, urlparse
+from collections.abc import Iterator
+from urllib.parse import unquote, urlparse, urlsplit
 
-from mkdocs.plugins import get_plugin_logger
 from mkdocs.config.defaults import MkDocsConfig
+from mkdocs.plugins import get_plugin_logger
 from mkdocs.structure.files import Files
 from mkdocs.structure.pages import Page
 
@@ -67,7 +67,7 @@ class Graph:
 			url = url[1:-1]
 		return unquote(url)
 
-	def _normalize_link(self, match: re.Match) -> Optional[str]:
+	def _normalize_link(self, match: re.Match) -> str | None:
 		"""Normalize the URL from a regex match."""
 		url = match.group("url") or match.group("wikilink")
 		if not url:
@@ -108,7 +108,6 @@ class Graph:
 			except FileNotFoundError:
 				logger.warning(f"File not found: {node['path']}")
 				# This should not happen if the file is in the `files` collection
-				pass
 		logger.info(f"Created {len(self.edges)} edges")
 
 	def __call__(self, files: Files):

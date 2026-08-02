@@ -1,5 +1,6 @@
-import unittest
 import re
+import unittest
+
 from click.testing import CliRunner
 
 from mkdocs_note.cli import cli
@@ -27,13 +28,13 @@ class TestHelpOptions(unittest.TestCase):
 
 	def test_help_long_option(self):
 		"""Test that --help option works without errors."""
-		stdout, stderr, returncode = self.run_cli_command(["--help"])
+		stdout, _stderr, returncode = self.run_cli_command(["--help"])
 
 		# Should not throw error
 		self.assertEqual(
 			returncode,
 			0,
-			f"--help failed with return code {returncode}. stderr: {stderr}",
+			f"--help failed with return code {returncode}. stderr: {_stderr}",
 		)
 
 		# Should contain help text
@@ -42,11 +43,13 @@ class TestHelpOptions(unittest.TestCase):
 
 	def test_help_short_option(self):
 		"""Test that -h option works without errors."""
-		stdout, stderr, returncode = self.run_cli_command(["-h"])
+		stdout, _stderr, returncode = self.run_cli_command(["-h"])
 
 		# Should not throw error
 		self.assertEqual(
-			returncode, 0, f"-h failed with return code {returncode}. stderr: {stderr}"
+			returncode,
+			0,
+			f"-h failed with return code {returncode}. stderr: {_stderr}",
 		)
 
 		# Should contain help text
@@ -55,8 +58,8 @@ class TestHelpOptions(unittest.TestCase):
 
 	def test_help_options_equal(self):
 		"""Test that --help and -h produce the same output."""
-		stdout_long, stderr_long, _ = self.run_cli_command(["--help"])
-		stdout_short, stderr_short, _ = self.run_cli_command(["-h"])
+		stdout_long, _stderr_long, _ = self.run_cli_command(["--help"])
+		stdout_short, _stderr_short, _ = self.run_cli_command(["-h"])
 
 		# Both should produce the same output
 		self.assertEqual(
@@ -65,13 +68,13 @@ class TestHelpOptions(unittest.TestCase):
 
 	def test_version_option(self):
 		"""Test that --version option works."""
-		stdout, stderr, returncode = self.run_cli_command(["--version"])
+		stdout, _stderr, returncode = self.run_cli_command(["--version"])
 
 		# Should not throw error
 		self.assertEqual(
 			returncode,
 			0,
-			f"--version failed with return code {returncode}. stderr: {stderr}",
+			f"--version failed with return code {returncode}. stderr: {_stderr}",
 		)
 
 		# Should contain version information
@@ -86,11 +89,11 @@ class TestHelpOptions(unittest.TestCase):
 	def test_help_with_subcommand(self):
 		"""Test that help works with subcommands."""
 		# Test with 'new' command
-		stdout, stderr, returncode = self.run_cli_command(["new", "--help"])
+		stdout, _stderr, returncode = self.run_cli_command(["new", "--help"])
 		self.assertEqual(
 			returncode,
 			0,
-			f"new --help failed with return code {returncode}. stderr: {stderr}",
+			f"new --help failed with return code {returncode}. stderr: {_stderr}",
 		)
 		self.assertIn("Create a new note", stdout)
 
@@ -114,7 +117,7 @@ class TestHelpOptions(unittest.TestCase):
 
 		for cmd in commands:
 			with self.subTest(command=cmd):
-				stdout, stderr, returncode = self.run_cli_command([cmd, "--help"])
+				stdout, _stderr, returncode = self.run_cli_command([cmd, "--help"])
 				self.assertEqual(
 					returncode,
 					0,

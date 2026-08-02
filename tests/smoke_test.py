@@ -55,9 +55,9 @@ def test_core_modules():
 	# Test utils.meta module
 	try:
 		from mkdocs_note.utils.meta import (
-			validate_frontmatter,
 			extract_date,
 			extract_title,
+			validate_frontmatter,
 		)
 
 		assert validate_frontmatter is not None

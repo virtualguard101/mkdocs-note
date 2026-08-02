@@ -110,22 +110,21 @@ mkdocs-note/
 │   │   ├── graph.js
 │   │   └── graph.css
 │   │
-│   └── utils/                   # Minimal utility modules
+│   └── utils/                   # Utility modules
 │       ├── __init__.py
-│       ├── meta.py              # Metadata extraction (title, date, frontmatter validation)
-│       ├── scanner.py           # File scanning
+│       ├── meta.py              # Metadata / frontmatter (File + path APIs)
+│       ├── scanner.py           # File scanning (MkDocs Files)
+│       ├── tree.py              # Page tree from .nav.yml or directory hierarchy
+│       ├── notion/              # Notion sync (CLI)
+│       │   ├── convert.py       # Markdown → Notion Enhanced Markdown
+│       │   ├── client.py        # Notion HTTP API
+│       │   └── sync.py          # Orchestration (token, git diff, state, run_sync)
 │       └── cli/                 # CLI command implementations
 │           ├── __init__.py
 │           ├── commands.py      # NewCommand, RemoveCommand, MoveCommand, CleanCommand
 │           └── common.py        # Common utilities (asset paths, directory cleanup)
 │
 └── tests/                       # Test suite
-    ├── __init__.py
-    ├── smoke_test.py            # Smoke tests
-    ├── test_config.py           # Configuration tests
-    ├── test_plugin.py           # Plugin tests
-    ├── test_cli_*.py            # CLI tests
-    └── test.sh                  # Test runner script
 ```
 
 ### Module Responsibilities
@@ -133,11 +132,13 @@ mkdocs-note/
 | Module | Responsibility | Key Functions |
 |--------|---------------|---------------|
 | `plugin.py` | MkDocs plugin integration | File processing, recent notes insertion, graph integration |
-| `cli.py` | CLI entry point | Command registration, argument parsing, error handling |
-| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`) |
+| `cli.py` | CLI entry point | Command registration (`new`/`remove`/`move`/`clean`/`notion-sync`), mkdocs.yml load for sync |
+| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`, `notion_sync`) |
 | `graph.py` | Network graph | Node/edge creation, link detection, static asset management |
-| `utils/meta.py` | Metadata | Frontmatter validation, title/date extraction |
+| `utils/meta.py` | Metadata | Frontmatter validation (File), path-level parse / tags |
 | `utils/scanner.py` | File scanning | Note file discovery and validation |
+| `utils/tree.py` | Page tree | `.nav.yml` parse or `notes_root` directory hierarchy |
+| `utils/notion/` | Notion sync | convert / client / sync orchestration |
 | `utils/cli/commands.py` | CLI commands | `new`, `remove`, `move`, `clean` implementations |
 | `utils/cli/common.py` | CLI utilities | Asset directory paths, directory cleanup |
 
@@ -150,18 +151,25 @@ graph TB
         CLI[cli.py<br/>CLI Entry]
     end
     
-    subgraph "Independet Modules"
+    subgraph "Independent Modules"
         Config[config.py<br/>MkdocsNoteConfig]
-        Graph[graph.py<br/>Graph<br/>add_static_resources<br/>inject_graph_script<br/>copy_static_assets]
+        Graph[graph.py<br/>Graph]
     end
     
     subgraph "Utils Layer"
-        Meta[utils/meta.py<br/>validate_frontmatter<br/>extract_date<br/>extract_title]
-        Scanner[utils/scanner.py<br/>scan_notes]
+        Meta[utils/meta.py]
+        Scanner[utils/scanner.py]
+        Tree[utils/tree.py]
+        
+        subgraph "Notion"
+            Convert[notion/convert.py]
+            Client[notion/client.py]
+            Sync[notion/sync.py]
+        end
         
         subgraph "CLI Submodule"
-            Commands[cli/commands.py<br/>NewCommand<br/>RemoveCommand<br/>MoveCommand<br/>CleanCommand]
-            Common[cli/common.py<br/>get_asset_directory<br/>cleanup_empty_directories]
+            Commands[cli/commands.py]
+            Common[cli/common.py]
         end
     end
     
@@ -170,13 +178,17 @@ graph TB
     Plugin --> Meta
     Plugin --> Graph
     
-    CLI ---> Config
+    CLI --> Config
     CLI --> Commands
+    CLI --> Sync
     
     Commands --> Common
     Scanner --> Meta
-    
-    Common -->|Get MkDocsConfig Instance| Plugin
+    Sync --> Convert
+    Sync --> Client
+    Sync --> Meta
+    Sync --> Tree
+    Convert --> Meta
 ```
 
 ---
@@ -243,20 +255,20 @@ def cli():
 
 ```python
 class MkdocsNoteConfig(Config):
-    enabled: bool = True
-    notes_root: Path = "docs"
-    
-    recent_notes_config: dict = {
-        "enabled": False,
-        "insert_marker": "<!-- recent_notes -->",
-        "insert_num": 10,
-    }
-    
-    graph_config: dict = {
-        "enabled": False,
-        "name": "title",      # or "file_name"
-        "debug": False,
-    }
+	enabled: bool = True
+	notes_root: Path = "docs"
+
+	recent_notes_config: dict = {
+		"enabled": False,
+		"insert_marker": "<!-- recent_notes -->",
+		"insert_num": 10,
+	}
+
+	graph_config: dict = {
+		"enabled": False,
+		"name": "title",  # or "file_name"
+		"debug": False,
+	}
 ```
 
 ### graph.py - Network Graph Visualization
@@ -293,21 +305,23 @@ class Graph:
 
 ```python
 def validate_frontmatter(f: File) -> bool:
-    """Validate frontmatter, extract date and title.
-    
-    Required fields:
-    - date: datetime object
-    - title: string
-    - publish: bool (default True)
-    
-    Side effects: Sets f.note_date and f.note_title
-    """
+	"""Validate frontmatter, extract date and title.
+
+	Required fields:
+	- date: datetime object
+	- title: string
+	- publish: bool (default True)
+
+	Side effects: Sets f.note_date and f.note_title
+	"""
+
 
 def extract_date(f: File) -> Optional[datetime]:
-    """Extract date from validated file."""
+	"""Extract date from validated file."""
+
 
 def extract_title(f: File) -> Optional[str]:
-    """Extract title from validated file."""
+	"""Extract title from validated file."""
 ```
 
 **Validation Rules**:
@@ -324,16 +338,16 @@ def extract_title(f: File) -> Optional[str]:
 
 ```python
 def scan_notes(files: Files, config) -> tuple[list[File], list[File]]:
-    """Scan notes directory, return (valid_notes, invalid_files).
-    
-    Filtering:
-    1. Only documentation pages (is_documentation_page())
-    2. Within notes_root directory
-    3. Valid frontmatter (validate_frontmatter())
-    
-    Returns:
-        (valid_notes, invalid_files)
-    """
+	"""Scan notes directory, return (valid_notes, invalid_files).
+
+	Filtering:
+	1. Only documentation pages (is_documentation_page())
+	2. Within notes_root directory
+	3. Valid frontmatter (validate_frontmatter())
+
+	Returns:
+	    (valid_notes, invalid_files)
+	"""
 ```
 
 **MkDocs Integration**:
@@ -368,14 +382,16 @@ class XxxCommand:
 
 ```python
 def get_asset_directory(note_path: Path) -> Path:
-    """Co-located asset structure: note.parent / 'assets' / note.stem"""
-    return note_path.parent / "assets" / note_path.stem
+	"""Co-located asset structure: note.parent / 'assets' / note.stem"""
+	return note_path.parent / "assets" / note_path.stem
+
 
 def cleanup_empty_directories(start_dir: Path, stop_at: Path):
-    """Recursively remove empty parent directories."""
-    
+	"""Recursively remove empty parent directories."""
+
+
 def ensure_parent_directory(path: Path):
-    """Create parent directory if needed."""
+	"""Create parent directory if needed."""
 ```
 
 **Asset Directory Pattern**:
@@ -397,15 +413,15 @@ In v3.0.0+, we **leverage MkDocs' existing data structures** instead of creating
 ```python
 # MkDocs File object (extended by plugin)
 class File:
-    src_path: str              # Source path relative to docs_dir
-    abs_src_path: str          # Absolute source path
-    url: str                   # URL path for the file
-    content_string: str        # File content
-    page: Optional[Page]       # Associated Page object
-    
-    # Plugin-added attributes (via setattr):
-    note_date: datetime        # From frontmatter
-    note_title: str            # From frontmatter
+	src_path: str  # Source path relative to docs_dir
+	abs_src_path: str  # Absolute source path
+	url: str  # URL path for the file
+	content_string: str  # File content
+	page: Optional[Page]  # Associated Page object
+
+	# Plugin-added attributes (via setattr):
+	note_date: datetime  # From frontmatter
+	note_title: str  # From frontmatter
 ```
 
 ### Frontmatter Schema
@@ -732,10 +748,12 @@ sequenceDiagram
 ```python
 # v3.0.0: Direct, simple
 from mkdocs.utils import meta
+
 frontmatter, body = meta.get_data(content)
 
 # v2.x: Over-abstracted
 from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterParser
+
 parser = FrontmatterParser()
 frontmatter, body = parser.parse(content)
 ```
@@ -769,7 +787,7 @@ docs/notes/python/intro.md
 **Implementation**:
 ```python
 def get_asset_directory(note_path: Path) -> Path:
-    return note_path.parent / "assets" / note_path.stem
+	return note_path.parent / "assets" / note_path.stem
 ```
 
 **Advantages**:
@@ -789,19 +807,19 @@ def get_asset_directory(note_path: Path) -> Path:
 ```python
 # Frontmatter validation
 if not frontmatter.get("publish", False):
-    logger.debug(f"Skipping {f.src_uri} because it is not published")
-    return False
+	logger.debug(f"Skipping {f.src_uri} because it is not published")
+	return False
 
 if "date" not in frontmatter:
-    logger.error(f"Invalid frontmatter for {f.src_uri}: 'date' is required")
-    return False
+	logger.error(f"Invalid frontmatter for {f.src_uri}: 'date' is required")
+	return False
 ```
 
 **CLI Error Handling**:
 ```python
 if not note_path.exists():
-    click.echo(f"❌ Error: File does not exist: {note_path}", err=True)
-    sys.exit(1)
+	click.echo(f"❌ Error: File does not exist: {note_path}", err=True)
+	sys.exit(1)
 ```
 
 ### Testing Strategy
@@ -887,7 +905,7 @@ docs/notes/python/intro.md
 ```python
 # Single source of truth
 def get_asset_directory(note_path: Path) -> Path:
-    return note_path.parent / "assets" / note_path.stem
+	return note_path.parent / "assets" / note_path.stem
 ```
 
 ### Why Use MkDocs' Built-in Frontmatter Parsing?
@@ -908,13 +926,15 @@ def get_asset_directory(note_path: Path) -> Path:
 ```python
 # v2.x: Custom parser (~200 lines)
 from mkdocs_note.utils.dataps.frontmatter.handlers import FrontmatterParser
+
 parser = FrontmatterParser()
 fm, body = parser.parse_file(path)
 
 # v3.0.0: Built-in (~5 lines)
 from mkdocs.utils import meta
+
 with open(path) as f:
-    fm, body = meta.get_data(f.read())
+	fm, body = meta.get_data(f.read())
 ```
 
 ### Why Remove Template System?
@@ -941,9 +961,9 @@ with open(path) as f:
 ```python
 # Simple, direct frontmatter generation
 def _generate_note_basic_meta(self, file_path: Path) -> str:
-    return f"""---
-date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-title: {file_path.stem.replace('-', ' ').title()}
+	return f"""---
+date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+title: {file_path.stem.replace("-", " ").title()}
 permalink: 
 publish: true
 ---

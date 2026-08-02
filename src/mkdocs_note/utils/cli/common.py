@@ -3,14 +3,12 @@ Common utilities and data structures for CLI operations.
 """
 
 from pathlib import Path
-from typing import Optional
 
-from mkdocs.plugins import get_plugin_logger
 from mkdocs.config.defaults import MkDocsConfig
+from mkdocs.plugins import get_plugin_logger
 from mkdocs.utils import meta
 
 from mkdocs_note.plugin import MkdocsNotePlugin as plugin
-
 
 log = get_plugin_logger(__name__)
 
@@ -65,7 +63,7 @@ def get_asset_directory_by_permalink(note_path: Path, permalink: str) -> Path:
 	return note_path.parent / "assets" / permalink
 
 
-def get_permalink_from_file(note_path: Path) -> Optional[str]:
+def get_permalink_from_file(note_path: Path) -> str | None:
 	"""Extract permalink value from note file's frontmatter.
 
 	Args:

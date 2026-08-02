@@ -14,7 +14,7 @@ log = logging.getLogger("mkdocs.plugins")
 
 
 def get_content(config: MkDocsConfig) -> str:
-	now = datetime.datetime.now(datetime.timezone.utc)
+	now = datetime.datetime.now(datetime.UTC)
 	build_datetime = html.escape(email.utils.format_datetime(now))
 	return inspect.cleandoc(f'''
         <?xml version="1.0" encoding="UTF-8" ?>

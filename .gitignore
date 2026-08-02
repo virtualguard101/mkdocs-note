@@ -18,3 +18,6 @@ site/
 
 # Secret files
 test_publish.sh
+.notion_token
+.notion_sync_state.json
+.env

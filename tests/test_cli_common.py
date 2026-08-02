@@ -4,18 +4,18 @@ Test suite for mkdocs_note.utils.cli.common module.
 This module tests the common utility functions used by CLI commands.
 """
 
+import shutil
+import tempfile
 import unittest
 from pathlib import Path
-import tempfile
-import shutil
 
 from mkdocs_note.utils.cli.common import (
+	cleanup_empty_directories,
+	ensure_parent_directory,
 	get_asset_directory,
 	get_asset_directory_by_permalink,
 	get_permalink_from_file,
 	is_excluded_name,
-	ensure_parent_directory,
-	cleanup_empty_directories,
 )
 
 

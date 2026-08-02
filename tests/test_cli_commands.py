@@ -5,19 +5,19 @@ This module tests all CLI command classes: NewCommand, RemoveCommand,
 MoveCommand, and CleanCommand.
 """
 
-import unittest
-from pathlib import Path
-import tempfile
 import shutil
-from datetime import datetime
+import tempfile
+import unittest
+from datetime import UTC, datetime
+from pathlib import Path
 
+from mkdocs_note.utils.cli import common
 from mkdocs_note.utils.cli.commands import (
+	CleanCommand,
+	MoveCommand,
 	NewCommand,
 	RemoveCommand,
-	MoveCommand,
-	CleanCommand,
 )
-from mkdocs_note.utils.cli import common
 
 
 class TestNewCommand(unittest.TestCase):
@@ -109,7 +109,7 @@ class TestNewCommand(unittest.TestCase):
 				date_str = line.split("date:", 1)[1].strip()
 				# Verify date can be parsed
 				try:
-					datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+					datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
 					parsed = True
 				except ValueError:
 					parsed = False

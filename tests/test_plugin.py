@@ -1,15 +1,17 @@
-import unittest
-import sys
 import os
-from unittest.mock import Mock, MagicMock, patch
+import sys
+import unittest
+from unittest.mock import MagicMock, Mock, patch
 
 # Add src to path to allow imports
 sys.path.insert(
 	0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 )
 
-from mkdocs_note.plugin import MkdocsNotePlugin
+from datetime import UTC
+
 from mkdocs_note.config import MkdocsNoteConfig
+from mkdocs_note.plugin import MkdocsNotePlugin
 
 
 class TestMkdocsNotePlugin(unittest.TestCase):
@@ -41,8 +43,8 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 
 	def test_is_note_index_page(self):
 		"""Test is_note_index_page method."""
-		import tempfile
 		import os
+		import tempfile
 
 		# Create a temporary directory structure
 		with tempfile.TemporaryDirectory() as temp_dir:
@@ -179,8 +181,9 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 
 	def test_insert_recent_note_links(self):
 		"""Test insert_recent_note_links function."""
-		from mkdocs_note.plugin import insert_recent_note_links
 		from datetime import datetime
+
+		from mkdocs_note.plugin import insert_recent_note_links
 
 		# Create mock files
 		mock_file1 = Mock()
@@ -188,13 +191,13 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		mock_file1.page = Mock()
 		mock_file1.page.abs_url = "/note1/"
 		mock_file1.note_title = "Note 1"
-		mock_file1.note_date = datetime.now()
+		mock_file1.note_date = datetime.now(UTC)
 
 		mock_file2 = Mock()
 		mock_file2.page = Mock()
 		mock_file2.page.abs_url = "/note2/"
 		mock_file2.note_title = "Note 2"
-		mock_file2.note_date = datetime.now()
+		mock_file2.note_date = datetime.now(UTC)
 
 		notes_list = [mock_file1, mock_file2]
 		markdown = "# Index\n<!-- recent_notes -->"
