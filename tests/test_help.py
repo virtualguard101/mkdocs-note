@@ -111,6 +111,38 @@ class TestHelpOptions(unittest.TestCase):
 			stdout, stdout_h, "new --help and new -h should produce identical output"
 		)
 
+	def test_notion_sync_help_images_and_resume(self):
+		"""3.3.0: --images / --no-resume; --no-images removed."""
+		stdout, _stderr, returncode = self.run_cli_command(["notion-sync", "--help"])
+		self.assertEqual(returncode, 0)
+		self.assertIn("--images", stdout)
+		self.assertIn("--no-resume", stdout)
+		self.assertNotIn("--no-images", stdout)
+
+		stdout_ns, _stderr_ns, code_ns = self.run_cli_command(["ns", "--help"])
+		self.assertEqual(code_ns, 0)
+		self.assertIn("--images", stdout_ns)
+		self.assertNotIn("--no-images", stdout_ns)
+
+	def test_ns_help_matches_notion_sync_options(self):
+		"""Alias ``ns --help`` must include the same option help as notion-sync."""
+		stdout_ns, _stderr_ns, code_ns = self.run_cli_command(["ns", "--help"])
+		stdout_full, _stderr_full, code_full = self.run_cli_command(
+			["notion-sync", "--help"]
+		)
+		self.assertEqual(code_ns, 0)
+		self.assertEqual(code_full, 0)
+		self.assertIn("Process all nav pages", stdout_ns)
+		self.assertIn("[upload|site]", stdout_ns)
+		self.assertIn("resume checkpoint", stdout_ns)
+
+		def options_block(text: str) -> str:
+			idx = text.find("Options:")
+			self.assertGreaterEqual(idx, 0, f"no Options section in:\n{text}")
+			return text[idx:]
+
+		self.assertEqual(options_block(stdout_ns), options_block(stdout_full))
+
 	def test_help_with_all_commands(self):
 		"""Test that help works for all commands."""
 		commands = ["new", "remove", "rm", "move", "mv", "clean"]

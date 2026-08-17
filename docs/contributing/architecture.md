@@ -138,7 +138,7 @@ mkdocs-note/
 | `utils/meta.py` | Metadata | Frontmatter validation (File), path-level parse / tags |
 | `utils/scanner.py` | File scanning | Note file discovery and validation |
 | `utils/tree.py` | Page tree | `.nav.yml` parse or `notes_root` directory hierarchy |
-| `utils/notion/` | Notion sync | convert / client / sync orchestration |
+| `utils/notion/` | Notion sync | convert / client / sync (incl. `--full` resume under `.cache/mkdocs-note/`) |
 | `utils/cli/commands.py` | CLI commands | `new`, `remove`, `move`, `clean` implementations |
 | `utils/cli/common.py` | CLI utilities | Asset directory paths, directory cleanup |
 

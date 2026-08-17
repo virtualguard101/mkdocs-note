@@ -46,6 +46,11 @@ NavItem = TreeNode
 
 log = logging.getLogger("mkdocs_note.notion")
 
+LOCAL_IMAGE_MODES = frozenset({"upload", "site"})
+DEFAULT_CACHE_DIR = ".cache/mkdocs-note"
+CHECKPOINT_FILENAME = "notion-sync.json"
+CACHE_GITIGNORE = "*\n!.gitignore\n"
+
 
 # ---------------------------------------------------------------------------
 # Options & state
@@ -76,7 +81,9 @@ class SyncOptions:
 	paths_file: Path | None = None
 	section: list[str] | None = None
 	rebuild_state: bool = False
-	no_images: bool = False
+	local_images: str = "upload"
+	cache_dir: Path | None = None
+	no_resume: bool = False
 	dry_run: bool = False
 	continue_on_error: bool = False
 	verbose: bool = False
@@ -241,6 +248,16 @@ def _apply_env_overrides(options: SyncOptions) -> SyncOptions:
 	if not state_path.is_absolute():
 		state_path = Path(options.project_root) / state_path
 
+	cache_raw = os.environ.get("NOTION_SYNC_CACHE") or ""
+	if options.cache_dir is not None:
+		cache_dir = Path(options.cache_dir)
+	elif cache_raw.strip():
+		cache_dir = Path(cache_raw.strip())
+	else:
+		cache_dir = Path(DEFAULT_CACHE_DIR)
+	if not cache_dir.is_absolute():
+		cache_dir = Path(options.project_root) / cache_dir
+
 	return SyncOptions(
 		project_root=Path(options.project_root),
 		docs_dir=Path(options.docs_dir),
@@ -262,7 +279,9 @@ def _apply_env_overrides(options: SyncOptions) -> SyncOptions:
 		paths_file=options.paths_file,
 		section=options.section,
 		rebuild_state=options.rebuild_state,
-		no_images=options.no_images,
+		local_images=normalize_local_images(options.local_images),
+		cache_dir=cache_dir,
+		no_resume=options.no_resume,
 		dry_run=options.dry_run,
 		continue_on_error=options.continue_on_error,
 		verbose=options.verbose,
@@ -277,6 +296,74 @@ def _strip_docs_prefix(path: str, docs_prefix: str) -> str:
 	if docs_prefix != "docs/" and rel.startswith("docs/"):
 		return rel[5:]
 	return rel
+
+
+def normalize_local_images(value: str | None) -> str:
+	"""Return ``upload`` or ``site``; invalid values fall back to ``upload``."""
+	mode = (value or "upload").strip().lower()
+	if mode not in LOCAL_IMAGE_MODES:
+		log.warning("unknown local_images %r; using 'upload'", value)
+		return "upload"
+	return mode
+
+
+def checkpoint_path(cache_dir: Path) -> Path:
+	"""Path of the full-sync resume JSON inside *cache_dir*."""
+	return Path(cache_dir) / CHECKPOINT_FILENAME
+
+
+def ensure_cache_gitignore(cache_dir: Path) -> None:
+	"""Create *cache_dir* and write a wildcard ``.gitignore`` if missing."""
+	cache_dir.mkdir(parents=True, exist_ok=True)
+	ignore = cache_dir / ".gitignore"
+	if not ignore.exists():
+		ignore.write_text(CACHE_GITIGNORE, encoding="utf-8")
+
+
+def full_sync_fingerprint(options: SyncOptions, *, full: bool) -> dict[str, Any]:
+	"""Stable identity for a full-sync run (used to accept or discard resume)."""
+	return {
+		"full": full,
+		"sections": list(options.section or []),
+		"paths": [],
+		"local_images": options.local_images,
+		"docs_dir": docs_rel(str(options.docs_dir)),
+		"database_id": options.database_id,
+		"data_source_id": options.data_source_id,
+	}
+
+
+def load_checkpoint(path: Path) -> dict[str, Any] | None:
+	"""Load a resume checkpoint, or ``None`` if missing/invalid."""
+	if not path.is_file():
+		return None
+	try:
+		data = json.loads(path.read_text(encoding="utf-8"))
+	except (OSError, json.JSONDecodeError):
+		return None
+	if not isinstance(data, dict):
+		return None
+	return data
+
+
+def save_checkpoint(path: Path, fingerprint: dict[str, Any], done: list[str]) -> None:
+	"""Write resume progress; create cache dir ``.gitignore`` on first write."""
+	ensure_cache_gitignore(path.parent)
+	payload = {
+		"version": 1,
+		"fingerprint": fingerprint,
+		"done": done,
+	}
+	path.write_text(
+		json.dumps(payload, ensure_ascii=False, indent=2),
+		encoding="utf-8",
+	)
+
+
+def clear_checkpoint(path: Path) -> None:
+	"""Remove the progress file; keep the cache-dir ``.gitignore``."""
+	if path.is_file():
+		path.unlink()
 
 
 # ---------------------------------------------------------------------------
@@ -849,6 +936,16 @@ def run_sync(options: SyncOptions) -> int:
 		)
 		return 1
 
+	local_images = normalize_local_images(options.local_images)
+	options.local_images = local_images
+	if local_images == "site" and not options.site_url:
+		log.error(
+			"local_images=site requires site_url "
+			"(mkdocs.yml notion_sync.site_url or top-level site_url)."
+		)
+		return 1
+	upload_images = local_images == "upload"
+
 	state_path = options.state_path
 	sections = options.section
 	docs_prefix = _docs_prefix(options.project_root, options.docs_dir)
@@ -940,6 +1037,42 @@ def run_sync(options: SyncOptions) -> int:
 		log.info("nothing to sync")
 		return 0
 
+	ck_path = checkpoint_path(
+		options.cache_dir or Path(options.project_root) / DEFAULT_CACHE_DIR
+	)
+	fingerprint = full_sync_fingerprint(options, full=full)
+	done: list[str] = []
+	use_resume = full and not options.dry_run and not options.no_resume
+	if full and not options.dry_run and options.no_resume:
+		clear_checkpoint(ck_path)
+		log.info("resume disabled; discarded checkpoint")
+	elif use_resume:
+		existing = load_checkpoint(ck_path)
+		if existing and existing.get("fingerprint") == fingerprint:
+			done = [str(p) for p in (existing.get("done") or []) if isinstance(p, str)]
+			if done:
+				before = len(targets)
+				done_set = set(done)
+				targets = [
+					item
+					for item in targets
+					if not item.file_rel or item.file_rel not in done_set
+				]
+				log.info(
+					"resuming full sync: skip %d already-done page(s), %d remaining",
+					before - len(targets),
+					len(targets),
+				)
+		elif existing:
+			log.info("checkpoint fingerprint mismatch; starting full sync from scratch")
+			clear_checkpoint(ck_path)
+
+	if not targets:
+		log.info("nothing to sync")
+		if use_resume:
+			clear_checkpoint(ck_path)
+		return 0
+
 	tags_cache: TagsSchemaCache | None = None
 	if not options.dry_run and token:
 		tags_cache = TagsSchemaCache(
@@ -947,7 +1080,7 @@ def run_sync(options: SyncOptions) -> int:
 			property_name=options.tags_property,
 		)
 
-	log.info("syncing %d page(s)", len(targets))
+	log.info("syncing %d page(s) (local_images=%s)", len(targets), local_images)
 	stats = {"created": 0, "updated": 0, "dry-run": 0, "missing": 0, "failed": 0}
 	for item in targets:
 		try:
@@ -961,11 +1094,19 @@ def run_sync(options: SyncOptions) -> int:
 				site_url=options.site_url,
 				delay=options.delay,
 				dry_run=options.dry_run,
-				upload_images=not options.no_images,
+				upload_images=upload_images,
 				tags_property=options.tags_property,
 				tags_cache=tags_cache,
 			)
 			stats[result] = stats.get(result, 0) + 1
+			if (
+				use_resume
+				and item.file_rel
+				and result in ("created", "updated", "missing")
+				and item.file_rel not in done
+			):
+				done.append(item.file_rel)
+				save_checkpoint(ck_path, fingerprint, done)
 		except urllib.error.HTTPError as exc:
 			body = getattr(exc, "reason", "") or ""
 			log.error("FAIL %s: %s %s", item.file_rel, exc.code, body)
@@ -980,5 +1121,7 @@ def run_sync(options: SyncOptions) -> int:
 
 	if not options.dry_run:
 		save_state(state_path, state)
+	if use_resume and stats["failed"] == 0:
+		clear_checkpoint(ck_path)
 	log.info("done %s", json.dumps(stats, ensure_ascii=False))
 	return 1 if stats["failed"] else 0

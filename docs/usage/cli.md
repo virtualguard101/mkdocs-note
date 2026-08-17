@@ -344,6 +344,8 @@ Sync MkDocs notes to a Notion wiki database (incremental via git diff by default
     ```bash
     mkdocs-note notion-sync [OPTIONS]
     mkdocs-note ns --dry-run --full
+    mkdocs-note notion-sync --full --images site
+    mkdocs-note notion-sync --full --no-resume
     ```
 
 - See [Notion Sync](notion-sync.md) for configuration, token setup, and behaviour details.

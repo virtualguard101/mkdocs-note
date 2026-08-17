@@ -32,6 +32,8 @@ plugins:
         site_url: ""
         state_path: ".notion_sync_state.json"
         delay: 0.35
+        local_images: upload
+        cache_dir: .cache/mkdocs-note
 ```
 
 ## Core
@@ -72,5 +74,7 @@ Used by `mkdocs-note notion-sync` / `ns`. See [Notion Sync](notion-sync.md).
 | `notion_sync.site_url` | `""` | Public site URL; falls back to mkdocs `site_url` |
 | `notion_sync.state_path` | `.notion_sync_state.json` | Local page map (gitignore) |
 | `notion_sync.delay` | `0.35` | Delay between API calls (seconds) |
+| `notion_sync.local_images` | `upload` | `upload` local files, or `site` to use MkDocs URLs |
+| `notion_sync.cache_dir` | `.cache/mkdocs-note` | `--full` resume checkpoint directory |
 
 Token is never stored in `mkdocs.yml` — use environment variables or local token files.

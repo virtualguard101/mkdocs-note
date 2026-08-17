@@ -116,7 +116,8 @@ def build_sync_options_from_config(
 	data_source_id: str | None = None,
 	token: str | None = None,
 	rebuild_state: bool = False,
-	no_images: bool = False,
+	images: str | None = None,
+	no_resume: bool = False,
 	dry_run: bool = False,
 	continue_on_error: bool = False,
 	verbose: bool = False,
@@ -141,6 +142,11 @@ def build_sync_options_from_config(
 		if site_url is not None
 		else (ns.get("site_url") or plugin.get("_site_url") or "")
 	)
+
+	local_images = (
+		images if images is not None else str(ns.get("local_images") or "upload")
+	)
+	cache_raw = ns.get("cache_dir") or ".cache/mkdocs-note"
 
 	return SyncOptions(
 		project_root=project_root,
@@ -169,7 +175,9 @@ def build_sync_options_from_config(
 		paths_file=paths_file,
 		section=list(section) if section else None,
 		rebuild_state=rebuild_state,
-		no_images=no_images,
+		local_images=local_images,
+		cache_dir=_abs(cache_raw),
+		no_resume=no_resume,
 		dry_run=dry_run,
 		continue_on_error=continue_on_error,
 		verbose=verbose,
@@ -744,7 +752,17 @@ def clean_command(ctx, dry_run, yes):
 	is_flag=True,
 	help="Remap pages from Notion wiki before syncing",
 )
-@click.option("--no-images", is_flag=True, help="Skip local image upload")
+@click.option(
+	"--images",
+	type=click.Choice(["upload", "site"], case_sensitive=False),
+	default=None,
+	help="Local images: upload files, or use MkDocs site URLs (overrides config).",
+)
+@click.option(
+	"--no-resume",
+	is_flag=True,
+	help="Ignore and discard --full resume checkpoint",
+)
 @click.option("--dry-run", is_flag=True, help="Convert and log without writing Notion")
 @click.option(
 	"--continue-on-error",
@@ -767,7 +785,8 @@ def notion_sync_command(
 	delay,
 	token,
 	rebuild_state,
-	no_images,
+	images,
+	no_resume,
 	dry_run,
 	continue_on_error,
 	verbose,
@@ -775,7 +794,7 @@ def notion_sync_command(
 	"""Sync MkDocs notes to a Notion wiki (incremental via git diff).
 
 	\b
-	Aliases: ns
+	Aliases: notion-sync, ns
 
 	\b
 	Examples:
@@ -799,7 +818,8 @@ def notion_sync_command(
 			data_source_id=data_source_id,
 			token=token,
 			rebuild_state=rebuild_state,
-			no_images=no_images,
+			images=images,
+			no_resume=no_resume,
 			dry_run=dry_run,
 			continue_on_error=continue_on_error,
 			verbose=verbose,
@@ -815,27 +835,8 @@ def notion_sync_command(
 		sys.exit(1)
 
 
-@cli.command("ns")
-@click.option("--full", is_flag=True)
-@click.option("--base", default=None)
-@click.option("--paths", multiple=True)
-@click.option("--paths-file", type=click.Path(path_type=Path), default=None)
-@click.option("--site-url", default=None)
-@click.option("--state", type=click.Path(path_type=Path), default=None)
-@click.option("--database-id", default=None)
-@click.option("--data-source-id", default=None)
-@click.option("--section", multiple=True)
-@click.option("--delay", type=float, default=None)
-@click.option("--token", default=None)
-@click.option("--rebuild-state", is_flag=True)
-@click.option("--no-images", is_flag=True)
-@click.option("--dry-run", is_flag=True)
-@click.option("--continue-on-error", is_flag=True)
-@click.option("-v", "--verbose", is_flag=True)
-@click.pass_context
-def ns_command(ctx, **kwargs):
-	"""Alias for 'notion-sync' — Sync notes to Notion wiki."""
-	ctx.invoke(notion_sync_command, **kwargs)
+# Same command object so ``ns --help`` stays identical to ``notion-sync --help``.
+cli.add_command(notion_sync_command, name="ns")
 
 
 if __name__ == "__main__":

@@ -57,6 +57,8 @@ class MkdocsNoteConfig(Config):
 			"site_url": "",
 			"state_path": ".notion_sync_state.json",
 			"delay": 0.35,
+			"local_images": "upload",
+			"cache_dir": ".cache/mkdocs-note",
 			"allow_cursor_mcp_token": False,
 			"silence_mcp_token_warning": False,
 		},
@@ -73,6 +75,8 @@ class MkdocsNoteConfig(Config):
     - site_url: Public site URL for remote image fallbacks
     - state_path: Local page-map JSON path
     - delay: Seconds between Notion API calls
+    - local_images: ``upload`` local files, or ``site`` to use MkDocs site URLs
+    - cache_dir: Directory for ``--full`` resume checkpoints
     - allow_cursor_mcp_token: Developer-only; allow reading token from Cursor mcp.json
     - silence_mcp_token_warning: Suppress the MCP-token usage warning
     """
