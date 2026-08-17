@@ -12,9 +12,11 @@ sys.path.insert(
 
 from mkdocs_note.utils.notion.convert import (
 	convert_admonitions_and_tabs,
+	convert_images,
 	convert_inline_math,
 	convert_markdown_file,
 	is_gfm_table_separator_row,
+	resolve_image_url,
 	strip_gfm_table_separators,
 )
 
@@ -69,6 +71,37 @@ class TestConvertFile(unittest.TestCase):
 			self.assertIn("<callout", body)
 			self.assertNotIn("# Hello", body.split("\n")[0] if body else "")
 			self.assertEqual(meta.get("tags"), ["t1"])
+
+
+class TestImageUrls(unittest.TestCase):
+	def test_resolve_image_url_joins_site(self):
+		with tempfile.TemporaryDirectory() as tmp:
+			root = Path(tmp)
+			(root / "assets").mkdir()
+			img = root / "assets" / "1.jpg"
+			img.write_bytes(b"x")
+			note = root / "note.md"
+			note.write_text("x", encoding="utf-8")
+			url = resolve_image_url(
+				"assets/1.jpg", note, "https://example.com/wiki", root
+			)
+			self.assertEqual(url, "https://example.com/wiki/assets/1.jpg")
+
+	def test_site_mode_leaves_markdown_image(self):
+		with tempfile.TemporaryDirectory() as tmp:
+			root = Path(tmp)
+			(root / "assets").mkdir()
+			(root / "assets" / "1.jpg").write_bytes(b"x")
+			note = root / "note.md"
+			note.write_text("![alt](assets/1.jpg)\n", encoding="utf-8")
+			out = convert_images(
+				note.read_text(encoding="utf-8"),
+				note,
+				"https://example.com/wiki",
+				root,
+				upload_local=None,
+			)
+			self.assertIn("https://example.com/wiki/assets/1.jpg", out)
 
 
 if __name__ == "__main__":

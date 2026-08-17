@@ -4,7 +4,7 @@ site_author: virtualguard101{}
 #   Write your documentation in Markdown and create a professional static site in
 #   minutes – searchable, customizable, in 60+ languages, for all devices
 site_name: Mkdocs Note
-site_url: https://blog.virtualguard101.com/mkdocs-note
+site_url: https://virtualguard101.github.io/mkdocs-note/
 repo_url: https://github.com/virtualguard101/mkdocs-note
 repo_name: virtualguard101/mkdocs-note
 edit_uri: blob/main/docs/

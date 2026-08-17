@@ -82,6 +82,8 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 		self.assertEqual(ns["tags_property"], "标签")
 		self.assertFalse(ns["allow_cursor_mcp_token"])
 		self.assertFalse(ns["silence_mcp_token_warning"])
+		self.assertEqual(ns["local_images"], "upload")
+		self.assertEqual(ns["cache_dir"], ".cache/mkdocs-note")
 
 
 if __name__ == "__main__":

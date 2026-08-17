@@ -12,6 +12,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.3.0 - 2026-08-17
+
+### Added
+
+- `notion_sync.local_images`: `upload` (default) or `site` to embed MkDocs site URLs instead of uploading local images. CLI: `--images upload|site`.
+- Full-sync resume: interrupted `--full` runs skip pages already written. Progress is stored under `.cache/mkdocs-note/` (the directory writes its own `.gitignore`). `--no-resume` discards the checkpoint.
+
+### Changed
+
+- `ns --help` now shows the same option descriptions as `notion-sync` (they share one command definition).
+
+### Removed
+
+- CLI `--no-images`. Use `local_images: site` or `--images site` instead.
+
 ## 3.2.0 - 2026-08-03
 
 ### Added

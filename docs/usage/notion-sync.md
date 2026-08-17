@@ -40,6 +40,8 @@ plugins:
         site_url: "https://example.com"   # optional; also falls back to mkdocs site_url
         state_path: ".notion_sync_state.json"
         delay: 0.35
+        local_images: upload   # or site
+        cache_dir: .cache/mkdocs-note
 ```
 
 Sensitive credentials stay in the environment (or local files), not in git:
@@ -54,9 +56,30 @@ Sensitive credentials stay in the environment (or local files), not in git:
 
 Environment overrides for IDs: `NOTION_WIKI_DATABASE`, `NOTION_WIKI_DATA_SOURCE`,
 `NOTION_TITLE_PROPERTY`, `NOTION_TAGS_PROPERTY`, `NOTION_STATE_PATH`.
+Full-sync cache dir: `NOTION_SYNC_CACHE` (default `.cache/mkdocs-note`).
 
 Add `.notion_sync_state.json` to `.gitignore`. In CI, cache that file so page
-maps do not rebuild every run.
+maps do not rebuild every run. Resume progress lives under `.cache/mkdocs-note/`
+and is gitignored by a file the CLI writes into that directory.
+
+## Local images
+
+- `upload` (default): local `![](…)` files are uploaded to Notion (slower when a
+  page has many attachments).
+- `site`: rewrite local paths to the published site URL, e.g. `docs/assets/1.jpg`
+  → `{site_url}/assets/1.jpg`. Requires `site_url`. Faster; Notion then depends
+  on the deployed MkDocs site.
+
+```bash
+mkdocs-note ns --full --images site
+```
+
+## Full-sync resume
+
+If `--full` (or an implicit full sync) is interrupted, re-run the same command
+to skip pages already written in that run. Use `--no-resume` to start over.
+A completed successful full sync deletes `notion-sync.json` but keeps the
+directory `.gitignore`.
 
 ## Usage
 
@@ -71,6 +94,8 @@ mkdocs-note notion-sync --full
 mkdocs-note ns --section notes/
 mkdocs-note notion-sync --dry-run --paths notes/intro.md
 mkdocs-note notion-sync --rebuild-state
+mkdocs-note notion-sync --full --images site
+mkdocs-note notion-sync --full --no-resume
 ```
 
 ### Common flags
@@ -82,7 +107,8 @@ mkdocs-note notion-sync --rebuild-state
 | `--paths` / `--paths-file` | Explicit file list |
 | `--section PREFIX` | Limit to path prefixes |
 | `--dry-run` | Convert and log without writing Notion |
-| `--no-images` | Skip local image uploads |
+| `--images upload\|site` | Local images: upload files, or use MkDocs site URLs |
+| `--no-resume` | Discard `--full` checkpoint and start from scratch |
 | `--rebuild-state` | Remap pages from the wiki |
 
 ## Behaviour notes
@@ -95,7 +121,12 @@ mkdocs-note notion-sync --rebuild-state
 
 - Frontmatter `tags` / `tag` map to the Notion multi-select property
 
-- Local images upload via Notion File Upload + block insert (not site URLs)
+- Local images: `local_images: upload` (default) uploads files; `site` uses
+  `site_url` + docs-relative paths (faster when a page has many attachments).
+  CLI `--images` overrides the config.
+
+- Interrupted `--full` syncs resume from `.cache/mkdocs-note/notion-sync.json`.
+  A successful run deletes that file. Use `--no-resume` to start over.
 
 - Material tabs become heading sections; admonitions become callouts / details
 
@@ -103,6 +134,6 @@ mkdocs-note notion-sync --rebuild-state
 
 - Same-parent duplicate titles can mis-match during `--rebuild-state`
 
-- Full sync with many local images is slow — prefer incremental
+- Full sync with many local images is slow — use `local_images: site` or prefer incremental
 
 - Some Material features (inline float admonitions, true tabs) are approximated
