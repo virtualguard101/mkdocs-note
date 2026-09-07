@@ -2,7 +2,7 @@
 date: 2025-10-17 15:44:22
 title: Todo
 permalink: 
-publish: true
+publish: false
 ---
 
 # Todo List
@@ -27,6 +27,8 @@ View on [GitHub](https://github.com/virtualguard101/mkdocs-note/blob/dev/docs/co
 
 
 ## Bug Fixes
+
+- [x] Notion sync: creating a new nav section under `Notebook` treated the wiki database ID as a page parent (`404 object_not_found`). [#74 | By virtualguard101](https://github.com/virtualguard101/mkdocs-note/issues/74)
 
 ## Documentation
 
