@@ -653,6 +653,24 @@ def filter_sections(rel: str, sections: list[str] | None) -> bool:
 	return any(rel.startswith(s) for s in sections)
 
 
+def _wiki_root_parent(state: MigrationState) -> tuple[str, str]:
+	"""Return ``(parent_id, parent_kind)`` for pages that sit on the wiki root."""
+	parent_id = state.data_source_id or state.root_page_id
+	kind = "data_source" if state.data_source_id else "database"
+	return parent_id, kind
+
+
+def _is_wiki_root(
+	item: NavItem | None,
+	state: MigrationState,
+	page_id: str | None = None,
+) -> bool:
+	"""True if *item* / *page_id* is the Notebook wiki database root."""
+	if item is not None and item.title == "Notebook" and not item.parent_key:
+		return True
+	return bool(page_id and page_id == state.root_page_id)
+
+
 def ensure_section(
 	token: str,
 	state: MigrationState,
@@ -671,7 +689,7 @@ def ensure_section(
 		raise KeyError(f"nav key not found: {key}")
 
 	# Notebook root maps to the wiki database itself.
-	if item.title == "Notebook" and not item.parent_key:
+	if _is_wiki_root(item, state):
 		state.pages[key] = {
 			"id": state.root_page_id,
 			"url": f"https://www.notion.so/{state.root_page_id.replace('-', '')}",
@@ -684,10 +702,13 @@ def ensure_section(
 		parent_id = ensure_section(
 			token, state, state_path, nav_index, item.parent_key, delay, dry_run
 		)
-		parent_kind = "page"
+		parent_item = nav_index.get(item.parent_key)
+		if _is_wiki_root(parent_item, state, parent_id):
+			parent_id, parent_kind = _wiki_root_parent(state)
+		else:
+			parent_kind = "page"
 	else:
-		parent_id = state.data_source_id or state.root_page_id
-		parent_kind = "data_source" if state.data_source_id else "database"
+		parent_id, parent_kind = _wiki_root_parent(state)
 
 	log.info("create section %s (%s)", item.title, key)
 	if dry_run:
@@ -719,12 +740,10 @@ def resolve_parent_id(
 ) -> tuple[str, str]:
 	"""Resolve parent Notion id and kind for a content page."""
 	if not parent_key:
-		parent_id = state.data_source_id or state.root_page_id
-		kind = "data_source" if state.data_source_id else "database"
-		return parent_id, kind
+		return _wiki_root_parent(state)
 	# Notebook root → wiki database / data source for children.
 	parent_item = nav_index.get(parent_key)
-	if parent_item and parent_item.title == "Notebook" and not parent_item.parent_key:
+	if _is_wiki_root(parent_item, state):
 		state.pages.setdefault(
 			parent_key,
 			{
@@ -732,12 +751,12 @@ def resolve_parent_id(
 				"url": (f"https://www.notion.so/{state.root_page_id.replace('-', '')}"),
 			},
 		)
-		parent_id = state.data_source_id or state.root_page_id
-		kind = "data_source" if state.data_source_id else "database"
-		return parent_id, kind
+		return _wiki_root_parent(state)
 	page_id = ensure_section(
 		token, state, state_path, nav_index, parent_key, delay, dry_run
 	)
+	if _is_wiki_root(parent_item, state, page_id):
+		return _wiki_root_parent(state)
 	return page_id, "page"
 
 
