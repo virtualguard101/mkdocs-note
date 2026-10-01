@@ -153,21 +153,49 @@
     return Array.from(out);
   }
 
+  /** Percent-encode each path segment (preserve trailing /). */
+  function encodePathSegments(path) {
+    if (!path) return path;
+    const trail = path.endsWith("/");
+    const body = trail ? path.slice(0, -1) : path;
+    const encoded = body
+      .split("/")
+      .map((seg) => {
+        try {
+          return encodeURIComponent(safeDecode(seg));
+        } catch (_) {
+          return seg;
+        }
+      })
+      .join("/");
+    return trail ? encoded + "/" : encoded;
+  }
+
+  function pathVariants(page) {
+    if (!page) return [""];
+    const decoded = safeDecode(page);
+    const encoded = encodePathSegments(decoded);
+    const out = new Set([page, decoded, encoded]);
+    // With / without trailing slash for each form
+    [page, decoded, encoded].forEach((p) => {
+      if (p.endsWith("/")) out.add(p.slice(0, -1));
+      else out.add(p + "/");
+    });
+    return Array.from(out);
+  }
+
   function candidateKeys(key) {
     const page = pageKeyWithoutFragment(key);
     const frag = key.includes("#") ? key.slice(key.indexOf("#")) : "";
-    const pages = new Set([page]);
+    const pages = new Set();
     if (page === "") {
+      pages.add("");
       pages.add("./");
       pages.add(".");
       pages.add("index/");
       pages.add("index.html");
     } else {
-      if (page.endsWith("/")) pages.add(page.slice(0, -1));
-      else pages.add(page + "/");
-      // Also try decoded/encoded path forms
-      pages.add(safeDecode(page));
-      if (page.endsWith("/")) pages.add(safeDecode(page.slice(0, -1)) + "/");
+      pathVariants(page).forEach((p) => pages.add(p));
     }
     const frags = frag ? fragmentVariants(frag) : [""];
     const out = [];

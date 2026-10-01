@@ -712,10 +712,14 @@ class PreviewBuilder:
 	def _normalize_page_url(self, page_url: str) -> str:
 		"""Canonicalize MkDocs ``file.url`` for JSON keys.
 
-		The site homepage is often ``""``, ``"."``, or ``"./`` — normalize to
-		empty string so runtime lookups for ``/`` / site root resolve.
+		Percent-decodes path segments so keys match runtime decoded lookups
+		(CJK directories etc.). Homepage ``""`` / ``.`` / ``./`` → empty string.
 		"""
 		url = (page_url or "").strip().lstrip("/")
+		try:
+			url = unquote(url)
+		except (ValueError, TypeError):
+			pass
 		if url in {"", ".", "./"}:
 			return ""
 		if not url.endswith("/") and "." not in url.rsplit("/", 1)[-1]:

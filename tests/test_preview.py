@@ -133,6 +133,27 @@ class TestFragmentEncoding(unittest.TestCase):
 			"notes/os/#Stack-and-Heap",
 		)
 
+	def test_page_key_decodes_percent_encoded_path(self):
+		"""MkDocs file.url keeps %XX for CJK dirs; JSON keys must be Unicode.
+
+		Mirrors the #84 regression repro: runtime decodes the path, so build
+		keys must match (and candidateKeys also tries encoded forms).
+		"""
+		builder = PreviewBuilder({"mode": "summary", "scope": "all"})
+		encoded = (
+			"obsidian/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/"
+			"c/C-Generics-and-Function-Pointers/"
+		)
+		decoded = "obsidian/编程语言/c/C-Generics-and-Function-Pointers/"
+		self.assertEqual(builder._normalize_page_url(encoded), decoded)
+		self.assertEqual(builder._page_key(encoded), decoded)
+		# Already-decoded / ASCII paths unchanged
+		self.assertEqual(builder._normalize_page_url(decoded), decoded)
+		self.assertEqual(
+			builder._normalize_page_url("usage/config/"),
+			"usage/config/",
+		)
+
 	def test_cjk_fragment_entry_in_builder(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp)
