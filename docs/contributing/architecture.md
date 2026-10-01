@@ -105,14 +105,18 @@ mkdocs-note/
 │   ├── cli.py                   # Command-line interface entry point
 │   ├── config.py                # Configuration management
 │   ├── graph.py                 # Network graph functionality
+│   ├── preview.py               # Same-site link hover preview
 │   │
-│   ├── static/                  # Static assets for graph visualization
+│   ├── static/                  # Static assets (graph + preview)
 │   │   ├── graph.js
-│   │   └── graph.css
+│   │   ├── graph.css
+│   │   ├── preview.js
+│   │   └── preview.css
 │   │
 │   └── utils/                   # Utility modules
 │       ├── __init__.py
 │       ├── meta.py              # Metadata / frontmatter (File + path APIs)
+│       ├── links.py             # Shared markdown/wiki link normalization
 │       ├── scanner.py           # File scanning (MkDocs Files)
 │       ├── tree.py              # Page tree from .nav.yml or directory hierarchy
 │       ├── notion/              # Notion sync (CLI)
@@ -131,10 +135,12 @@ mkdocs-note/
 
 | Module | Responsibility | Key Functions |
 |--------|---------------|---------------|
-| `plugin.py` | MkDocs plugin integration | File processing, recent notes insertion, graph integration |
+| `plugin.py` | MkDocs plugin integration | File processing, recent notes, graph, link preview |
 | `cli.py` | CLI entry point | Command registration (`new`/`remove`/`move`/`clean`/`notion-sync`), mkdocs.yml load for sync |
-| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`, `notion_sync`) |
+| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`, `preview_config`, `notion_sync`) |
 | `graph.py` | Network graph | Node/edge creation, link detection, static asset management |
+| `preview.py` | Link hover preview | `previews.json`, summary/excerpt extraction, gated static assets |
+| `utils/links.py` | Link normalize | Shared markdown/wiki URL dialect for graph + preview |
 | `utils/meta.py` | Metadata | Frontmatter validation (File), path-level parse / tags |
 | `utils/scanner.py` | File scanning | Note file discovery and validation |
 | `utils/tree.py` | Page tree | `.nav.yml` parse or `notes_root` directory hierarchy |
@@ -154,10 +160,12 @@ graph TB
     subgraph "Independent Modules"
         Config[config.py<br/>MkdocsNoteConfig]
         Graph[graph.py<br/>Graph]
+        Preview[preview.py<br/>PreviewBuilder]
     end
     
     subgraph "Utils Layer"
         Meta[utils/meta.py]
+        Links[utils/links.py]
         Scanner[utils/scanner.py]
         Tree[utils/tree.py]
         
@@ -177,6 +185,11 @@ graph TB
     Plugin --> Scanner
     Plugin --> Meta
     Plugin --> Graph
+    Plugin --> Preview
+    
+    Graph --> Links
+    Preview --> Links
+    Preview --> Meta
     
     CLI --> Config
     CLI --> Commands
@@ -208,13 +221,13 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
     notes_list: list[File] = []
     
     # Event Hooks:
-    def on_config(config)           # Add static resources for graph
-    def on_pre_build(config)        # Initialize graph if enabled
+    def on_config(config)           # Graph assets; preview assets if enabled
+    def on_pre_build(config)        # Init Graph / PreviewBuilder if enabled
     def on_files(files, config)     # Scan and validate notes
     def on_nav(nav, config, files)  # Store files reference
     def on_page_markdown(markdown)  # Insert recent notes
-    def on_post_page(output)        # Inject graph script
-    def on_post_build(config)       # Build graph, copy static assets
+    def on_post_page(output)        # Inject graph script; preview options if enabled
+    def on_post_build(config)       # Build graph/previews JSON, copy static assets
 ```
 
 **Recent Notes Insertion**:
@@ -269,6 +282,16 @@ class MkdocsNoteConfig(Config):
 		"name": "title",  # or "file_name"
 		"debug": False,
 	}
+
+	preview_config: dict = {
+		"enabled": False,
+		"mode": "summary",
+		"delay_ms": 300,
+		"max_chars": 200,
+		"include_fragments": True,
+		"mobile": False,
+		"scope": "linked_only",
+	}
 ```
 
 ### graph.py - Network Graph Visualization
@@ -283,7 +306,7 @@ class Graph:
     
     def _create_nodes(files)         # Create nodes from documentation pages
     def _create_edges(files)         # Parse markdown for links
-    def _find_links(markdown)        # Extract links using regex
+    def _find_links(markdown)        # Extract links using regex (via utils.links)
     def to_dict()                    # Export graph data
 ```
 
@@ -292,9 +315,29 @@ class Graph:
 - `inject_graph_script()`: Inject graph options into HTML
 - `copy_static_assets()`: Copy graph.js and graph.css to site directory
 
+### preview.py - Same-site Link Hover Preview
+
+**Responsibility**: Build-time `previews.json` and gated preview assets ([issue #82](https://github.com/virtualguard101/mkdocs-note/issues/82))
+
+**Core Class**:
+
+```python
+class PreviewBuilder:
+    def __call__(files)              # Build url → {title, summary, …} mapping
+```
+
+**Supporting Functions**:
+- `add_preview_static_resources()` / `copy_preview_static_assets()` / `inject_preview_script()` — only when `preview_config.enabled`
+- Summary: frontmatter `description`/`summary` → first prose paragraph
+- Excerpt mode: fragment-aware plain text + sanitized HTML (`utils.links` + pymdownx slugify)
+
+### utils/links.py - Shared Link Normalization
+
+**Responsibility**: One URL dialect for graph edges and preview keys (`normalize_link`, `iter_markdown_links`, `find_link_targets`)
+
 **Link Detection**:
 - Markdown links: `[text](url)`
-- Wiki links: `[[page]]`
+- Wiki links: `[[page]]` / `[[page#heading]]`
 - Handles URL escaping, query strings, fragments
 
 ### utils/meta.py - Metadata Extraction
@@ -518,13 +561,22 @@ sequenceDiagram
     participant Scanner
     participant Meta
     participant Graph
+    participant Preview
     
     MkDocs->>Plugin: on_config(config)
-    Plugin->>Plugin: Add static resources (D3.js, graph.js/css)
+    Plugin->>Plugin: Add graph static resources
+    alt preview_config.enabled
+        Plugin->>Plugin: Add preview.js/css
+    end
     Plugin-->>MkDocs: config
     
     MkDocs->>Plugin: on_pre_build(config)
-    Plugin->>Graph: new Graph(config)
+    alt graph enabled
+        Plugin->>Graph: new Graph(config)
+    end
+    alt preview enabled
+        Plugin->>Preview: new PreviewBuilder(config)
+    end
     Plugin-->>MkDocs: void
     
     MkDocs->>Plugin: on_files(files, config)
@@ -568,6 +620,9 @@ sequenceDiagram
     loop For each page
         MkDocs->>Plugin: on_post_page(output, page)
         Plugin->>Plugin: inject_graph_script(output)
+        alt preview enabled
+            Plugin->>Plugin: inject_preview_script(output)
+        end
         Plugin-->>MkDocs: output
     end
     
@@ -578,6 +633,12 @@ sequenceDiagram
         Graph->>Graph: _create_nodes(files)
         Graph->>Graph: _create_edges(files)
         Plugin->>Plugin: Write graph.json
+    end
+
+    alt Preview enabled
+        Plugin->>Preview: __call__(files)
+        Plugin->>Plugin: Write previews/previews.json
+        Plugin->>Plugin: copy preview.js/css
     end
     
     Plugin->>Plugin: copy_static_assets()
@@ -981,7 +1042,7 @@ publish: true
 **Decision**: Retain graph visualization despite simplification
 
 **Rationale**:
-- ✅ **Self-contained**: `graph.py` is independent, ~190 lines
+- ✅ **Self-contained**: `graph.py` / `preview.py` are independent modules; shared link logic lives in `utils/links.py`
 
 - ✅ **Migrated Code**: Already ported from mkdocs-network-graph-plugin
 

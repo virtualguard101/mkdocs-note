@@ -1,0 +1,99 @@
+/* Same-site link hover preview — Material theme variables */
+
+.mkdocs-note-preview {
+  position: absolute;
+  z-index: 1000;
+  max-width: min(360px, calc(100vw - 24px));
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--md-default-fg-color) 18%, transparent));
+}
+
+.mkdocs-note-preview--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mkdocs-note-preview {
+    transition: none;
+    transform: none;
+  }
+}
+
+.mkdocs-note-preview__inner {
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  border: 1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.12));
+  border-radius: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.mkdocs-note-preview__media:not([hidden]) {
+  margin: -0.75rem -0.9rem 0.6rem;
+  overflow: hidden;
+  border-radius: 0.2rem 0.2rem 0 0;
+}
+
+.mkdocs-note-preview__cover {
+  display: block;
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+}
+
+.mkdocs-note-preview__title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--md-typeset-color);
+  margin-bottom: 0.35rem;
+}
+
+.mkdocs-note-preview__body {
+  color: var(--md-default-fg-color--light, var(--md-typeset-color));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mkdocs-note-preview__body--rich {
+  white-space: normal;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.mkdocs-note-preview__body--rich .mkdocs-note-preview__heading {
+  margin: 0.4em 0 0.2em;
+  font-size: 0.75rem;
+}
+
+.mkdocs-note-preview__body--rich .mkdocs-note-preview__p {
+  margin: 0.25em 0;
+}
+
+.mkdocs-note-preview__body--rich .mkdocs-note-preview__pre {
+  margin: 0.4em 0;
+  padding: 0.4em 0.5em;
+  overflow: auto;
+  max-height: 120px;
+  background: var(--md-code-bg-color, rgba(0, 0, 0, 0.05));
+  border-radius: 0.1rem;
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__code {
+  font-family: var(--md-code-font, monospace);
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__img {
+  max-width: 100%;
+  height: auto;
+}
+
+.mkdocs-note-preview__a {
+  color: var(--md-typeset-a-color);
+}

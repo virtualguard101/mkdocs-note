@@ -36,6 +36,8 @@ MkDocs Note is a plugin for [MkDocs](https://www.mkdocs.org/) that automatically
 
 - **Network Graph Visualization**: Interactive network graph showing relationships between notes with automatic link detection
 
+- **Same-site Link Preview**: Opt-in hover cards for internal note links (summary or section excerpt)
+
 - **Notion Sync**: Sync your notes to [Notion](https://www.notion.so/) with ease CLI.
 
 ## Installation

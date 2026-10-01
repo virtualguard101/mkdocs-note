@@ -11,4 +11,4 @@ This is the user guide of the `mkdocs-note` plugin in detail. You can get more d
 
 For the quick start, you can refer to the [Getting Started](../getting-started.md) guide.
 
-Topics include recent notes, the CLI, asset management, the network graph, [Notion sync](notion-sync.md), and [configuration](config.md).
+Topics include recent notes, the CLI, asset management, the network graph, [link preview](link-preview.md), [Notion sync](notion-sync.md), and [configuration](config.md).

@@ -7,12 +7,14 @@ import os
 import re
 import shutil
 from collections.abc import Iterator
-from urllib.parse import unquote, urlparse, urlsplit
+from urllib.parse import urlparse
 
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import get_plugin_logger
 from mkdocs.structure.files import Files
 from mkdocs.structure.pages import Page
+
+from mkdocs_note.utils.links import LINK_PATTERN, normalize_link, unescape_url
 
 logger = get_plugin_logger(__name__)
 
@@ -20,7 +22,7 @@ logger = get_plugin_logger(__name__)
 class Graph:
 	"""Represents the connection graph between files."""
 
-	LINK_PATTERN = r"\[[^\]]+\]\((?P<url>.*?)\)|\[\[(?P<wikilink>[^\]]+)\]\]"
+	LINK_PATTERN = LINK_PATTERN
 
 	def __init__(self, config):
 		"""Initializes the graph data structure."""
@@ -62,26 +64,11 @@ class Graph:
 
 	def _unescape_url(self, url: str) -> str:
 		"""Unescape a URL."""
-		# Strip angle brackets if present (for links like [text](<url>))
-		if url.startswith("<") and url.endswith(">"):
-			url = url[1:-1]
-		return unquote(url)
+		return unescape_url(url)
 
 	def _normalize_link(self, match: re.Match) -> str | None:
 		"""Normalize the URL from a regex match."""
-		url = match.group("url") or match.group("wikilink")
-		if not url:
-			return None
-
-		# For wikilinks, add the .md extension
-		if match.group("wikilink") and not url.endswith(".md"):
-			url += ".md"
-		url = self._unescape_url(url)
-
-		# Remove query and fragment from the URL
-		url = urlsplit(url).path
-
-		return url
+		return normalize_link(match)
 
 	def _find_links(self, markdown: str, node_id: str, files: Files) -> Iterator[dict]:
 		"""Find all links in a markdown string and yield resolved edges."""

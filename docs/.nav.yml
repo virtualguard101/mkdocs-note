@@ -10,6 +10,7 @@ nav:
     - Command Line Interface: usage/cli.md
     - Asset Management: usage/asset-manager.md
     - Network Graph Visualization: usage/network-graph.md
+    - Same-site Link Preview: usage/link-preview.md
     - Notion Sync: usage/notion-sync.md
     - Configuration Options: usage/config.md
 
@@ -26,6 +27,7 @@ nav:
     - Independent Modules:
       - Plugin Configuration Module: references/config-api.md
       - Network Graph Visualization Module: references/graph-api.md
+      - Link Preview Module: references/preview-api.md
     - Utils Layers: references/utils-layers.md
 
   - About:

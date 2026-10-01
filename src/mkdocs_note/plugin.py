@@ -17,6 +17,13 @@ from mkdocs_note.graph import (
 	copy_static_assets,
 	inject_graph_script,
 )
+from mkdocs_note.preview import (
+	PreviewBuilder,
+	add_preview_static_resources,
+	copy_preview_static_assets,
+	inject_preview_script,
+	write_previews_file,
+)
 from mkdocs_note.utils import scanner
 from mkdocs_note.utils.meta import extract_date, extract_title
 
@@ -49,12 +56,26 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 		add_static_resouces(config)
 
+		if self.config.preview_config.get("enabled", False):
+			add_preview_static_resources(config)
+
 		return config
 
 	def on_pre_build(self, *, config: dict, **kwagrs) -> None:
 		"""Handle pre-build."""
 		if self.config.graph_config["enabled"]:
 			self._graph = Graph(self.config.graph_config)
+		if self.config.preview_config.get("enabled", False):
+			from urllib.parse import urlparse
+
+			site_url = config.get("site_url") if isinstance(config, dict) else None
+			if site_url:
+				base = urlparse(site_url).path
+				if not base.endswith("/"):
+					base += "/"
+			else:
+				base = "/"
+			self._preview = PreviewBuilder(self.config.preview_config, site_base=base)
 
 	def on_nav(
 		self,
@@ -107,6 +128,14 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		"""
 		debug = self.config.graph_config.get("debug", False)
 		output = inject_graph_script(output=output, config=config, debug=debug)
+
+		if self.config.preview_config.get("enabled", False):
+			output = inject_preview_script(
+				output,
+				config,
+				self.config.preview_config,
+				graph_enabled=bool(self.config.graph_config.get("enabled", False)),
+			)
 		return output
 
 	def on_post_build(
@@ -125,11 +154,24 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 			self._graph(self._files)
 			self._write_graph_file(config=config)
 
+		if hasattr(self, "_preview") and hasattr(self, "_files"):
+			try:
+				data = self._preview(self._files)
+				write_previews_file(data, config)
+			except OSError as e:
+				log.error(f"Error writing previews file: {e}")
+
 		log.info("Copying static assets...")
 		try:
 			copy_static_assets(static_dir=self.static_dir, config=config)
 		except OSError as e:
 			log.error(f"Error copying static assets: {e}")
+
+		if self.config.preview_config.get("enabled", False):
+			try:
+				copy_preview_static_assets(static_dir=self.static_dir, config=config)
+			except OSError as e:
+				log.error(f"Error copying preview static assets: {e}")
 
 	def on_page_markdown(
 		self,

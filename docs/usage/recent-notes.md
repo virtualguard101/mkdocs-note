@@ -1,6 +1,7 @@
 ---
 date: 2025-11-05 00:15:04
 title: Recent Notes Insertion
+description: Insert a configurable list of recently updated notes into your notes index page via a markdown marker.
 permalink: 
 publish: true
 ---
