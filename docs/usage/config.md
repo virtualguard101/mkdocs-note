@@ -80,7 +80,7 @@ See [Same-site Link Preview](link-preview.md).
 | `preview_config.max_chars` | `200` | Plain-text truncation length |
 | `preview_config.include_fragments` | `true` | Emit `#heading` keys in excerpt mode |
 | `preview_config.mobile` | `false` | Touch preview strategy |
-| `preview_config.scope` | `linked_only` | `linked_only` or `all` |
+| `preview_config.scope` | `linked_only` | `linked_only` (link targets + recent notes + notes-index out-links + soft graph nodes) or `all` |
 
 ## Notion sync
 

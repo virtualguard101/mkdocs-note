@@ -75,6 +75,12 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 					base += "/"
 			else:
 				base = "/"
+
+			extra_src: set[str] = set()
+			if self.config.recent_notes_config.get("enabled", False):
+				n = int(self.config.recent_notes_config.get("insert_num", 10))
+				extra_src = {f.src_path for f in self.notes_list[:n]}
+
 			self._preview = PreviewBuilder(
 				self.config.preview_config,
 				site_base=base,
@@ -84,6 +90,7 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 				mdx_configs=config.get("mdx_configs")
 				if hasattr(config, "get")
 				else None,
+				extra_src_paths=extra_src,
 			)
 
 	def on_nav(
@@ -165,6 +172,21 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 
 		if hasattr(self, "_preview") and hasattr(self, "_files"):
 			try:
+				# Refresh linked_only expansion sets at build time
+				if self.config.recent_notes_config.get("enabled", False):
+					n = int(self.config.recent_notes_config.get("insert_num", 10))
+					self._preview.extra_src_paths = {
+						f.src_path for f in self.notes_list[:n]
+					}
+				index_src: set[str] = set()
+				for f in self._files.documentation_pages():
+					if self.is_note_index_page(f):
+						index_src.add(f.src_path)
+				self._preview.index_src_paths = index_src
+				if hasattr(self, "_graph") and getattr(self._graph, "nodes", None):
+					self._preview.graph_src_paths = {
+						n["id"] for n in self._graph.nodes if "id" in n
+					}
 				data = self._preview(self._files)
 				write_previews_file(data, config)
 			except OSError as e:
