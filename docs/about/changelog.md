@@ -12,6 +12,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.4.1 - 2026-10-01
+
+### Fixed
+
+- Link preview ([#84](https://github.com/virtualguard101/mkdocs-note/issues/84)):
+  - `scope: linked_only` also includes recent-notes pages, notes-index out-links, and soft graph node pages (not only markdown/wiki link targets).
+  - Fragment keys store decoded Unicode (CJK headings); runtime lookup tries decoded and percent-encoded variants.
+  - Relative preview images resolve via MkDocs `Files` (then directory-URL / source-parent fallbacks); absolute CDN/`data:` URLs are left unchanged.
+  - Parent heading sections include nested subsections; empty parents descend to child content; page summaries skip `!!!` / `???` / `===` admonition markers.
+
 ## 3.4.0 - 2026-10-01
 
 ### Added

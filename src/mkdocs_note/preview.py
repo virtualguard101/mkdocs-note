@@ -14,7 +14,7 @@ import shutil
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, ClassVar
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import get_plugin_logger
@@ -74,18 +74,34 @@ def strip_markdown_inline(text: str) -> str:
 
 
 def first_prose_paragraph(body: str, max_chars: int) -> str:
-	"""Extract the first non-empty prose paragraph from markdown body."""
+	"""Extract the first non-empty prose paragraph from markdown body.
+
+	Skips ATX headings, blockquotes, tables, lists, and Material admonition /
+	details / tab markers (``!!!``, ``???``, ``===``) plus their indented bodies.
+	"""
 	# Drop fenced code blocks so we don't preview code as summary.
 	without_code = _CODE_FENCE_BLOCK_RE.sub("", body)
 	chunks: list[str] = []
 	buf: list[str] = []
+	skip_indented_block = False
 	for line in without_code.splitlines():
 		stripped = line.strip()
 		if not stripped:
 			if buf:
 				chunks.append(" ".join(buf))
 				buf = []
+			skip_indented_block = False
 			continue
+		# Admonition / details / tab openers and indented continuation lines.
+		if stripped.startswith(("!!!", "???", "===")):
+			if buf:
+				chunks.append(" ".join(buf))
+				buf = []
+			skip_indented_block = True
+			continue
+		if skip_indented_block and line.startswith(("    ", "\t")):
+			continue
+		skip_indented_block = False
 		if stripped.startswith(("#", ">", "|")):
 			if buf:
 				chunks.append(" ".join(buf))
@@ -102,7 +118,7 @@ def first_prose_paragraph(body: str, max_chars: int) -> str:
 
 	for chunk in chunks:
 		plain = strip_markdown_inline(chunk)
-		if plain:
+		if plain and not plain.startswith(("!!!", "???", "===")):
 			if len(plain) > max_chars:
 				return plain[: max_chars - 1].rstrip() + "…"
 			return plain
@@ -144,6 +160,9 @@ def _split_sections(body: str) -> list[tuple[str, str, str]]:
 	"""Split body into ``(heading_id, heading_text, section_md)`` parts.
 
 	Content before the first heading is ``("", "", lead_md)``.
+
+	A section runs until the next heading of the **same or higher** level so
+	parent headings include nested subsection markdown.
 	"""
 	matches = list(_HEADING_RE.finditer(body))
 	if not matches:
@@ -155,10 +174,15 @@ def _split_sections(body: str) -> list[tuple[str, str, str]]:
 		sections.append(("", "", lead))
 
 	for i, match in enumerate(matches):
+		level = len(match.group(1))
 		heading_text = strip_markdown_inline(match.group(2))
 		heading_id = slugify_heading(heading_text)
 		start = match.end()
-		end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+		end = len(body)
+		for j in range(i + 1, len(matches)):
+			if len(matches[j].group(1)) <= level:
+				end = matches[j].start()
+				break
 		sections.append((heading_id, heading_text, body[start:end]))
 	return sections
 
@@ -192,31 +216,152 @@ def excerpt_plain(section_md: str, max_chars: int) -> str:
 	return text
 
 
-def _rewrite_url(url: str, page_url: str, site_base: str) -> str:
-	"""Rewrite relative asset URLs against the page and site base."""
+def _section_has_prose(section_md: str) -> bool:
+	"""Return True if section markdown has extractable prose (not only headings)."""
+	return bool(excerpt_plain(section_md, 10_000).strip())
+
+
+def resolve_section_markdown(
+	sections: dict[str, tuple[str, str]],
+	frag: str,
+) -> tuple[str, str]:
+	"""Return ``(heading_text, section_md)`` for a fragment.
+
+	If the section has no extractable prose, descend into the first nested
+	child with content; otherwise return the hierarchical section body (which
+	already includes nested headings when split with same-or-higher rules).
+	"""
+	if frag not in sections:
+		return "", ""
+	heading_text, section_md = sections[frag]
+	if _section_has_prose(section_md):
+		return heading_text, section_md
+	nested = _split_sections(section_md)
+	for sid, _child_text, child_md in nested:
+		if not sid:
+			continue
+		if _section_has_prose(child_md):
+			return heading_text, child_md
+	# Keep hierarchical body even if prose extractor is empty (e.g. only code).
+	return heading_text, section_md
+
+
+def _rewrite_url(
+	url: str,
+	page_url: str,
+	site_base: str,
+	*,
+	source_file: Any | None = None,
+	files: Any | None = None,
+) -> str:
+	"""Rewrite relative asset URLs for preview HTML.
+
+	Resolution order:
+	1. Absolute / scheme / data / mailto — unchanged (CDN-friendly).
+	2. MkDocs ``Files`` lookup from the source markdown directory (primary).
+	3. Directory-URL parent of ``page_url`` (fallback B).
+	4. Source-parent path mapped under ``site_base`` (fallback A).
+	"""
 	if not url or url.startswith(("#", "mailto:", "data:", "javascript:")):
 		return url
 	parsed = urlparse(url)
 	if parsed.scheme or parsed.netloc:
 		return url
+	if url.startswith("//"):
+		return url
 	if url.startswith("/"):
 		return urljoin(site_base, url.lstrip("/"))
-	page_dir = page_url if page_url.endswith("/") else page_url.rsplit("/", 1)[0] + "/"
+
+	# C: Files API from source file directory
+	resolved = _resolve_url_via_files(url, source_file, files)
+	if resolved is not None:
+		return urljoin(site_base, resolved.lstrip("/"))
+
+	# B: dirname of directory-style page URL
+	page = (page_url or "").strip()
+	if page.endswith("/"):
+		parent = page.rstrip("/")
+		parent_dir = parent.rsplit("/", 1)[0] + "/" if "/" in parent else ""
+		return urljoin(urljoin(site_base, parent_dir), url)
+
+	# A / default: source parent dir → site_base, else classic page_dir join
+	if source_file is not None:
+		src = getattr(source_file, "src_path", None) or getattr(
+			source_file, "src_uri", ""
+		)
+		src = str(src).replace("\\", "/")
+		parent_src = src.rsplit("/", 1)[0] if "/" in src else ""
+		# Drop .md stem folder assumption: assets live beside the .md file
+		candidate = os.path.normpath(os.path.join(parent_src, url)).replace("\\", "/")
+		# Map docs-relative path to URL-ish path (strip .md files only)
+		if not candidate.endswith(".md"):
+			return urljoin(site_base, candidate.lstrip("/"))
+
+	page_dir = ""
+	if page:
+		page_dir = page if page.endswith("/") else page.rsplit("/", 1)[0] + "/"
 	return urljoin(urljoin(site_base, page_dir), url)
 
 
-def _rewrite_html_urls(raw_html: str, page_url: str, site_base: str) -> str:
+def _resolve_url_via_files(
+	rel_url: str,
+	source_file: Any | None,
+	files: Any | None,
+) -> str | None:
+	"""Return MkDocs file.url for a relative asset, or None if not found."""
+	if source_file is None or files is None:
+		return None
+	src = getattr(source_file, "src_path", None) or getattr(
+		source_file, "src_uri", None
+	)
+	if not src:
+		return None
+	src = str(src).replace("\\", "/")
+	base = src.rsplit("/", 1)[0] if "/" in src else ""
+	target = os.path.normpath(os.path.join(base, rel_url)).replace("\\", "/")
+	# Try Files.get_file_from_path when available
+	getter = getattr(files, "get_file_from_path", None)
+	if callable(getter):
+		found = getter(target)
+		if found is not None and getattr(found, "url", None):
+			return str(found.url)
+	# Fallback: linear scan
+	try:
+		iterable = list(files)
+	except TypeError:
+		iterable = []
+		doc_pages = getattr(files, "documentation_pages", None)
+		if callable(doc_pages):
+			iterable = list(doc_pages())
+	for f in iterable:
+		fpath = getattr(f, "src_path", None) or getattr(f, "src_uri", "")
+		if str(fpath).replace("\\", "/") == target and getattr(f, "url", None):
+			return str(f.url)
+	return None
+
+
+def _rewrite_html_urls(
+	raw_html: str,
+	page_url: str,
+	site_base: str,
+	*,
+	source_file: Any | None = None,
+	files: Any | None = None,
+) -> str:
 	"""Rewrite relative ``href`` / ``src`` values in an HTML fragment."""
 
 	def repl(match: re.Match[str]) -> str:
 		attr = match.group("attr")
 		quote = match.group("quote")
 		url = match.group("url")
-		return (
-			f"{attr}={quote}"
-			f"{html.escape(_rewrite_url(url, page_url, site_base), quote=True)}"
-			f"{quote}"
+		rewritten = _rewrite_url(
+			url,
+			page_url,
+			site_base,
+			source_file=source_file,
+			files=files,
 		)
+		return f"{attr}={quote}{html.escape(rewritten, quote=True)}{quote}"
 
 	return re.sub(
 		r'(?P<attr>href|src)=(?P<quote>["\'])(?P<url>.*?)(?P=quote)',
@@ -502,6 +647,8 @@ def excerpt_html(
 	md: Any | None = None,
 	markdown_extensions: Any = None,
 	mdx_configs: dict[str, Any] | None = None,
+	source_file: Any | None = None,
+	files: Any | None = None,
 ) -> str:
 	"""Build a sanitized rich HTML excerpt from section markdown.
 
@@ -514,8 +661,25 @@ def excerpt_html(
 	else:
 		converter.reset()
 	raw = converter.convert(section_md)
-	raw = _rewrite_html_urls(raw, page_url, site_base)
+	raw = _rewrite_html_urls(
+		raw,
+		page_url,
+		site_base,
+		source_file=source_file,
+		files=files,
+	)
 	return sanitize_preview_html(raw)
+
+
+def decode_fragment(fragment: str) -> str:
+	"""Normalize a URL fragment to decoded Unicode (no leading ``#``)."""
+	frag = (fragment or "").lstrip("#")
+	if not frag:
+		return ""
+	try:
+		return unquote(frag)
+	except (ValueError, TypeError):
+		return frag
 
 
 class PreviewBuilder:
@@ -528,6 +692,9 @@ class PreviewBuilder:
 		site_base: str = "/",
 		markdown_extensions: Any = None,
 		mdx_configs: dict[str, Any] | None = None,
+		extra_src_paths: set[str] | None = None,
+		index_src_paths: set[str] | None = None,
+		graph_src_paths: set[str] | None = None,
 	):
 		self.config = preview_config
 		self.site_base = site_base if site_base.endswith("/") else site_base + "/"
@@ -537,6 +704,10 @@ class PreviewBuilder:
 		self.scope = preview_config.get("scope", "linked_only")
 		self.data: dict[str, dict[str, Any]] = {}
 		self._md = create_preview_markdown(markdown_extensions, mdx_configs)
+		self.extra_src_paths = set(extra_src_paths or ())
+		self.index_src_paths = set(index_src_paths or ())
+		self.graph_src_paths = set(graph_src_paths or ())
+		self._files: Files | None = None
 
 	def _normalize_page_url(self, page_url: str) -> str:
 		"""Canonicalize MkDocs ``file.url`` for JSON keys.
@@ -553,52 +724,59 @@ class PreviewBuilder:
 
 	def _page_key(self, page_url: str, fragment: str = "") -> str:
 		url = self._normalize_page_url(page_url)
-		if fragment:
-			return f"{url}#{fragment}" if url else f"#{fragment}"
+		frag = decode_fragment(fragment)
+		if frag:
+			return f"{url}#{frag}" if url else f"#{frag}"
 		return url
 
-	def _html(self, section_md: str, page_url: str) -> str:
+	def _html(self, section_md: str, page_url: str, source_file: Any = None) -> str:
 		return excerpt_html(
 			section_md,
 			page_url,
 			self.site_base,
 			md=self._md,
+			source_file=source_file,
+			files=self._files,
 		)
 
 	def __call__(self, files: Files) -> dict[str, dict[str, Any]]:
 		"""Scan files and return the preview mapping."""
 		logger.info("Building link previews...")
+		self._files = files
 		docs = [f for f in files.documentation_pages() if f.page]
 		known = {f.src_path for f in docs}
 		src_to_file = {f.src_path: f for f in docs}
 
-		# Collect which pages (and fragments) are linked-to when scoped.
 		linked: set[str] = set()
 		linked_fragments: set[tuple[str, str]] = set()
+
+		def _collect_from_file(f) -> None:
+			try:
+				text = Path(f.abs_src_path).read_text(encoding="utf-8")
+			except OSError:
+				return
+			for target_src, frag in find_link_targets(text, f.src_path, known):
+				linked.add(target_src)
+				decoded = decode_fragment(frag)
+				if decoded:
+					linked_fragments.add((target_src, decoded))
+
 		if self.scope == "linked_only":
 			for f in docs:
-				try:
-					text = Path(f.abs_src_path).read_text(encoding="utf-8")
-				except OSError:
-					continue
-				for target_src, frag in find_link_targets(text, f.src_path, known):
-					linked.add(target_src)
-					if frag:
-						linked_fragments.add((target_src, frag))
+				_collect_from_file(f)
+			# Expand: recent notes, notes-index out-links, soft graph nodes
+			linked |= {p for p in self.extra_src_paths if p in known}
+			for idx_src in self.index_src_paths:
+				idx_file = src_to_file.get(idx_src)
+				if idx_file is not None:
+					_collect_from_file(idx_file)
+			linked |= {p for p in self.graph_src_paths if p in known}
 			targets = [src_to_file[s] for s in linked if s in src_to_file]
 		else:
 			targets = docs
-			linked_fragments = set()
-			# Still collect fragments referenced for include_fragments
 			if self.include_fragments:
 				for f in docs:
-					try:
-						text = Path(f.abs_src_path).read_text(encoding="utf-8")
-					except OSError:
-						continue
-					for target_src, frag in find_link_targets(text, f.src_path, known):
-						if frag:
-							linked_fragments.add((target_src, frag))
+					_collect_from_file(f)
 
 		for f in targets:
 			self._add_page(f, linked_fragments)
@@ -628,7 +806,13 @@ class PreviewBuilder:
 		if not isinstance(preview_image, str):
 			preview_image = None
 		elif preview_image:
-			preview_image = _rewrite_url(preview_image, page_url, self.site_base)
+			preview_image = _rewrite_url(
+				preview_image,
+				page_url,
+				self.site_base,
+				source_file=f,
+				files=self._files,
+			)
 
 		entry: dict[str, Any] = {
 			"title": title,
@@ -637,43 +821,46 @@ class PreviewBuilder:
 		if preview_image:
 			entry["image"] = preview_image
 
-		# Page-level entry (summary mode and excerpt fallback)
 		key = self._page_key(page_url)
 		page_entry = dict(entry)
 
 		if self.mode == "excerpt":
-			sections = _split_sections(body)
-			# Lead / whole-page excerpt
-			lead_md = next((s[2] for s in sections if not s[0]), body)
+			sections_list = _split_sections(body)
+			lead_md = next((s[2] for s in sections_list if not s[0]), body)
 			page_entry["excerpt"] = excerpt_plain(lead_md, self.max_chars)
-			page_entry["html"] = self._html(lead_md, page_url)
+			page_entry["html"] = self._html(lead_md, page_url, source_file=f)
 
 		self.data[key] = page_entry
 
 		if not self.include_fragments or self.mode != "excerpt":
-			# Still emit fragment keys with page summary if fragments requested
-			# in summary mode for lookup convenience? Issue: fragment-aware only
-			# in excerpt mode. Skip unless excerpt.
 			return
 
 		sections = {sid: (text, md) for sid, text, md in _split_sections(body) if sid}
-		# Emit all sections when scope=all; when linked_only only linked frags
-		frag_ids: set[str]
 		if self.scope == "linked_only":
-			frag_ids = {frag for src, frag in linked_fragments if src == f.src_path}
+			frag_ids = {
+				decode_fragment(frag)
+				for src, frag in linked_fragments
+				if src == f.src_path
+			}
 		else:
 			frag_ids = set(sections.keys())
 
 		for frag in frag_ids:
-			if frag not in sections:
+			if not frag or frag not in sections:
 				continue
-			heading_text, section_md = sections[frag]
+			heading_text, section_md = resolve_section_markdown(sections, frag)
+			plain = excerpt_plain(section_md, self.max_chars)
+			html_body = self._html(section_md, page_url, source_file=f)
 			frag_entry: dict[str, Any] = {
 				"title": f"{title} · {heading_text}",
-				"summary": excerpt_plain(section_md, self.max_chars) or summary,
-				"excerpt": excerpt_plain(section_md, self.max_chars),
-				"html": self._html(section_md, page_url),
+				"summary": plain or summary,
+				"excerpt": plain,
+				"html": html_body,
 			}
+			# Avoid misleading page summary when excerpt/html are empty
+			if not plain and not (html_body or "").strip():
+				frag_entry["summary"] = ""
+				frag_entry["excerpt"] = ""
 			if preview_image:
 				frag_entry["image"] = preview_image
 			self.data[self._page_key(page_url, frag)] = frag_entry

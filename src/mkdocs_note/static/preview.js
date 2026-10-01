@@ -94,6 +94,15 @@
     STATE.hideTimer = setTimeout(hideCard, 120);
   }
 
+  function safeDecode(value) {
+    if (!value) return value;
+    try {
+      return decodeURIComponent(value);
+    } catch (_) {
+      return value;
+    }
+  }
+
   function normalizeLookupKey(href) {
     try {
       const url = new URL(href, window.location.href);
@@ -104,7 +113,8 @@
       if (base !== "/" && (path === base.slice(0, -1) || path.startsWith(base))) {
         path = path === base.slice(0, -1) ? "/" : path.slice(base.length - 1);
       }
-      // path is now like "/", "/usage/config/", or "/usage/config"
+      // Decode percent-encoded path segments (CJK etc.)
+      path = safeDecode(path);
       let key = path.replace(/^\//, "");
       // Homepage / site root
       if (key === "" || key === "." || key === "./") {
@@ -113,7 +123,8 @@
         key += "/";
       }
       if (url.hash && url.hash.length > 1) {
-        key += url.hash; // includes #
+        const frag = safeDecode(url.hash.slice(1));
+        key += "#" + frag;
       }
       return key;
     } catch (_) {
@@ -124,6 +135,22 @@
   function pageKeyWithoutFragment(key) {
     const i = key.indexOf("#");
     return i === -1 ? key : key.slice(0, i);
+  }
+
+  function fragmentVariants(frag) {
+    // frag includes leading "#"
+    if (!frag) return [""];
+    const raw = frag.startsWith("#") ? frag.slice(1) : frag;
+    const decoded = safeDecode(raw);
+    let encoded = raw;
+    try {
+      encoded = encodeURIComponent(decoded);
+    } catch (_) {}
+    const out = new Set();
+    out.add("#" + decoded);
+    out.add("#" + encoded);
+    out.add("#" + raw);
+    return Array.from(out);
   }
 
   function candidateKeys(key) {
@@ -138,10 +165,16 @@
     } else {
       if (page.endsWith("/")) pages.add(page.slice(0, -1));
       else pages.add(page + "/");
+      // Also try decoded/encoded path forms
+      pages.add(safeDecode(page));
+      if (page.endsWith("/")) pages.add(safeDecode(page.slice(0, -1)) + "/");
     }
+    const frags = frag ? fragmentVariants(frag) : [""];
     const out = [];
     pages.forEach((p) => {
-      out.push(p + frag);
+      frags.forEach((f) => {
+        out.push(p + f);
+      });
       if (frag) out.push(p);
     });
     return out;
@@ -203,8 +236,10 @@
       bodyEl.innerHTML = entry.html;
     } else if (mode === "excerpt" && entry.excerpt) {
       bodyEl.textContent = entry.excerpt;
+    } else if (entry.summary) {
+      bodyEl.textContent = entry.summary;
     } else {
-      bodyEl.textContent = entry.summary || "";
+      bodyEl.textContent = "";
     }
 
     if (entry.image) {

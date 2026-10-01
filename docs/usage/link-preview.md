@@ -70,7 +70,18 @@ plugins:
 | `max_chars` | `200` | Truncation for plain-text summary / excerpt |
 | `include_fragments` | `true` | In `excerpt` mode, emit `#heading-id` keys |
 | `mobile` | `false` | Touch: first tap shows preview, second tap navigates |
-| `scope` | `linked_only` | Only pages that appear as link targets, or `all` documentation pages |
+| `scope` | `linked_only` | See [Scope](#scope) below; or `all` documentation pages |
+
+## Scope
+
+- `all` — every documentation page (minus `preview: false`).
+- `linked_only` (default) — union of:
+  1. Pages that appear as markdown/wiki link targets
+  2. Recent-notes list (`recent_notes_config`, first `insert_num` notes) when that feature is enabled
+  3. Out-links from notes index pages under `notes_root`
+  4. Soft: graph node page ids when the network graph is enabled and built
+
+Pure orphans (never linked, not recent, not in the graph) stay out of `previews.json`.
 
 ## Summary source
 
@@ -78,7 +89,7 @@ Priority for each page:
 
 1. Frontmatter `description`
 2. Frontmatter `summary`
-3. First prose paragraph of the body (markdown markers stripped)
+3. First prose paragraph of the body (markdown markers stripped; skips `!!!` / `???` / `===` admonition blocks)
 
 Per-note overrides:
 
@@ -93,9 +104,11 @@ preview: false                      # exclude this page from previews.json
 
 ## Excerpt mode
 
-With `mode: excerpt`, links that include a heading fragment (for example `./note.md#Section-One`) show that section’s leading content. Heading IDs follow the same slugify rules as Material / pymdownx (`slugify` with case preservation).
+With `mode: excerpt`, links that include a heading fragment (for example `./note.md#Section-One`) show that section’s leading content. Heading IDs follow the same slugify rules as Material / pymdownx (`slugify` with case preservation). Parent headings include nested subsections; CJK heading fragments are stored as decoded Unicode in `previews.json` (runtime still matches percent-encoded hrefs).
 
 Rich HTML in the card is produced with the site’s MkDocs/Material `markdown_extensions` (minus `toc` and `pymdownx.snippets`), then sanitized. Admonitions, details, tabbed content, keys, mark, and tables should closely match the main site; interactive mermaid/MathJax still won’t run inside the card.
+
+Relative images in excerpts are rewritten via MkDocs `Files` (with directory-URL / source-parent fallbacks). Use **absolute** `https://` / `//` / `data:` URLs for CDN or third-party images — preview will not invent site paths for them.
 
 ## Runtime behavior
 
