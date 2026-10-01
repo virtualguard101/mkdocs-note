@@ -1,0 +1,303 @@
+/* Same-site link hover preview — Material theme variables */
+
+.mkdocs-note-preview {
+  position: absolute;
+  z-index: 1000;
+  max-width: min(420px, calc(100vw - 24px));
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--md-default-fg-color) 18%, transparent));
+}
+
+.mkdocs-note-preview--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mkdocs-note-preview {
+    transition: none;
+    transform: none;
+  }
+}
+
+.mkdocs-note-preview__inner {
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  border: 1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.12));
+  border-radius: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.mkdocs-note-preview__media:not([hidden]) {
+  margin: -0.75rem -0.9rem 0.6rem;
+  overflow: hidden;
+  border-radius: 0.2rem 0.2rem 0 0;
+}
+
+.mkdocs-note-preview__cover {
+  display: block;
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+}
+
+.mkdocs-note-preview__title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--md-typeset-color);
+  margin-bottom: 0.35rem;
+}
+
+.mkdocs-note-preview__body {
+  color: var(--md-default-fg-color--light, var(--md-typeset-color));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mkdocs-note-preview__body--rich {
+  white-space: normal;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.mkdocs-note-preview__body--rich > :first-child {
+  margin-top: 0;
+}
+
+.mkdocs-note-preview__body--rich > :last-child {
+  margin-bottom: 0;
+}
+
+.mkdocs-note-preview__body--rich h1,
+.mkdocs-note-preview__body--rich h2,
+.mkdocs-note-preview__body--rich h3,
+.mkdocs-note-preview__body--rich h4,
+.mkdocs-note-preview__body--rich h5,
+.mkdocs-note-preview__body--rich h6 {
+  margin: 0.5em 0 0.25em;
+  font-size: 0.75rem;
+  color: var(--md-typeset-color);
+}
+
+.mkdocs-note-preview__body--rich p {
+  margin: 0.35em 0;
+}
+
+.mkdocs-note-preview__body--rich ul,
+.mkdocs-note-preview__body--rich ol {
+  margin: 0.35em 0;
+  padding-left: 1.2em;
+}
+
+.mkdocs-note-preview__body--rich pre {
+  margin: 0.4em 0;
+  padding: 0.4em 0.5em;
+  overflow: auto;
+  max-height: 120px;
+  background: var(--md-code-bg-color, rgba(0, 0, 0, 0.05));
+  border-radius: 0.1rem;
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__body--rich code {
+  font-family: var(--md-code-font, monospace);
+  font-size: 0.65rem;
+  word-break: break-word;
+}
+
+.mkdocs-note-preview__body--rich pre code {
+  word-break: normal;
+}
+
+.mkdocs-note-preview__body--rich table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__body--rich th,
+.mkdocs-note-preview__body--rich td {
+  border: 1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.12));
+  padding: 0.2em 0.35em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.mkdocs-note-preview__body--rich th {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--md-default-fg-color) 6%, transparent);
+}
+
+.mkdocs-note-preview__body--rich blockquote {
+  margin: 0.35em 0;
+  padding-left: 0.6em;
+  border-left: 2px solid var(--md-default-fg-color--lighter, rgba(0, 0, 0, 0.2));
+  opacity: 0.9;
+}
+
+.mkdocs-note-preview__body--rich img {
+  max-width: 100%;
+  height: auto;
+}
+
+.mkdocs-note-preview__body--rich a {
+  color: var(--md-typeset-a-color);
+}
+
+/* Material-aligned: admonitions */
+.mkdocs-note-preview__body--rich .admonition {
+  margin: 0.5em 0;
+  padding: 0.45em 0.6em;
+  border-left: 0.2rem solid var(--md-primary-fg-color, #4051b5);
+  border-radius: 0.1rem;
+  background: color-mix(in srgb, var(--md-default-fg-color) 5%, transparent);
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__body--rich .admonition-title {
+  margin: 0 0 0.25em;
+  font-weight: 700;
+}
+
+.mkdocs-note-preview__body--rich .admonition.note,
+.mkdocs-note-preview__body--rich .admonition.info {
+  border-left-color: var(--md-typeset-a-color, #448aff);
+}
+
+.mkdocs-note-preview__body--rich .admonition.tip,
+.mkdocs-note-preview__body--rich .admonition.hint {
+  border-left-color: #00bfa5;
+}
+
+.mkdocs-note-preview__body--rich .admonition.warning,
+.mkdocs-note-preview__body--rich .admonition.caution {
+  border-left-color: #ff9100;
+}
+
+.mkdocs-note-preview__body--rich .admonition.danger,
+.mkdocs-note-preview__body--rich .admonition.bug,
+.mkdocs-note-preview__body--rich .admonition.failure,
+.mkdocs-note-preview__body--rich .admonition.error {
+  border-left-color: #ff1744;
+}
+
+.mkdocs-note-preview__body--rich .admonition.success,
+.mkdocs-note-preview__body--rich .admonition.example {
+  border-left-color: #00c853;
+}
+
+.mkdocs-note-preview__body--rich .admonition.quote,
+.mkdocs-note-preview__body--rich .admonition.cite {
+  border-left-color: #9e9e9e;
+}
+
+/* Material-aligned: details / collapsible */
+.mkdocs-note-preview__body--rich details {
+  margin: 0.45em 0;
+  padding: 0.35em 0.55em;
+  border-left: 0.2rem solid var(--md-primary-fg-color, #4051b5);
+  background: color-mix(in srgb, var(--md-default-fg-color) 5%, transparent);
+  border-radius: 0.1rem;
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__body--rich details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* Material-aligned: tabbed content (radio UI, compact) */
+.mkdocs-note-preview__body--rich .tabbed-set {
+  margin: 0.45em 0;
+  font-size: 0.65rem;
+}
+
+.mkdocs-note-preview__body--rich .tabbed-set > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mkdocs-note-preview__body--rich .tabbed-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15em;
+  margin-bottom: 0.35em;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.12));
+}
+
+.mkdocs-note-preview__body--rich .tabbed-labels > label {
+  padding: 0.2em 0.45em;
+  cursor: pointer;
+  opacity: 0.7;
+  border-bottom: 2px solid transparent;
+}
+
+.mkdocs-note-preview__body--rich .tabbed-content > .tabbed-block {
+  display: none;
+}
+
+.mkdocs-note-preview__body--rich .tabbed-set > input:first-child:checked ~ .tabbed-labels > label:first-child,
+.mkdocs-note-preview__body--rich .tabbed-set > input:nth-child(2):checked ~ .tabbed-labels > label:nth-child(2),
+.mkdocs-note-preview__body--rich .tabbed-set > input:nth-child(3):checked ~ .tabbed-labels > label:nth-child(3),
+.mkdocs-note-preview__body--rich .tabbed-set > input:nth-child(4):checked ~ .tabbed-labels > label:nth-child(4) {
+  opacity: 1;
+  border-bottom-color: var(--md-typeset-a-color, #448aff);
+}
+
+.mkdocs-note-preview__body--rich .tabbed-set > input:first-child:checked ~ .tabbed-content > .tabbed-block:first-child,
+.mkdocs-note-preview__body--rich .tabbed-set > input:nth-child(2):checked ~ .tabbed-content > .tabbed-block:nth-child(2),
+.mkdocs-note-preview__body--rich .tabbed-set > input:nth-child(3):checked ~ .tabbed-content > .tabbed-block:nth-child(3),
+.mkdocs-note-preview__body--rich .tabbed-set > input:nth-child(4):checked ~ .tabbed-content > .tabbed-block:nth-child(4) {
+  display: block;
+}
+
+/* Material-aligned: keys / mark / critic */
+.mkdocs-note-preview__body--rich .keys {
+  white-space: nowrap;
+}
+
+.mkdocs-note-preview__body--rich kbd {
+  display: inline-block;
+  padding: 0.05em 0.3em;
+  border: 1px solid var(--md-default-fg-color--lighter, rgba(0, 0, 0, 0.25));
+  border-radius: 0.15rem;
+  background: color-mix(in srgb, var(--md-default-fg-color) 8%, transparent);
+  font-family: var(--md-code-font, monospace);
+  font-size: 0.6rem;
+}
+
+.mkdocs-note-preview__body--rich mark {
+  background: color-mix(in srgb, #ffd54f 55%, transparent);
+  color: inherit;
+  padding: 0 0.15em;
+}
+
+.mkdocs-note-preview__body--rich ins {
+  color: #00c853;
+  text-decoration: none;
+}
+
+.mkdocs-note-preview__body--rich del {
+  opacity: 0.75;
+}
+
+.mkdocs-note-preview__body--rich .twemoji {
+  height: 1em;
+  vertical-align: -0.1em;
+  width: 1em;
+}
+
+/* Pygments / highlight: keep compact; theme provides colors when available */
+.mkdocs-note-preview__body--rich .highlight {
+  margin: 0.4em 0;
+  overflow: auto;
+  max-height: 140px;
+  font-size: 0.62rem;
+}
