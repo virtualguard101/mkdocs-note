@@ -1,6 +1,7 @@
 ---
 date: 2025-11-05 00:00:00
 title: Network Graph Visualization
+description: Interactive D3 network graph of note relationships with automatic markdown and wiki link detection.
 permalink: 
 publish: true
 ---

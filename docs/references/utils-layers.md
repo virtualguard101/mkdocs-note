@@ -21,6 +21,8 @@ Notion sync lives under `mkdocs_note.utils.notion` and is invoked only from the 
 
 ## ::: mkdocs_note.utils.meta
 
+## ::: mkdocs_note.utils.links
+
 ## ::: mkdocs_note.utils.scanner
 
 ## ::: mkdocs_note.utils.tree

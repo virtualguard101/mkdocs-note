@@ -1,6 +1,7 @@
 ---
 date: 2026-08-03 00:35:00
 title: Configuration Options
+description: Full reference for mkdocs-note plugin options including recent notes, graph, link preview, and Notion sync.
 permalink: 
 publish: true
 ---
@@ -22,6 +23,14 @@ plugins:
         enabled: false
         name: title
         debug: false
+      preview_config:
+        enabled: false
+        mode: summary
+        delay_ms: 300
+        max_chars: 200
+        include_fragments: true
+        mobile: false
+        scope: linked_only
       notion_sync:
         docs_dir: docs
         nav_file: docs/.nav.yml
@@ -58,6 +67,20 @@ plugins:
 | `graph_config.enabled` | `false` | Enable graph visualization |
 | `graph_config.name` | `title` | Node label: `title` or `file_name` |
 | `graph_config.debug` | `false` | Extra graph logging |
+
+## Same-site link preview
+
+See [Same-site Link Preview](link-preview.md).
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preview_config.enabled` | `false` | Enable hover/focus previews (full no-op when false) |
+| `preview_config.mode` | `summary` | `summary` or `excerpt` |
+| `preview_config.delay_ms` | `300` | Hover delay in milliseconds |
+| `preview_config.max_chars` | `200` | Plain-text truncation length |
+| `preview_config.include_fragments` | `true` | Emit `#heading` keys in excerpt mode |
+| `preview_config.mobile` | `false` | Touch preview strategy |
+| `preview_config.scope` | `linked_only` | `linked_only` or `all` |
 
 ## Notion sync
 

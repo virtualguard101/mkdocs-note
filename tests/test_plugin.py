@@ -40,6 +40,45 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		self.assertEqual(config.notes_root, "docs")
 		self.assertIsNotNone(config.recent_notes_config)
 		self.assertIsNotNone(config.graph_config)
+		self.assertIsNotNone(config.preview_config)
+		self.assertFalse(config.preview_config["enabled"])
+
+	def test_preview_disabled_skips_asset_registration(self):
+		"""When preview is disabled, on_config must not register preview assets."""
+		self.plugin.config.preview_config["enabled"] = False
+		config = {
+			"extra_javascript": [],
+			"extra_css": [],
+		}
+		with patch("mkdocs_note.plugin.add_static_resouces"):
+			result = self.plugin.on_config(config)  # type: ignore[arg-type]
+		self.assertNotIn("js/preview.js", result["extra_javascript"])
+		self.assertNotIn("css/preview.css", result["extra_css"])
+
+	def test_preview_enabled_registers_assets(self):
+		"""When preview is enabled, on_config registers preview JS/CSS."""
+		self.plugin.config.preview_config["enabled"] = True
+		config = {
+			"extra_javascript": [],
+			"extra_css": [],
+		}
+		with patch("mkdocs_note.plugin.add_static_resouces"):
+			result = self.plugin.on_config(config)  # type: ignore[arg-type]
+		self.assertIn("js/preview.js", result["extra_javascript"])
+		self.assertIn("css/preview.css", result["extra_css"])
+
+	def test_preview_disabled_skips_script_inject(self):
+		"""Disabled preview must not inject window.preview_options."""
+		self.plugin.config.preview_config["enabled"] = False
+		html = "<html><body>hi</body></html>"
+		config = MagicMock()
+		config.get.return_value = None
+		with patch(
+			"mkdocs_note.plugin.inject_graph_script",
+			side_effect=lambda **kw: kw["output"],
+		):
+			out = self.plugin.on_post_page(html, page=Mock(), config=config)
+		self.assertNotIn("preview_options", out)
 
 	def test_is_note_index_page(self):
 		"""Test is_note_index_page method."""

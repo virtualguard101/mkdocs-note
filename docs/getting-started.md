@@ -87,7 +87,12 @@ plugins:
         enabled: true
         name: "title"
         debug: false
+      preview_config:
+        enabled: true
+        mode: summary
 ```
+
+Enable [same-site link preview](usage/link-preview.md) only if you want hover cards on internal note links (disabled by default).
 
 ## Recent Notes Insertion
 

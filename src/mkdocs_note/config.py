@@ -45,6 +45,30 @@ class MkdocsNoteConfig(Config):
     - debug: Enable debug logging for graph generation
     """
 
+	preview_config = config_opt.Type(
+		dict,
+		default={
+			"enabled": False,
+			"mode": "summary",  # summary | excerpt
+			"delay_ms": 300,
+			"max_chars": 200,
+			"include_fragments": True,
+			"mobile": False,
+			"scope": "linked_only",  # linked_only | all
+		},
+	)
+	"""Configuration for same-site link hover previews.
+
+    Available options:
+    - enabled: Opt-in; when false the feature is a full no-op
+    - mode: ``summary`` (title + abstract) or ``excerpt`` (section body / HTML)
+    - delay_ms: Hover delay before showing the card
+    - max_chars: Truncation length for plain-text summaries / excerpts
+    - include_fragments: Emit ``#heading`` keys when mode is excerpt
+    - mobile: Enable touch preview strategy (default off)
+    - scope: ``linked_only`` (link targets only) or ``all`` pages
+    """
+
 	notion_sync = config_opt.Type(
 		dict,
 		default={

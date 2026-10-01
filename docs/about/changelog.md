@@ -12,6 +12,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.4.0 - 2026-10-01
+
+### Added
+
+- Same-site link hover preview ([#82](https://github.com/virtualguard101/mkdocs-note/issues/82)): opt-in `preview_config` builds `previews.json` and shows title/summary (or section excerpt) cards on internal article links.
+- Preview modes: `summary` and `excerpt` (fragment-aware; rich HTML aligned with site Material `markdown_extensions`, then sanitized; optional `preview_image`).
+- Runtime polish: hover delay, Esc dismiss, `prefers-reduced-motion`, optional mobile first-tap preview, LRU + `AbortController`, soft graph-neighbor prefetch when the network graph is enabled.
+- Shared `mkdocs_note.utils.links` for markdown/wiki link normalization (used by graph and preview).
+- User guide: [Same-site Link Preview](../usage/link-preview.md); API: [Link Preview Module](../references/preview-api.md).
+
+### Changed
+
+- Network graph link parsing delegates to `utils.links` (behavior-preserving refactor).
+- Architecture docs updated for preview hooks, assets, and dependency diagram.
+
 ## 3.3.1 - 2026-09-07
 
 ### Fixed

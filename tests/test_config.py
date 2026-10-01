@@ -35,6 +35,17 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 		self.assertEqual(self.config.graph_config["name"], "title")
 		self.assertFalse(self.config.graph_config["debug"])
 
+	def test_preview_config_default(self):
+		"""Test link preview configuration defaults."""
+		pc = self.config.preview_config
+		self.assertFalse(pc["enabled"])
+		self.assertEqual(pc["mode"], "summary")
+		self.assertEqual(pc["delay_ms"], 300)
+		self.assertEqual(pc["max_chars"], 200)
+		self.assertTrue(pc["include_fragments"])
+		self.assertFalse(pc["mobile"])
+		self.assertEqual(pc["scope"], "linked_only")
+
 	def test_config_attributes_exist(self):
 		"""Test that all required config attributes exist."""
 		required_attrs = [
@@ -42,6 +53,7 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 			"notes_root",
 			"recent_notes_config",
 			"graph_config",
+			"preview_config",
 			"notion_sync",
 		]
 
@@ -69,6 +81,24 @@ class TestMkdocsNoteConfig(unittest.TestCase):
 				key,
 				self.config.graph_config,
 				f"graph_config missing required key: {key}",
+			)
+
+	def test_preview_config_structure(self):
+		"""Test that preview config has all required keys."""
+		required_keys = [
+			"enabled",
+			"mode",
+			"delay_ms",
+			"max_chars",
+			"include_fragments",
+			"mobile",
+			"scope",
+		]
+		for key in required_keys:
+			self.assertIn(
+				key,
+				self.config.preview_config,
+				f"preview_config missing required key: {key}",
 			)
 
 	def test_notion_sync_defaults(self):

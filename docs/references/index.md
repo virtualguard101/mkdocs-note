@@ -23,6 +23,8 @@ According to the plugin's architecture, the main API of this project are divided
 
     - <a href="graph-api">Graph Visualization</a>
 
+    - <a href="preview-api">Link Preview</a>
+
 - Utils Layers
 
     - <a href="utils-layers">Utils Layers</a>
