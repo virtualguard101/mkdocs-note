@@ -179,7 +179,11 @@
 <span class=normal>863</span>
 <span class=normal>864</span>
 <span class=normal>865</span>
-<span class=normal>866</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span><span class=w> </span><span class=nc>PreviewBuilder</span><span class=p>:</span>
+<span class=normal>866</span>
+<span class=normal>867</span>
+<span class=normal>868</span>
+<span class=normal>869</span>
+<span class=normal>870</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span><span class=w> </span><span class=nc>PreviewBuilder</span><span class=p>:</span>
 <span class=w>	</span><span class=sd>&quot;&quot;&quot;Build ``previews.json`` payloads from documentation pages.&quot;&quot;&quot;</span>
 
 	<span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span>
@@ -209,10 +213,14 @@
 	<span class=k>def</span><span class=w> </span><span class=nf>_normalize_page_url</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>page_url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
 <span class=w>		</span><span class=sd>&quot;&quot;&quot;Canonicalize MkDocs ``file.url`` for JSON keys.</span>
 
-<span class=sd>		The site homepage is often ``&quot;&quot;``, ``&quot;.&quot;``, or ``&quot;./`` — normalize to</span>
-<span class=sd>		empty string so runtime lookups for ``/`` / site root resolve.</span>
+<span class=sd>		Percent-decodes path segments so keys match runtime decoded lookups</span>
+<span class=sd>		(CJK directories etc.). Homepage ``&quot;&quot;`` / ``.`` / ``./`` → empty string.</span>
 <span class=sd>		&quot;&quot;&quot;</span>
 		<span class=n>url</span> <span class=o>=</span> <span class=p>(</span><span class=n>page_url</span> <span class=ow>or</span> <span class=s2>&quot;&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=o>.</span><span class=n>lstrip</span><span class=p>(</span><span class=s2>&quot;/&quot;</span><span class=p>)</span>
+		<span class=k>try</span><span class=p>:</span>
+			<span class=n>url</span> <span class=o>=</span> <span class=n>unquote</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+		<span class=k>except</span> <span class=p>(</span><span class=ne>ValueError</span><span class=p>,</span> <span class=ne>TypeError</span><span class=p>):</span>
+			<span class=k>pass</span>
 		<span class=k>if</span> <span class=n>url</span> <span class=ow>in</span> <span class=p>{</span><span class=s2>&quot;&quot;</span><span class=p>,</span> <span class=s2>&quot;.&quot;</span><span class=p>,</span> <span class=s2>&quot;./&quot;</span><span class=p>}:</span>
 			<span class=k>return</span> <span class=s2>&quot;&quot;</span>
 		<span class=k>if</span> <span class=ow>not</span> <span class=n>url</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=s2>&quot;/&quot;</span><span class=p>)</span> <span class=ow>and</span> <span class=s2>&quot;.&quot;</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>url</span><span class=o>.</span><span class=n>rsplit</span><span class=p>(</span><span class=s2>&quot;/&quot;</span><span class=p>,</span> <span class=mi>1</span><span class=p>)[</span><span class=o>-</span><span class=mi>1</span><span class=p>]:</span>
@@ -361,11 +369,7 @@
 			<span class=k>if</span> <span class=n>preview_image</span><span class=p>:</span>
 				<span class=n>frag_entry</span><span class=p>[</span><span class=s2>&quot;image&quot;</span><span class=p>]</span> <span class=o>=</span> <span class=n>preview_image</span>
 			<span class=bp>self</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>_page_key</span><span class=p>(</span><span class=n>page_url</span><span class=p>,</span> <span class=n>frag</span><span class=p>)]</span> <span class=o>=</span> <span class=n>frag_entry</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=mkdocs_note.preview.PreviewBuilder.__call__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__call__</span><span class=p>(</span><span class=n>files</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.PreviewBuilder.__call__ class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Scan files and return the preview mapping.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>742</span>
-<span class=normal>743</span>
-<span class=normal>744</span>
-<span class=normal>745</span>
-<span class=normal>746</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=mkdocs_note.preview.PreviewBuilder.__call__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__call__</span><span class=p>(</span><span class=n>files</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.PreviewBuilder.__call__ class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Scan files and return the preview mapping.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>746</span>
 <span class=normal>747</span>
 <span class=normal>748</span>
 <span class=normal>749</span>
@@ -404,7 +408,11 @@
 <span class=normal>782</span>
 <span class=normal>783</span>
 <span class=normal>784</span>
-<span class=normal>785</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=fm>__call__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>files</span><span class=p>:</span> <span class=n>Files</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]]:</span>
+<span class=normal>785</span>
+<span class=normal>786</span>
+<span class=normal>787</span>
+<span class=normal>788</span>
+<span class=normal>789</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=fm>__call__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>files</span><span class=p>:</span> <span class=n>Files</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]]:</span>
 <span class=w>	</span><span class=sd>&quot;&quot;&quot;Scan files and return the preview mapping.&quot;&quot;&quot;</span>
 	<span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Building link previews...&quot;</span><span class=p>)</span>
 	<span class=bp>self</span><span class=o>.</span><span class=n>_files</span> <span class=o>=</span> <span class=n>files</span>
@@ -448,26 +456,26 @@
 
 	<span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Created </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>data</span><span class=p>)</span><span class=si>}</span><span class=s2> preview entries&quot;</span><span class=p>)</span>
 	<span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>data</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.add_preview_static_resources class="doc doc-heading"> <code class="highlight language-python"><span class=n>add_preview_static_resources</span><span class=p>(</span><span class=n>config</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.add_preview_static_resources class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Register preview JS/CSS on the MkDocs config (call only when enabled).</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>879</span>
-<span class=normal>880</span>
-<span class=normal>881</span>
-<span class=normal>882</span>
-<span class=normal>883</span>
-<span class=normal>884</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>add_preview_static_resources</span><span class=p>(</span><span class=n>config</span><span class=p>:</span> <span class=n>MkDocsConfig</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.add_preview_static_resources class="doc doc-heading"> <code class="highlight language-python"><span class=n>add_preview_static_resources</span><span class=p>(</span><span class=n>config</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.add_preview_static_resources class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Register preview JS/CSS on the MkDocs config (call only when enabled).</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>883</span>
+<span class=normal>884</span>
+<span class=normal>885</span>
+<span class=normal>886</span>
+<span class=normal>887</span>
+<span class=normal>888</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>add_preview_static_resources</span><span class=p>(</span><span class=n>config</span><span class=p>:</span> <span class=n>MkDocsConfig</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>	</span><span class=sd>&quot;&quot;&quot;Register preview JS/CSS on the MkDocs config (call only when enabled).&quot;&quot;&quot;</span>
 	<span class=k>if</span> <span class=s2>&quot;js/preview.js&quot;</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>config</span><span class=p>[</span><span class=s2>&quot;extra_javascript&quot;</span><span class=p>]:</span>
 		<span class=n>config</span><span class=p>[</span><span class=s2>&quot;extra_javascript&quot;</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>&quot;js/preview.js&quot;</span><span class=p>)</span>
 	<span class=k>if</span> <span class=s2>&quot;css/preview.css&quot;</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>config</span><span class=p>[</span><span class=s2>&quot;extra_css&quot;</span><span class=p>]:</span>
 		<span class=n>config</span><span class=p>[</span><span class=s2>&quot;extra_css&quot;</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>&quot;css/preview.css&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.copy_preview_static_assets class="doc doc-heading"> <code class="highlight language-python"><span class=n>copy_preview_static_assets</span><span class=p>(</span><span class=n>static_dir</span><span class=p>,</span> <span class=n>config</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.copy_preview_static_assets class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Copy preview.js / preview.css into the site directory.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>910</span>
-<span class=normal>911</span>
-<span class=normal>912</span>
-<span class=normal>913</span>
-<span class=normal>914</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.copy_preview_static_assets class="doc doc-heading"> <code class="highlight language-python"><span class=n>copy_preview_static_assets</span><span class=p>(</span><span class=n>static_dir</span><span class=p>,</span> <span class=n>config</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.copy_preview_static_assets class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Copy preview.js / preview.css into the site directory.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>914</span>
 <span class=normal>915</span>
 <span class=normal>916</span>
 <span class=normal>917</span>
-<span class=normal>918</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>copy_preview_static_assets</span><span class=p>(</span><span class=n>static_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>config</span><span class=p>:</span> <span class=n>MkDocsConfig</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+<span class=normal>918</span>
+<span class=normal>919</span>
+<span class=normal>920</span>
+<span class=normal>921</span>
+<span class=normal>922</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>copy_preview_static_assets</span><span class=p>(</span><span class=n>static_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>config</span><span class=p>:</span> <span class=n>MkDocsConfig</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>	</span><span class=sd>&quot;&quot;&quot;Copy preview.js / preview.css into the site directory.&quot;&quot;&quot;</span>
 	<span class=n>js_output_dir</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>path</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>config</span><span class=p>[</span><span class=s2>&quot;site_dir&quot;</span><span class=p>],</span> <span class=s2>&quot;js&quot;</span><span class=p>)</span>
 	<span class=n>os</span><span class=o>.</span><span class=n>makedirs</span><span class=p>(</span><span class=n>js_output_dir</span><span class=p>,</span> <span class=n>exist_ok</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
@@ -835,11 +843,7 @@
 				<span class=k>return</span> <span class=n>plain</span><span class=p>[:</span> <span class=n>max_chars</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>rstrip</span><span class=p>()</span> <span class=o>+</span> <span class=s2>&quot;…&quot;</span>
 			<span class=k>return</span> <span class=n>plain</span>
 	<span class=k>return</span> <span class=s2>&quot;&quot;</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.inject_preview_script class="doc doc-heading"> <code class="highlight language-python"><span class=n>inject_preview_script</span><span class=p>(</span><span class=n>output</span><span class=p>,</span> <span class=n>config</span><span class=p>,</span> <span class=n>preview_config</span><span class=p>,</span> <span class=o>*</span><span class=p>,</span> <span class=n>graph_enabled</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.inject_preview_script class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Inject <code>window.preview_options</code> before <code>&lt;/body&gt;</code>.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>887</span>
-<span class=normal>888</span>
-<span class=normal>889</span>
-<span class=normal>890</span>
-<span class=normal>891</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.inject_preview_script class="doc doc-heading"> <code class="highlight language-python"><span class=n>inject_preview_script</span><span class=p>(</span><span class=n>output</span><span class=p>,</span> <span class=n>config</span><span class=p>,</span> <span class=n>preview_config</span><span class=p>,</span> <span class=o>*</span><span class=p>,</span> <span class=n>graph_enabled</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.inject_preview_script class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Inject <code>window.preview_options</code> before <code>&lt;/body&gt;</code>.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>891</span>
 <span class=normal>892</span>
 <span class=normal>893</span>
 <span class=normal>894</span>
@@ -855,7 +859,11 @@
 <span class=normal>904</span>
 <span class=normal>905</span>
 <span class=normal>906</span>
-<span class=normal>907</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>inject_preview_script</span><span class=p>(</span>
+<span class=normal>907</span>
+<span class=normal>908</span>
+<span class=normal>909</span>
+<span class=normal>910</span>
+<span class=normal>911</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>inject_preview_script</span><span class=p>(</span>
 	<span class=n>output</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
 	<span class=n>config</span><span class=p>:</span> <span class=n>MkDocsConfig</span><span class=p>,</span>
 	<span class=n>preview_config</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span>
@@ -1037,17 +1045,17 @@
 	<span class=n>text</span> <span class=o>=</span> <span class=n>_MD_INLINE_CODE_RE</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s2>&quot;\1&quot;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>
 	<span class=n>text</span> <span class=o>=</span> <span class=n>_MD_HTML_TAG_RE</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=s2>&quot;&quot;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>
 	<span class=k>return</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s2>&quot;\s+&quot;</span><span class=p>,</span> <span class=s2>&quot; &quot;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.write_previews_file class="doc doc-heading"> <code class="highlight language-python"><span class=n>write_previews_file</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>config</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.write_previews_file class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Write <code>site/previews/previews.json</code>.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>921</span>
-<span class=normal>922</span>
-<span class=normal>923</span>
-<span class=normal>924</span>
-<span class=normal>925</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=mkdocs_note.preview.write_previews_file class="doc doc-heading"> <code class="highlight language-python"><span class=n>write_previews_file</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>config</span><span class=p>)</span></code> <a href=#mkdocs_note.preview.write_previews_file class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Write <code>site/previews/previews.json</code>.</p> <details class=quote> <summary>Source code in <code>src/mkdocs_note/preview.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>925</span>
 <span class=normal>926</span>
 <span class=normal>927</span>
 <span class=normal>928</span>
 <span class=normal>929</span>
 <span class=normal>930</span>
-<span class=normal>931</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>write_previews_file</span><span class=p>(</span>
+<span class=normal>931</span>
+<span class=normal>932</span>
+<span class=normal>933</span>
+<span class=normal>934</span>
+<span class=normal>935</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>write_previews_file</span><span class=p>(</span>
 	<span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]],</span>
 	<span class=n>config</span><span class=p>:</span> <span class=n>MkDocsConfig</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
