@@ -331,7 +331,7 @@ class PreviewBuilder:
 **Supporting Functions**:
 - `add_preview_static_resources()` / `copy_preview_static_assets()` / `inject_preview_script()` — only when `preview_config.enabled`
 - Summary: frontmatter `description`/`summary` → first prose paragraph (skips `!!!`/`???`/`===`)
-- Excerpt mode: hierarchical sections + fragment-aware plain text + sanitized HTML (`utils.links` + pymdownx slugify; Unicode fragment keys)
+- Excerpt mode: hierarchical sections + fragment-aware plain text + sanitized HTML (`utils.links` + pymdownx slugify; decoded Unicode path + fragment keys)
   - Rich HTML via site Material `markdown_extensions` (skip `toc` / `pymdownx.snippets`) then allow-list sanitize
   - Image URL rewrite: MkDocs `Files` → directory-URL parent → source-parent map; absolute CDN/`data:` unchanged
 

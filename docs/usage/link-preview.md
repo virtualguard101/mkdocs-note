@@ -104,7 +104,7 @@ preview: false                      # exclude this page from previews.json
 
 ## Excerpt mode
 
-With `mode: excerpt`, links that include a heading fragment (for example `./note.md#Section-One`) show that section’s leading content. Heading IDs follow the same slugify rules as Material / pymdownx (`slugify` with case preservation). Parent headings include nested subsections; CJK heading fragments are stored as decoded Unicode in `previews.json` (runtime still matches percent-encoded hrefs).
+With `mode: excerpt`, links that include a heading fragment (for example `./note.md#Section-One`) show that section’s leading content. Heading IDs follow the same slugify rules as Material / pymdownx (`slugify` with case preservation). Parent headings include nested subsections. Both **path** and **fragment** keys in `previews.json` use decoded Unicode (so CJK directories and headings match runtime `decodeURIComponent`); the client also tries percent-encoded path/fragment variants for mixed or older JSON.
 
 Rich HTML in the card is produced with the site’s MkDocs/Material `markdown_extensions` (minus `toc` and `pymdownx.snippets`), then sanitized. Admonitions, details, tabbed content, keys, mark, and tables should closely match the main site; interactive mermaid/MathJax still won’t run inside the card.
 
