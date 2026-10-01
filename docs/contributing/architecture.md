@@ -330,6 +330,8 @@ class PreviewBuilder:
 - `add_preview_static_resources()` / `copy_preview_static_assets()` / `inject_preview_script()` — only when `preview_config.enabled`
 - Summary: frontmatter `description`/`summary` → first prose paragraph
 - Excerpt mode: fragment-aware plain text + sanitized HTML (`utils.links` + pymdownx slugify)
+  - Rich HTML via site Material `markdown_extensions` (skip `toc` / `pymdownx.snippets`) then allow-list sanitize
+
 
 ### utils/links.py - Shared Link Normalization
 

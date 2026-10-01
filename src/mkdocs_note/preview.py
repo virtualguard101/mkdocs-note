@@ -192,54 +192,6 @@ def excerpt_plain(section_md: str, max_chars: int) -> str:
 	return text
 
 
-def _markdown_blocks_to_html(section_md: str, page_url: str, site_base: str) -> str:
-	"""Convert a limited subset of markdown to sanitized HTML."""
-	blocks: list[str] = []
-	lines = section_md.splitlines()
-	i = 0
-	while i < len(lines):
-		line = lines[i]
-		stripped = line.strip()
-		if not stripped:
-			i += 1
-			continue
-		if _FENCE_RE.match(stripped):
-			code_lines: list[str] = []
-			i += 1
-			while i < len(lines) and not _FENCE_RE.match(lines[i].strip()):
-				code_lines.append(lines[i])
-				i += 1
-			if i < len(lines):
-				i += 1  # closing fence
-			escaped = html.escape("\n".join(code_lines))
-			blocks.append(
-				f'<pre class="mkdocs-note-preview__pre"><code class="mkdocs-note-preview__code">'
-				f"{escaped}</code></pre>",
-			)
-			continue
-		hm = re.match(r"^(#{1,6})\s+(.+)$", stripped)
-		if hm:
-			level = len(hm.group(1))
-			inner = html.escape(strip_markdown_inline(hm.group(2)))
-			blocks.append(
-				f'<h{level} class="mkdocs-note-preview__heading">{inner}</h{level}>',
-			)
-			i += 1
-			continue
-		# Collect paragraph lines
-		para: list[str] = [stripped]
-		i += 1
-		while i < len(lines):
-			nxt = lines[i].strip()
-			if not nxt or nxt.startswith("#") or _FENCE_RE.match(nxt):
-				break
-			para.append(nxt)
-			i += 1
-		para_html = _inline_md_to_html(" ".join(para), page_url, site_base)
-		blocks.append(f'<p class="mkdocs-note-preview__p">{para_html}</p>')
-	return "\n".join(blocks)
-
-
 def _rewrite_url(url: str, page_url: str, site_base: str) -> str:
 	"""Rewrite relative asset URLs against the page and site base."""
 	if not url or url.startswith(("#", "mailto:", "data:", "javascript:")):
@@ -247,58 +199,157 @@ def _rewrite_url(url: str, page_url: str, site_base: str) -> str:
 	parsed = urlparse(url)
 	if parsed.scheme or parsed.netloc:
 		return url
-	# Absolute site path
 	if url.startswith("/"):
 		return urljoin(site_base, url.lstrip("/"))
 	page_dir = page_url if page_url.endswith("/") else page_url.rsplit("/", 1)[0] + "/"
 	return urljoin(urljoin(site_base, page_dir), url)
 
 
-_INLINE_IMG_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
-_INLINE_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+def _rewrite_html_urls(raw_html: str, page_url: str, site_base: str) -> str:
+	"""Rewrite relative ``href`` / ``src`` values in an HTML fragment."""
 
+	def repl(match: re.Match[str]) -> str:
+		attr = match.group("attr")
+		quote = match.group("quote")
+		url = match.group("url")
+		return (
+			f"{attr}={quote}"
+			f"{html.escape(_rewrite_url(url, page_url, site_base), quote=True)}"
+			f"{quote}"
+		)
 
-def _inline_md_to_html(text: str, page_url: str, site_base: str) -> str:
-	"""Escape text and convert a few inline constructs; images get rewritten src."""
-
-	def repl_img(m: re.Match[str]) -> str:
-		alt = html.escape(m.group(1))
-		src = html.escape(_rewrite_url(m.group(2).strip(), page_url, site_base))
-		return f'<img class="mkdocs-note-preview__img" alt="{alt}" src="{src}" loading="lazy"/>'
-
-	def repl_link(m: re.Match[str]) -> str:
-		label = html.escape(strip_markdown_inline(m.group(1)))
-		href = html.escape(_rewrite_url(m.group(2).strip(), page_url, site_base))
-		return f'<a class="mkdocs-note-preview__a" href="{href}">{label}</a>'
-
-	# Process images before links
-	pieces: list[str] = []
-	pos = 0
-	for m in _INLINE_IMG_RE.finditer(text):
-		pieces.append(html.escape(text[pos : m.start()]))
-		pieces.append(repl_img(m))
-		pos = m.end()
-	rest = text[pos:]
-	pos2 = 0
-	tmp: list[str] = []
-	for m in _INLINE_LINK_RE.finditer(rest):
-		tmp.append(html.escape(rest[pos2 : m.start()]))
-		tmp.append(repl_link(m))
-		pos2 = m.end()
-	tmp.append(html.escape(rest[pos2:]))
-	pieces.append("".join(tmp))
-	out = "".join(pieces)
-	# Bold / italic / code on already-escaped text using markers still present
-	out = re.sub(
-		r"`([^`]+)`",
-		r'<code class="mkdocs-note-preview__code">\1</code>',
-		out,
+	return re.sub(
+		r'(?P<attr>href|src)=(?P<quote>["\'])(?P<url>.*?)(?P=quote)',
+		repl,
+		raw_html,
+		flags=re.IGNORECASE,
 	)
-	return out
+
+
+# Extensions that are noisy or unsafe inside a hover card payload.
+_PREVIEW_SKIP_EXTENSIONS: frozenset[str] = frozenset(
+	{
+		"toc",
+		"pymdownx.snippets",
+	},
+)
+
+# Plugin-owned markdown extensions that cannot be reconstructed outside MkDocs page render.
+_PREVIEW_SKIP_PREFIXES: tuple[str, ...] = (
+	"mkdocstrings",
+	"Mkdocstrings",
+)
+
+_FALLBACK_EXTENSIONS: tuple[str, ...] = ("tables", "fenced_code", "sane_lists")
+
+
+def _normalize_extension_name(ext: Any) -> str | None:
+	"""Return a stable extension name string, or ``None`` if unknown."""
+	if isinstance(ext, str):
+		return ext
+	# Some loaders pass extension instances.
+	name = getattr(ext, "__name__", None) or getattr(type(ext), "__name__", None)
+	module = getattr(ext, "__module__", None) or getattr(type(ext), "__module__", None)
+	if module and name:
+		return f"{module}.{name}" if "." not in name else name
+	return str(name) if name else None
+
+
+def _is_preview_safe_extension(name: str) -> bool:
+	"""Return whether an extension name is safe to load for previews."""
+	if name in _PREVIEW_SKIP_EXTENSIONS:
+		return False
+	lower = name.lower()
+	return not any(
+		lower.startswith(p.lower()) or p.lower() in lower
+		for p in _PREVIEW_SKIP_PREFIXES
+	)
+
+
+def prepare_preview_markdown_config(
+	markdown_extensions: Any = None,
+	mdx_configs: dict[str, Any] | None = None,
+) -> tuple[list[str], dict[str, Any]]:
+	"""Filter site markdown extensions for hover-preview rendering.
+
+	Reuses the MkDocs/Material extension stack where practical, but drops
+	``toc`` (permalink clutter), ``pymdownx.snippets`` (arbitrary includes),
+	and plugin-only extensions such as mkdocstrings.
+	"""
+	raw_exts: list[Any] = list(markdown_extensions or [])
+	configs = dict(mdx_configs or {})
+	kept: list[str] = []
+	kept_names: set[str] = set()
+	for ext in raw_exts:
+		name = _normalize_extension_name(ext)
+		if name is None or not _is_preview_safe_extension(name):
+			if name:
+				configs.pop(name, None)
+			continue
+		kept.append(name)
+		kept_names.add(name)
+
+	if not kept:
+		kept = list(_FALLBACK_EXTENSIONS)
+		kept_names = set(kept)
+	else:
+		has_superfences = "pymdownx.superfences" in kept_names
+		for required in _FALLBACK_EXTENSIONS:
+			if required in kept_names:
+				continue
+			if required == "fenced_code" and has_superfences:
+				continue
+			kept.append(required)
+			kept_names.add(required)
+
+	configs = {k: v for k, v in configs.items() if k in kept_names}
+	return kept, configs
+
+
+def create_preview_markdown(
+	markdown_extensions: Any = None,
+	mdx_configs: dict[str, Any] | None = None,
+):
+	"""Create a Python-Markdown instance aligned with the site config.
+
+	Loads extensions incrementally so one broken/plugin-only extension cannot
+	force a full fallback to the basic set.
+	"""
+	import markdown
+
+	exts, configs = prepare_preview_markdown_config(markdown_extensions, mdx_configs)
+	working: list[str] = list(_FALLBACK_EXTENSIONS)
+	md = markdown.Markdown(extensions=working)
+
+	for ext in exts:
+		if ext in working:
+			continue
+		trial = [*working, ext]
+		trial_configs = {k: configs[k] for k in trial if k in configs}
+		try:
+			md = markdown.Markdown(extensions=trial, extension_configs=trial_configs)
+		except (
+			ImportError,
+			ValueError,
+			TypeError,
+			AttributeError,
+			KeyError,
+			OSError,
+		) as exc:
+			logger.debug("Skipping markdown extension %s for preview: %s", ext, exc)
+			continue
+		working = trial
+
+	if working != list(_FALLBACK_EXTENSIONS):
+		logger.info(
+			"Preview markdown extensions: %s",
+			", ".join(working),
+		)
+	return md
 
 
 class _PreviewHTMLSanitizer(HTMLParser):
-	"""Whitelist sanitizer for preview HTML snippets."""
+	"""Whitelist sanitizer for preview HTML snippets (Material-friendly)."""
 
 	ALLOWED: ClassVar[set[str]] = {
 		"h1",
@@ -313,48 +364,119 @@ class _PreviewHTMLSanitizer(HTMLParser):
 		"a",
 		"img",
 		"br",
+		"hr",
+		"ul",
+		"ol",
+		"li",
+		"strong",
+		"em",
+		"b",
+		"i",
+		"blockquote",
+		"table",
+		"thead",
+		"tbody",
+		"tr",
+		"th",
+		"td",
+		"div",
+		"span",
+		"details",
+		"summary",
+		"kbd",
+		"mark",
+		"ins",
+		"del",
+		"sub",
+		"sup",
+		"abbr",
+		"input",
+		"label",
 	}
+	# Attributes allowed on any permitted tag (Material relies heavily on class).
+	_GLOBAL_ATTRS: ClassVar[set[str]] = {"class", "id", "title"}
 	ALLOWED_ATTRS: ClassVar[dict[str, set[str]]] = {
-		"a": {"href", "class"},
-		"img": {"src", "alt", "class", "loading"},
-		"h1": {"class"},
-		"h2": {"class"},
-		"h3": {"class"},
-		"h4": {"class"},
-		"h5": {"class"},
-		"h6": {"class"},
-		"p": {"class"},
-		"pre": {"class"},
-		"code": {"class"},
+		"a": {"href", "rel", "target"},
+		"img": {"src", "alt", "loading", "width", "height"},
+		"th": {"align", "colspan", "rowspan"},
+		"td": {"align", "colspan", "rowspan"},
+		"input": {"type", "name", "checked"},
+		"label": {"for"},
+		"div": {"data-tabs"},
+		"abbr": {},
+		"details": {"open"},
 	}
+	_SKIP_CONTENT: ClassVar[set[str]] = {"script", "style", "iframe", "object", "embed"}
+	_VOID: ClassVar[set[str]] = {"br", "img", "hr", "input"}
 
 	def __init__(self) -> None:
 		super().__init__(convert_charrefs=True)
 		self._out: list[str] = []
+		self._skip_depth = 0
+
+	def _allowed_attrs_for(self, tag: str) -> set[str]:
+		return self._GLOBAL_ATTRS | self.ALLOWED_ATTRS.get(tag, set())
 
 	def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-		if tag not in self.ALLOWED:
+		if tag in self._SKIP_CONTENT:
+			self._skip_depth += 1
 			return
-		allowed = self.ALLOWED_ATTRS.get(tag, set())
+		if self._skip_depth or tag not in self.ALLOWED:
+			return
+		# Only radio inputs (Material tabbed sets); drop other input types.
+		if tag == "input":
+			attr_map = {k: v for k, v in attrs}
+			if attr_map.get("type", "").lower() not in {"radio", "checkbox"}:
+				return
+		allowed = self._allowed_attrs_for(tag)
 		parts = [tag]
 		for k, v in attrs:
-			if k in allowed and v is not None:
-				if k in ("href", "src") and v.strip().lower().startswith("javascript:"):
-					continue
+			if k.startswith("data-") and k in allowed:
+				pass
+			elif k not in allowed:
+				# Allow data-* on tab containers only when listed; skip others.
+				continue
+			if (
+				k in ("href", "src")
+				and v is not None
+				and v.strip()
+				.lower()
+				.startswith(
+					"javascript:",
+				)
+			):
+				continue
+			if v is None:
+				parts.append(k)
+			else:
 				parts.append(f'{k}="{html.escape(v, quote=True)}"')
 		self._out.append("<" + " ".join(parts) + ">")
 
 	def handle_endtag(self, tag: str) -> None:
-		if tag in self.ALLOWED and tag not in ("br", "img"):
+		if tag in self._SKIP_CONTENT and self._skip_depth:
+			self._skip_depth -= 1
+			return
+		if self._skip_depth:
+			return
+		if tag in self.ALLOWED and tag not in self._VOID:
 			self._out.append(f"</{tag}>")
 
+	def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+		self.handle_starttag(tag, attrs)
+
 	def handle_data(self, data: str) -> None:
+		if self._skip_depth:
+			return
 		self._out.append(html.escape(data))
 
 	def handle_entityref(self, name: str) -> None:
+		if self._skip_depth:
+			return
 		self._out.append(f"&{name};")
 
 	def handle_charref(self, name: str) -> None:
+		if self._skip_depth:
+			return
 		self._out.append(f"&#{name};")
 
 	def result(self) -> str:
@@ -372,16 +494,41 @@ def sanitize_preview_html(raw: str) -> str:
 	return parser.result()
 
 
-def excerpt_html(section_md: str, page_url: str, site_base: str) -> str:
-	"""Build a sanitized rich HTML excerpt from section markdown."""
-	raw = _markdown_blocks_to_html(section_md, page_url, site_base)
+def excerpt_html(
+	section_md: str,
+	page_url: str,
+	site_base: str,
+	*,
+	md: Any | None = None,
+	markdown_extensions: Any = None,
+	mdx_configs: dict[str, Any] | None = None,
+) -> str:
+	"""Build a sanitized rich HTML excerpt from section markdown.
+
+	When ``md`` or site extension config is provided, rendering follows the
+	MkDocs/Material markdown stack (minus unsafe/noisy extensions).
+	"""
+	converter = md
+	if converter is None:
+		converter = create_preview_markdown(markdown_extensions, mdx_configs)
+	else:
+		converter.reset()
+	raw = converter.convert(section_md)
+	raw = _rewrite_html_urls(raw, page_url, site_base)
 	return sanitize_preview_html(raw)
 
 
 class PreviewBuilder:
 	"""Build ``previews.json`` payloads from documentation pages."""
 
-	def __init__(self, preview_config: dict[str, Any], *, site_base: str = "/"):
+	def __init__(
+		self,
+		preview_config: dict[str, Any],
+		*,
+		site_base: str = "/",
+		markdown_extensions: Any = None,
+		mdx_configs: dict[str, Any] | None = None,
+	):
 		self.config = preview_config
 		self.site_base = site_base if site_base.endswith("/") else site_base + "/"
 		self.mode = preview_config.get("mode", "summary")
@@ -389,12 +536,34 @@ class PreviewBuilder:
 		self.include_fragments = bool(preview_config.get("include_fragments", True))
 		self.scope = preview_config.get("scope", "linked_only")
 		self.data: dict[str, dict[str, Any]] = {}
+		self._md = create_preview_markdown(markdown_extensions, mdx_configs)
+
+	def _normalize_page_url(self, page_url: str) -> str:
+		"""Canonicalize MkDocs ``file.url`` for JSON keys.
+
+		The site homepage is often ``""``, ``"."``, or ``"./`` — normalize to
+		empty string so runtime lookups for ``/`` / site root resolve.
+		"""
+		url = (page_url or "").strip().lstrip("/")
+		if url in {"", ".", "./"}:
+			return ""
+		if not url.endswith("/") and "." not in url.rsplit("/", 1)[-1]:
+			url += "/"
+		return url
 
 	def _page_key(self, page_url: str, fragment: str = "") -> str:
-		url = page_url.lstrip("/")
+		url = self._normalize_page_url(page_url)
 		if fragment:
-			return f"{url}#{fragment}"
+			return f"{url}#{fragment}" if url else f"#{fragment}"
 		return url
+
+	def _html(self, section_md: str, page_url: str) -> str:
+		return excerpt_html(
+			section_md,
+			page_url,
+			self.site_base,
+			md=self._md,
+		)
 
 	def __call__(self, files: Files) -> dict[str, dict[str, Any]]:
 		"""Scan files and return the preview mapping."""
@@ -477,7 +646,7 @@ class PreviewBuilder:
 			# Lead / whole-page excerpt
 			lead_md = next((s[2] for s in sections if not s[0]), body)
 			page_entry["excerpt"] = excerpt_plain(lead_md, self.max_chars)
-			page_entry["html"] = excerpt_html(lead_md, page_url, self.site_base)
+			page_entry["html"] = self._html(lead_md, page_url)
 
 		self.data[key] = page_entry
 
@@ -503,7 +672,7 @@ class PreviewBuilder:
 				"title": f"{title} · {heading_text}",
 				"summary": excerpt_plain(section_md, self.max_chars) or summary,
 				"excerpt": excerpt_plain(section_md, self.max_chars),
-				"html": excerpt_html(section_md, page_url, self.site_base),
+				"html": self._html(section_md, page_url),
 			}
 			if preview_image:
 				frag_entry["image"] = preview_image

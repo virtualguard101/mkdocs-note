@@ -68,14 +68,23 @@ class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
 		if self.config.preview_config.get("enabled", False):
 			from urllib.parse import urlparse
 
-			site_url = config.get("site_url") if isinstance(config, dict) else None
+			site_url = config.get("site_url") if hasattr(config, "get") else None
 			if site_url:
 				base = urlparse(site_url).path
 				if not base.endswith("/"):
 					base += "/"
 			else:
 				base = "/"
-			self._preview = PreviewBuilder(self.config.preview_config, site_base=base)
+			self._preview = PreviewBuilder(
+				self.config.preview_config,
+				site_base=base,
+				markdown_extensions=config.get("markdown_extensions")
+				if hasattr(config, "get")
+				else None,
+				mdx_configs=config.get("mdx_configs")
+				if hasattr(config, "get")
+				else None,
+			)
 
 	def on_nav(
 		self,

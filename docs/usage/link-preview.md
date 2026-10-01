@@ -19,8 +19,20 @@ This documentation site has `preview_config` enabled. Hover (or focus) these int
 - Page summary: [Network Graph Visualization](network-graph.md)
 - Page summary: [Recent Notes Insertion](recent-notes.md)
 - Page summary: [Configuration Options](config.md)
+- Page with admonitions: [Welcome](../index.md)
+
 - Fragment excerpt: [Network Graph — Overview](network-graph.md#Overview)
 - Fragment excerpt: [Network Graph — Basic Setup](network-graph.md#Basic-Setup)
+
+### Material syntax smoke check
+
+The card below is what you should see when hovering a page that uses Material constructs (this section itself uses them so you can compare with the live page):
+
+!!! tip "Preview tip"
+    Admonitions, ++ctrl+k++, and ==highlighted== text should render in the hover card similarly to this page.
+
+??? note "Collapsible details"
+    Nested details content stays readable in the preview.
 
 External links (no preview): [Material Instant Previews](https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#instant-previews)
 
@@ -83,7 +95,7 @@ preview: false                      # exclude this page from previews.json
 
 With `mode: excerpt`, links that include a heading fragment (for example `./note.md#Section-One`) show that section’s leading content. Heading IDs follow the same slugify rules as Material / pymdownx (`slugify` with case preservation).
 
-Rich HTML in the card is limited to headings, paragraphs, and code blocks (sanitized; no scripts), with a max height and scroll.
+Rich HTML in the card is produced with the site’s MkDocs/Material `markdown_extensions` (minus `toc` and `pymdownx.snippets`), then sanitized. Admonitions, details, tabbed content, keys, mark, and tables should closely match the main site; interactive mermaid/MathJax still won’t run inside the card.
 
 ## Runtime behavior
 

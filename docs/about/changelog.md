@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Same-site link hover preview ([#82](https://github.com/virtualguard101/mkdocs-note/issues/82)): opt-in `preview_config` builds `previews.json` and shows title/summary (or section excerpt) cards on internal article links.
-- Preview modes: `summary` and `excerpt` (fragment-aware, sanitized HTML snippets, optional `preview_image`).
+- Preview modes: `summary` and `excerpt` (fragment-aware; rich HTML aligned with site Material `markdown_extensions`, then sanitized; optional `preview_image`).
 - Runtime polish: hover delay, Esc dismiss, `prefers-reduced-motion`, optional mobile first-tap preview, LRU + `AbortController`, soft graph-neighbor prefetch when the network graph is enabled.
 - Shared `mkdocs_note.utils.links` for markdown/wiki link normalization (used by graph and preview).
 - User guide: [Same-site Link Preview](../usage/link-preview.md); API: [Link Preview Module](../references/preview-api.md).

@@ -100,16 +100,16 @@
       if (url.origin !== window.location.origin) return null;
       let path = url.pathname;
       const base = basePath();
-      if (base !== "/" && path.startsWith(base)) {
-        path = path.slice(base.length - 1);
+      // Strip site base_path prefix (e.g. /mkdocs-note/)
+      if (base !== "/" && (path === base.slice(0, -1) || path.startsWith(base))) {
+        path = path === base.slice(0, -1) ? "/" : path.slice(base.length - 1);
       }
-      // strip leading slash for JSON keys that omit it inconsistently
+      // path is now like "/", "/usage/config/", or "/usage/config"
       let key = path.replace(/^\//, "");
-      if (!key.endsWith("/") && !key.includes(".")) {
-        key += "/";
-      }
-      // directory URLs: ensure trailing slash to match MkDocs file.url
-      if (key && !key.endsWith("/") && !/\.[a-z0-9]+$/i.test(key)) {
+      // Homepage / site root
+      if (key === "" || key === "." || key === "./") {
+        key = "";
+      } else if (!key.endsWith("/") && !/\.[a-z0-9]+$/i.test(key)) {
         key += "/";
       }
       if (url.hash && url.hash.length > 1) {
@@ -124,6 +124,27 @@
   function pageKeyWithoutFragment(key) {
     const i = key.indexOf("#");
     return i === -1 ? key : key.slice(0, i);
+  }
+
+  function candidateKeys(key) {
+    const page = pageKeyWithoutFragment(key);
+    const frag = key.includes("#") ? key.slice(key.indexOf("#")) : "";
+    const pages = new Set([page]);
+    if (page === "") {
+      pages.add("./");
+      pages.add(".");
+      pages.add("index/");
+      pages.add("index.html");
+    } else {
+      if (page.endsWith("/")) pages.add(page.slice(0, -1));
+      else pages.add(page + "/");
+    }
+    const out = [];
+    pages.forEach((p) => {
+      out.push(p + frag);
+      if (frag) out.push(p);
+    });
+    return out;
   }
 
   async function loadPreviews() {
@@ -152,20 +173,16 @@
   }
 
   function lookupEntry(data, key) {
-    if (!data || !key) return null;
+    // key may be "" for the site homepage — do not treat as missing
+    if (!data || key === null || key === undefined) return null;
     const cached = cacheGet(key);
     if (cached !== undefined) return cached;
 
-    let entry = data[key] || null;
-    if (!entry && key.includes("#")) {
-      entry = data[pageKeyWithoutFragment(key)] || null;
-    }
-    // try without trailing slash variants
-    if (!entry) {
-      const alt = key.endsWith("/") ? key.slice(0, -1) : key + "/";
-      entry = data[alt] || null;
-      if (!entry && alt.includes("#")) {
-        entry = data[pageKeyWithoutFragment(alt)] || null;
+    let entry = null;
+    for (const candidate of candidateKeys(key)) {
+      if (Object.prototype.hasOwnProperty.call(data, candidate)) {
+        entry = data[candidate];
+        break;
       }
     }
     cacheSet(key, entry);
@@ -235,7 +252,8 @@
 
   async function showForAnchor(anchor) {
     const key = normalizeLookupKey(anchor.getAttribute("href") || "");
-    if (!key) return;
+    // Homepage key is "" — only skip when normalization failed (null)
+    if (key === null || key === undefined) return;
     STATE.activeAnchor = anchor;
     const data = await loadPreviews();
     if (STATE.activeAnchor !== anchor) return;

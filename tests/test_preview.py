@@ -63,18 +63,74 @@ class TestSlugifyAndExcerpt(unittest.TestCase):
 		self.assertIn("code_here", ex)
 
 	def test_excerpt_html_sanitized(self):
-		html = excerpt_html("Hello **x**\n\n```\nalert(1)\n```\n", "p/", "/")
-		self.assertIn("mkdocs-note-preview__", html)
-		self.assertNotIn("<script", html.lower())
+		md = (
+			"Hello **bold**\n\n"
+			"| Option | Default |\n"
+			"|--------|---------|\n"
+			"| a | b |\n\n"
+			"```\nalert(1)\n```\n"
+		)
+		out = excerpt_html(md, "p/", "/")
+		self.assertIn("<strong>", out)
+		self.assertIn("<table>", out)
+		self.assertIn("<th>", out)
+		self.assertIn("<td>", out)
+		self.assertIn("<pre>", out)
+		self.assertNotIn("<script", out.lower())
+		self.assertNotIn("| Option |", out)
+
+	def test_excerpt_html_material_extensions(self):
+		exts = [
+			"tables",
+			"admonition",
+			"pymdownx.details",
+			"pymdownx.keys",
+			"pymdownx.mark",
+			"pymdownx.tilde",
+			"pymdownx.caret",
+			"pymdownx.superfences",
+			"pymdownx.tabbed",
+		]
+		mdx = {"pymdownx.tabbed": {"alternate_style": True}}
+		md = (
+			'!!! note "Title"\n'
+			"    Body **here**.\n\n"
+			"Press ++ctrl+c++ and ==mark==.\n\n"
+			'=== "A"\n'
+			"    aaa\n\n"
+			'=== "B"\n'
+			"    bbb\n"
+		)
+		out = excerpt_html(
+			md,
+			"p/",
+			"/",
+			markdown_extensions=exts,
+			mdx_configs=mdx,
+		)
+		self.assertIn('class="admonition note"', out)
+		self.assertIn("admonition-title", out)
+		self.assertIn("<kbd", out)
+		self.assertIn("<mark>", out)
+		self.assertIn("tabbed-set", out)
+		self.assertNotIn("!!! note", out)
 
 	def test_sanitize_strips_scripts(self):
-		raw = '<p class="mkdocs-note-preview__p">ok</p><script>bad()</script>'
+		raw = "<p>ok</p><script>bad()</script>"
 		out = sanitize_preview_html(raw)
 		self.assertIn("ok", out)
 		self.assertNotIn("script", out.lower())
+		self.assertNotIn("bad()", out)
 
 
 class TestPreviewBuilder(unittest.TestCase):
+	def test_root_page_key_normalized(self):
+		builder = PreviewBuilder({"mode": "summary", "scope": "all"})
+		self.assertEqual(builder._page_key(""), "")
+		self.assertEqual(builder._page_key("./"), "")
+		self.assertEqual(builder._page_key("."), "")
+		self.assertEqual(builder._page_key("usage/config/"), "usage/config/")
+
 	def test_linked_only_and_preview_false(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp)
