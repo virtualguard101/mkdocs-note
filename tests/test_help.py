@@ -143,9 +143,38 @@ class TestHelpOptions(unittest.TestCase):
 
 		self.assertEqual(options_block(stdout_ns), options_block(stdout_full))
 
+	def test_notion_sync_is_marked_deprecated(self):
+		"""3.5.0 deprecates Notion sync; both names must say so."""
+		for name in ("notion-sync", "ns"):
+			with self.subTest(command=name):
+				stdout, _stderr, returncode = self.run_cli_command([name, "--help"])
+				self.assertEqual(returncode, 0)
+				self.assertIn("DEPRECATED", stdout)
+				self.assertIn("3.5.0", stdout)
+				self.assertIn("4.0.0", stdout)
+
+	def test_crypt_help_lists_commands(self):
+		"""The crypt group exposes its user-facing commands only."""
+		stdout, _stderr, returncode = self.run_cli_command(["crypt", "--help"])
+		self.assertEqual(returncode, 0)
+		for command in ("init", "status", "check", "uninstall"):
+			self.assertIn(command, stdout)
+		self.assertNotIn("filter-process", stdout)
+		self.assertNotIn("smudge", stdout)
+
+	def test_crypt_subcommand_help(self):
+		"""Every crypt subcommand has usable help."""
+		for command in ("init", "status", "check", "uninstall"):
+			with self.subTest(command=command):
+				stdout, _stderr, returncode = self.run_cli_command(
+					["crypt", command, "--help"]
+				)
+				self.assertEqual(returncode, 0)
+				self.assertGreater(len(stdout), 50)
+
 	def test_help_with_all_commands(self):
 		"""Test that help works for all commands."""
-		commands = ["new", "remove", "rm", "move", "mv", "clean"]
+		commands = ["new", "remove", "rm", "move", "mv", "clean", "crypt"]
 
 		for cmd in commands:
 			with self.subTest(command=cmd):

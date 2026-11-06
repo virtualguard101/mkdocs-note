@@ -296,6 +296,59 @@ publish: true
 			# Old location should be cleaned up
 			self.assertFalse(Path(f"docs/assets/{permalink}").exists())
 
+	def test_permalink_rename_warns_for_encrypted_note(self):
+		"""Renaming the permalink changes an encrypted note's default password."""
+		with self.runner.isolated_filesystem(temp_dir=self.temp_dir):
+			Path("mkdocs.yml").write_text("site_name: Test\n")
+			Path("docs/assets/old-permalink").mkdir(parents=True)
+			Path("docs/note.md").write_text(
+				"---\n"
+				"date: 2025-01-15 10:00:00\n"
+				"title: Secret\n"
+				"permalink: old-permalink\n"
+				"publish: true\n"
+				"encrypt: true\n"
+				"---\n"
+				"\n"
+				"# Secret\n"
+			)
+
+			result = self.runner.invoke(
+				cli, ["move", "docs/note.md", "-p", "new-permalink", "--yes"]
+			)
+
+			self.assertEqual(result.exit_code, 0)
+			self.assertIn("uses its permalink as its password", result.output)
+			self.assertIn(
+				"permalink: new-permalink",
+				Path("docs/note.md").read_text(encoding="utf-8"),
+			)
+
+	def test_permalink_rename_no_warning_with_explicit_password(self):
+		"""An explicit frontmatter password is unaffected by the permalink."""
+		with self.runner.isolated_filesystem(temp_dir=self.temp_dir):
+			Path("mkdocs.yml").write_text("site_name: Test\n")
+			Path("docs/assets/old-permalink").mkdir(parents=True)
+			Path("docs/note.md").write_text(
+				"---\n"
+				"date: 2025-01-15 10:00:00\n"
+				"title: Secret\n"
+				"permalink: old-permalink\n"
+				"password: custom-secret\n"
+				"publish: true\n"
+				"encrypt: true\n"
+				"---\n"
+				"\n"
+				"# Secret\n"
+			)
+
+			result = self.runner.invoke(
+				cli, ["move", "docs/note.md", "-p", "new-permalink", "--yes"]
+			)
+
+			self.assertEqual(result.exit_code, 0)
+			self.assertNotIn("uses its permalink as its password", result.output)
+
 	def test_mv_alias(self):
 		"""Test that 'mv' alias works."""
 		with self.runner.isolated_filesystem(temp_dir=self.temp_dir):

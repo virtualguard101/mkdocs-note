@@ -6,6 +6,7 @@ This module provides command-line interface for note management
 independent of MkDocs plugin system.
 """
 
+import shlex
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -23,6 +24,10 @@ from mkdocs_note.utils.cli.commands import (
 	NewCommand,
 	RemoveCommand,
 )
+from mkdocs_note.utils.crypt import cli as crypt_cli
+from mkdocs_note.utils.crypt import gitfilter, gitops
+from mkdocs_note.utils.crypt import keys as crypt_keys
+from mkdocs_note.utils.meta import parse_frontmatter
 from mkdocs_note.utils.notion.sync import SyncOptions, run_sync, setup_logging
 
 
@@ -100,6 +105,49 @@ def load_mkdocs_plugin_section(project_root: Path) -> dict[str, Any]:
 				return result
 		return result
 	return {}
+
+
+def default_docs_dir(project_root: Path) -> Path:
+	"""Resolve the docs directory used by the ``crypt`` commands.
+
+	Precedence: ``docs_dir`` in ``mkdocs.yml``, the plugin's ``notes_root``,
+	then the plugin default (``docs``).
+	"""
+	for name in ("mkdocs.yml", "mkdocs.yaml"):
+		path = project_root / name
+		if not path.is_file():
+			continue
+		data = _load_yaml_file(path)
+		if data.get("docs_dir"):
+			return project_root / str(data["docs_dir"])
+		plugin = load_mkdocs_plugin_section(project_root)
+		if plugin.get("notes_root"):
+			return project_root / str(plugin["notes_root"])
+	return project_root / MkdocsNoteConfig().notes_root
+
+
+def _warn_encrypted_permalink_change(source_path: Path) -> None:
+	"""Warn that renaming the permalink changes an encrypted note's password."""
+	try:
+		text = source_path.read_text(encoding="utf-8")
+	except (OSError, UnicodeDecodeError):
+		return
+	meta, _ = parse_frontmatter(text)
+	if not crypt_keys.is_encrypted(meta):
+		return
+	try:
+		password_source = crypt_keys.resolve_password(meta)
+	except crypt_keys.PasswordError:
+		return
+	if password_source.field != "permalink":
+		return
+	click.echo(
+		"⚠️  This note is encrypted and uses its permalink as its password. "
+		"The rename changes the password; re-encrypt the note afterwards "
+		"(with the git filter installed, keep the plaintext and run "
+		f"`git add --renormalize -- {shlex.quote(str(source_path))}`).",
+		err=True,
+	)
 
 
 def build_sync_options_from_config(
@@ -516,6 +564,7 @@ def move_command(ctx, source, destination, permalink, keep_source_assets, yes):
 
 			# Get current permalink for confirmation message
 			current_permalink = cli_common.get_permalink_from_file(source_path)
+			_warn_encrypted_permalink_change(source_path)
 
 			# Confirmation prompt (unless --yes)
 			if not yes:
@@ -714,7 +763,225 @@ def clean_command(ctx, dry_run, yes):
 		sys.exit(1)
 
 
-@cli.command("notion-sync")
+@cli.group("crypt")
+def crypt_command():
+	"""Manage at-rest encryption of note bodies with a git filter.
+
+	\b
+	Run ``mkdocs-note crypt init`` once per clone. Note bodies flagged with
+	``encrypt: true`` are then stored in git as encrypted envelopes while the
+	working tree stays plaintext.
+	"""
+
+
+def _crypt_repository(docs_dir: Path | None) -> crypt_cli.Repository:
+	"""Resolve the repository for the crypt commands."""
+	project_root = find_project_root()
+	if docs_dir is not None:
+		docs = docs_dir if docs_dir.is_absolute() else Path.cwd() / docs_dir
+	else:
+		docs = default_docs_dir(project_root)
+	return crypt_cli.make_repository(project_root, docs)
+
+
+_DOCS_DIR_HELP = (
+	"Docs directory (default: docs_dir from mkdocs.yml, else the plugin notes_root)."
+)
+
+
+@crypt_command.command("init")
+@click.option(
+	"--docs-dir",
+	type=click.Path(file_okay=False, path_type=Path),
+	default=None,
+	help=_DOCS_DIR_HELP,
+)
+def crypt_init_command(docs_dir):
+	"""Configure the git filter, .gitattributes and pre-commit hook.
+
+	\b
+	Idempotent and local to this clone. The .gitattributes change is tracked,
+	so commit it together with the first encrypted note.
+	"""
+	try:
+		repository = _crypt_repository(docs_dir)
+		report = crypt_cli.install(repository, crypt_cli.python_executable())
+	except (crypt_cli.CryptCliError, gitops.GitError) as exc:
+		click.echo(f"❌ {exc}", err=True)
+		sys.exit(1)
+
+	click.echo("✅ Git filter configured for encrypted notes")
+	click.echo(f"   pattern: {repository.attributes_pattern}")
+	state = "updated" if report.attributes_changed else "already up to date"
+	click.echo(f"   .gitattributes: {state} ({repository.attributes_file})")
+
+	if report.hook_status == "installed":
+		click.echo(f"   pre-commit hook: installed ({report.hook_path})")
+	elif report.hook_status == "present":
+		click.echo(f"   pre-commit hook: already installed ({report.hook_path})")
+	else:
+		click.echo(
+			f"⚠️  An existing pre-commit hook was left untouched: {report.hook_path}"
+		)
+		click.echo(f"   Add this line to it manually: {report.hook_line}")
+
+	if report.plaintext_index:
+		click.echo("")
+		click.echo("⚠️  These encrypted notes are still staged as plaintext:")
+		for rel in report.plaintext_index:
+			click.echo(f"   {rel}")
+		click.echo("   Re-add them so the filter stores ciphertext:")
+		for rel in report.plaintext_index:
+			click.echo(f"   git add --renormalize -- {shlex.quote(rel)}")
+		click.echo("   Plaintext that was already committed stays in git history.")
+	else:
+		click.echo("   No staged plaintext copies of encrypted notes found.")
+	sys.exit(0)
+
+
+@crypt_command.command("status")
+@click.option(
+	"--docs-dir",
+	type=click.Path(file_okay=False, path_type=Path),
+	default=None,
+	help=_DOCS_DIR_HELP,
+)
+def crypt_status_command(docs_dir):
+	"""Check the filter setup and the state of every encrypted note."""
+	try:
+		repository = _crypt_repository(docs_dir)
+		report = crypt_cli.status(repository)
+	except (crypt_cli.CryptCliError, gitops.GitError) as exc:
+		click.echo(f"❌ {exc}", err=True)
+		sys.exit(1)
+
+	click.echo("Git filter")
+	for key in (gitops.PROCESS_KEY, gitops.REQUIRED_KEY):
+		value = report.commands.get(key) or "not set"
+		click.echo(f"   {key}: {value}")
+	click.echo(
+		f"   attribute for {report.attribute_sample}: {report.attribute or 'not set'}"
+	)
+	click.echo(
+		f"   pre-commit hook: {'installed' if report.hook_installed else 'missing'}"
+	)
+	click.echo("")
+
+	if report.notes:
+		click.echo("Encrypted notes")
+		for note in report.notes:
+			key = note.key_field or "unresolved"
+			click.echo(
+				f"   {note.rel}  key={key}  worktree={note.worktree}  "
+				f"index={note.index}  HEAD={note.head}"
+			)
+	else:
+		click.echo("No notes have 'encrypt: true'.")
+
+	if report.problems:
+		click.echo("")
+		for problem in report.problems:
+			click.echo(f"❌ {problem}", err=True)
+		sys.exit(1)
+	click.echo("")
+	click.echo("✅ All checks passed")
+	sys.exit(0)
+
+
+@crypt_command.command("check")
+@click.option(
+	"--staged",
+	is_flag=True,
+	help="Check the index, as the pre-commit hook does",
+)
+@click.option(
+	"--docs-dir",
+	type=click.Path(file_okay=False, path_type=Path),
+	default=None,
+	help=_DOCS_DIR_HELP,
+)
+def crypt_check_command(staged, docs_dir):
+	"""Verify that staged encrypted notes are stored as valid envelopes."""
+	if not staged:
+		click.echo("❌ Only '--staged' checks are supported.", err=True)
+		sys.exit(2)
+	try:
+		repository = _crypt_repository(docs_dir)
+		report = crypt_cli.check_staged(repository)
+	except (crypt_cli.CryptCliError, gitops.GitError) as exc:
+		click.echo(f"❌ {exc}", err=True)
+		sys.exit(1)
+
+	if report.errors:
+		for error in report.errors:
+			click.echo(f"❌ {error}", err=True)
+		sys.exit(1)
+	click.echo(
+		f"✅ {len(report.checked)} staged note(s) checked; encrypted notes are "
+		"stored as envelopes."
+	)
+	sys.exit(0)
+
+
+@crypt_command.command("uninstall")
+@click.option(
+	"--docs-dir",
+	type=click.Path(file_okay=False, path_type=Path),
+	default=None,
+	help=_DOCS_DIR_HELP,
+)
+def crypt_uninstall_command(docs_dir):
+	"""Remove the filter configuration and the hook installed by ``init``."""
+	try:
+		repository = _crypt_repository(docs_dir)
+		report = crypt_cli.uninstall(repository)
+	except (crypt_cli.CryptCliError, gitops.GitError) as exc:
+		click.echo(f"❌ {exc}", err=True)
+		sys.exit(1)
+
+	if report.removed_keys:
+		click.echo("✅ Removed git config: " + ", ".join(report.removed_keys))
+	else:
+		click.echo("ℹ️  No mkdocs-note git config was set in this clone.")
+	if report.hook_removed:
+		click.echo("✅ Removed the pre-commit hook installed by mkdocs-note.")
+	elif report.hook_kept:
+		click.echo("⚠️  The existing pre-commit hook was left untouched.")
+
+	click.echo(f"ℹ️  {repository.attributes_file} still contains:")
+	click.echo(f"   {repository.attributes_pattern}")
+	click.echo(
+		"   Remove that line and commit it if you no longer want encryption. "
+		"Notes already stored as envelopes stay encrypted on checkout."
+	)
+	sys.exit(0)
+
+
+@crypt_command.command("filter-process", hidden=True)
+def crypt_filter_process_command():
+	"""Run the git long-running filter process (protocol v2)."""
+	sys.exit(gitfilter.run_filter_process())
+
+
+@crypt_command.command("clean", hidden=True)
+def crypt_clean_command():
+	"""Single-shot clean filter: stdin plaintext -> stdout envelope."""
+	sys.exit(gitfilter.run_single("clean"))
+
+
+@crypt_command.command("smudge", hidden=True)
+def crypt_smudge_command():
+	"""Single-shot smudge filter: stdin envelope -> stdout plaintext."""
+	sys.exit(gitfilter.run_single("smudge"))
+
+
+NOTION_DEPRECATION = (
+	"Deprecated since mkdocs-note 3.5.0 and planned for removal in 4.0.0; "
+	"encrypted notes are skipped by this command."
+)
+
+
+@cli.command("notion-sync", deprecated=NOTION_DEPRECATION)
 @click.option("--full", is_flag=True, help="Process all nav pages (ignore git diff)")
 @click.option(
 	"--base",

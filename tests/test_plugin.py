@@ -67,6 +67,19 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		self.assertIn("js/preview.js", result["extra_javascript"])
 		self.assertIn("css/preview.css", result["extra_css"])
 
+	def test_notion_sync_config_logs_info_notice(self):
+		"""3.5.0 deprecation: a configured notion_sync build logs one notice."""
+		self.plugin._user_config_keys = {"notion_sync"}
+		config = {"extra_javascript": [], "extra_css": []}
+		with patch("mkdocs_note.plugin.add_static_resouces"):
+			with self.assertLogs("mkdocs", level="INFO") as captured:
+				self.plugin.on_config(config)  # type: ignore[arg-type]
+		self.assertIn("Notion sync is deprecated", "\n".join(captured.output))
+		self.assertTrue(
+			all(record.levelname == "INFO" for record in captured.records),
+			"a minor release must not turn the deprecation into a strict warning",
+		)
+
 	def test_preview_disabled_skips_script_inject(self):
 		"""Disabled preview must not inject window.preview_options."""
 		self.plugin.config.preview_config["enabled"] = False
@@ -211,7 +224,7 @@ class TestMkdocsNotePlugin(unittest.TestCase):
 		mock_config = Mock()
 		mock_files = Mock()
 
-		result = self.plugin.on_page_markdown(
+		result = self.plugin._on_page_markdown_recent(
 			markdown, mock_page, mock_config, mock_files
 		)
 

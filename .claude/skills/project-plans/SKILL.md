@@ -1,6 +1,6 @@
 ---
 name: project-plans
-description: Historical implementation plans for mkdocs-note releases (Notion sync, same-site link hover preview, path-encoding fixes). Use when changing those subsystems, investigating why an earlier design was chosen, or continuing work recorded in a plan.
+description: Historical implementation plans for mkdocs-note releases (Notion sync, same-site link hover preview, path-encoding fixes, page encryption). Use when changing those subsystems, investigating why an earlier design was chosen, or continuing work recorded in a plan.
 ---
 
 # Historical implementation plans
@@ -20,6 +20,7 @@ Read only the plan that covers the current task. Do not load all of them.
 | `3.4.0_link_preview_3562be30.plan.md` | 3.4.0 | Same-site link hover preview: `preview` module, `previews.json`, fragment and rich excerpt modes (issue #82) |
 | `3.4.1_preview_fixes_a349e839.plan.md` | 3.4.1 | Preview bugfixes: `linked_only` scope, CJK fragment keys, asset URL rewrite, section summaries (issue #84) |
 | `3.4.2_path_encoding_2a4658d7.plan.md` | 3.4.2 | Preview failures under non-ASCII paths: decode keys at build time, encoded variants at runtime |
+| `3.5.0_page_encryption_7c1e9b42.plan.md` | 3.5.0 | Per-note page encryption: frontmatter opt-in, git clean/smudge filter, AES-GCM + WebCrypto browser unlock; Notion sync deprecation |
 
 ## Using a plan
 

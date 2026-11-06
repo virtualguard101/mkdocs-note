@@ -1,7 +1,7 @@
 ---
 date: 2026-08-03 00:35:00
 title: Configuration Options
-description: Full reference for mkdocs-note plugin options including recent notes, graph, link preview, and Notion sync.
+description: Full reference for mkdocs-note plugin options including recent notes, graph, link preview, page encryption, and Notion sync.
 permalink: 
 publish: true
 ---
@@ -31,6 +31,13 @@ plugins:
         include_fragments: true
         mobile: false
         scope: linked_only
+      encryption_config:
+        kdf_iterations: 600000
+        remember: session
+        strict: auto
+        rerender: true
+        audit: true
+        labels: {}
       notion_sync:
         docs_dir: docs
         nav_file: docs/.nav.yml
@@ -82,7 +89,29 @@ See [Same-site Link Preview](link-preview.md).
 | `preview_config.mobile` | `false` | Touch preview strategy |
 | `preview_config.scope` | `linked_only` | `linked_only` (link targets + recent notes + notes-index out-links + soft graph nodes) or `all` |
 
+## Page encryption
+
+Encryption itself is opt-in per note with the frontmatter flag `encrypt: true`
+(see [Page Encryption](encryption.md) and [Metadata](meta.md)). The
+`encryption_config` block only tunes the runtime; it is not needed to turn the
+feature on.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `encryption_config.kdf_iterations` | `600000` | PBKDF2-HMAC-SHA256 iterations used by the browser to derive the key |
+| `encryption_config.remember` | `session` | Remembered key storage: `session` (tab), `local` (browser), or `none` |
+| `encryption_config.strict` | `auto` | Fail the build for plaintext or undecryptable flagged notes. `auto` follows the `CI` environment variable |
+| `encryption_config.rerender` | `true` | Re-run Material's `document$` subscribers after unlocking |
+| `encryption_config.audit` | `true` | Search the built site for plaintext of encrypted notes and warn |
+| `encryption_config.labels` | English strings | Override the lock form UI text (`title`, `prompt`, `placeholder`, `submit`, `error`, `unsupported`, `noscript`, `toc`, `unavailable`) |
+
 ## Notion sync
+
+!!! warning "Deprecated since 3.5.0"
+
+    The `notion_sync` block and the `notion-sync` / `ns` command will be
+    removed in 4.0.0. They still work in 3.5.x; notes with `encrypt: true` are
+    skipped by the sync.
 
 Used by `mkdocs-note notion-sync` / `ns`. See [Notion Sync](notion-sync.md).
 

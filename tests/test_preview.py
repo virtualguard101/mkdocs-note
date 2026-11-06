@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -464,6 +465,107 @@ class TestPreviewBuilder(unittest.TestCase):
 			self.assertEqual(data["c/"]["summary"], "Sum C")
 			# a is not a link target → excluded under linked_only
 			self.assertNotIn("a/", data)
+
+	def test_encrypted_page_is_not_a_preview_target(self):
+		"""An encrypted page must not get a preview entry."""
+		with tempfile.TemporaryDirectory() as tmp:
+			root = Path(tmp)
+			a = root / "a.md"
+			b = root / "b.md"
+			c = root / "c.md"
+			a.write_text(
+				"---\ntitle: A\n---\n\nSee [B](./b.md) and [C](./c.md).\n",
+				encoding="utf-8",
+			)
+			b.write_text(
+				"---\n"
+				"title: B\n"
+				"encrypt: true\n"
+				"permalink: secret-b\n"
+				"---\n"
+				"\n"
+				"SECRET BODY that must not be summarised.\n",
+				encoding="utf-8",
+			)
+			c.write_text("---\ntitle: C\n---\n\nPublic body.\n", encoding="utf-8")
+
+			def make_file(path: Path, url: str):
+				f = MagicMock()
+				f.src_path = path.name
+				f.abs_src_path = str(path)
+				f.url = url
+				f.name = path.stem
+				f.page = MagicMock()
+				f.page.title = path.stem
+				return f
+
+			files = MagicMock()
+			fa, fb, fc = (
+				make_file(a, "a/"),
+				make_file(b, "b/"),
+				make_file(c, "c/"),
+			)
+			files.documentation_pages.return_value = [fa, fb, fc]
+
+			builder = PreviewBuilder(
+				{
+					"mode": "summary",
+					"max_chars": 200,
+					"include_fragments": True,
+					"scope": "linked_only",
+				},
+			)
+			data = builder(files)
+			self.assertNotIn("b/", data)
+			self.assertIn("c/", data)
+			self.assertNotIn(
+				"SECRET",
+				json.dumps(data, ensure_ascii=False),
+			)
+
+	def test_encrypted_page_links_do_not_expand_targets(self):
+		"""Links inside an encrypted body must not mark targets as linked."""
+		with tempfile.TemporaryDirectory() as tmp:
+			root = Path(tmp)
+			secret = root / "secret.md"
+			public = root / "public.md"
+			secret.write_text(
+				"---\n"
+				"title: Secret\n"
+				"encrypt: true\n"
+				"permalink: secret\n"
+				"---\n"
+				"\n"
+				"See [Public](./public.md).\n",
+				encoding="utf-8",
+			)
+			public.write_text(
+				"---\ntitle: Public\n---\n\nPublic body.\n", encoding="utf-8"
+			)
+
+			def make_file(path: Path, url: str):
+				f = MagicMock()
+				f.src_path = path.name
+				f.abs_src_path = str(path)
+				f.url = url
+				f.name = path.stem
+				f.page = MagicMock()
+				f.page.title = path.stem
+				return f
+
+			files = MagicMock()
+			fs, fp = make_file(secret, "secret/"), make_file(public, "public/")
+			files.documentation_pages.return_value = [fs, fp]
+
+			builder = PreviewBuilder(
+				{
+					"mode": "summary",
+					"max_chars": 200,
+					"include_fragments": True,
+					"scope": "linked_only",
+				},
+			)
+			self.assertEqual(builder(files), {})
 
 	def test_excerpt_fragments(self):
 		with tempfile.TemporaryDirectory() as tmp:

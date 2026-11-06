@@ -101,17 +101,20 @@ It just a simple python-based tool that help you manage your notes in MkDocs doc
 mkdocs-note/
 ├── src/mkdocs_note/
 │   ├── __init__.py              # Package initialization
+│   ├── __main__.py              # python -m mkdocs_note (used by the git filter)
 │   ├── plugin.py                # MkDocs plugin entry point
 │   ├── cli.py                   # Command-line interface entry point
 │   ├── config.py                # Configuration management
 │   ├── graph.py                 # Network graph functionality
 │   ├── preview.py               # Same-site link hover preview
 │   │
-│   ├── static/                  # Static assets (graph + preview)
+│   ├── static/                  # Static assets (graph + preview + encryption)
 │   │   ├── graph.js
 │   │   ├── graph.css
 │   │   ├── preview.js
-│   │   └── preview.css
+│   │   ├── preview.css
+│   │   ├── encrypt.js           # WebCrypto unlock runtime
+│   │   └── encrypt.css
 │   │
 │   └── utils/                   # Utility modules
 │       ├── __init__.py
@@ -119,7 +122,14 @@ mkdocs-note/
 │       ├── links.py             # Shared markdown/wiki link normalization
 │       ├── scanner.py           # File scanning (MkDocs Files)
 │       ├── tree.py              # Page tree from .nav.yml or directory hierarchy
-│       ├── notion/              # Notion sync (CLI)
+│       ├── crypt/               # Page encryption
+│       │   ├── keys.py          # Password rules, HKDF/PBKDF2, AES-GCM seal/open
+│       │   ├── envelope.py      # At-rest envelope build/parse, clean/smudge
+│       │   ├── page.py          # Stub, browser payload, TOC HTML, leak audit
+│       │   ├── gitfilter.py     # pkt-line long-running filter protocol
+│       │   ├── gitops.py        # git subprocess helpers (config, index, HEAD)
+│       │   └── cli.py           # crypt init/status/check/uninstall behavior
+│       ├── notion/              # Notion sync (deprecated)
 │       │   ├── convert.py       # Markdown → Notion Enhanced Markdown
 │       │   ├── client.py        # Notion HTTP API
 │       │   └── sync.py          # Orchestration (token, git diff, state, run_sync)
@@ -135,16 +145,17 @@ mkdocs-note/
 
 | Module | Responsibility | Key Functions |
 |--------|---------------|---------------|
-| `plugin.py` | MkDocs plugin integration | File processing, recent notes, graph, link preview |
-| `cli.py` | CLI entry point | Command registration (`new`/`remove`/`move`/`clean`/`notion-sync`), mkdocs.yml load for sync |
-| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`, `preview_config`, `notion_sync`) |
-| `graph.py` | Network graph | Node/edge creation, link detection, static asset management |
-| `preview.py` | Link hover preview | `previews.json`, summary/excerpt extraction, gated static assets |
+| `plugin.py` | MkDocs plugin integration | File processing, recent notes, graph, link preview, encryption decrypt/encrypt hooks, leak audit |
+| `cli.py` | CLI entry point | Command registration (`new`/`remove`/`move`/`clean`/`crypt`/`notion-sync`), mkdocs.yml load for sync |
+| `config.py` | Configuration | Plugin settings (`notes_root`, `recent_notes_config`, `graph_config`, `preview_config`, `encryption_config`, `notion_sync`) |
+| `graph.py` | Network graph | Node/edge creation, link detection, static asset management; skips out-edges of encrypted notes |
+| `preview.py` | Link hover preview | `previews.json`, summary/excerpt extraction, gated static assets; skips encrypted pages and sources |
 | `utils/links.py` | Link normalize | Shared markdown/wiki URL dialect for graph + preview |
 | `utils/meta.py` | Metadata | Frontmatter validation (File), path-level parse / tags |
 | `utils/scanner.py` | File scanning | Note file discovery and validation |
 | `utils/tree.py` | Page tree | `.nav.yml` parse or `notes_root` directory hierarchy |
-| `utils/notion/` | Notion sync | convert / client / sync (incl. `--full` resume under `.cache/mkdocs-note/`) |
+| `utils/crypt/` | Page encryption | Password rules + AES-GCM primitives, at-rest envelope, browser payload/stub/TOC, git filter protocol, git operations, `crypt` command behavior |
+| `utils/notion/` | Notion sync (deprecated) | convert / client / sync (incl. `--full` resume under `.cache/mkdocs-note/`); skips encrypted notes |
 | `utils/cli/commands.py` | CLI commands | `new`, `remove`, `move`, `clean` implementations |
 | `utils/cli/common.py` | CLI utilities | Asset directory paths, directory cleanup |
 
@@ -169,6 +180,15 @@ graph TB
         Scanner[utils/scanner.py]
         Tree[utils/tree.py]
         
+        subgraph "Crypt"
+            Keys[crypt/keys.py]
+            Envelope[crypt/envelope.py]
+            PageHelpers[crypt/page.py]
+            GitFilter[crypt/gitfilter.py]
+            GitOps[crypt/gitops.py]
+            CryptCli[crypt/cli.py]
+        end
+        
         subgraph "Notion"
             Convert[notion/convert.py]
             Client[notion/client.py]
@@ -186,14 +206,27 @@ graph TB
     Plugin --> Meta
     Plugin --> Graph
     Plugin --> Preview
+    Plugin --> Envelope
+    Plugin --> PageHelpers
+    Plugin --> Keys
     
     Graph --> Links
+    Graph --> Keys
     Preview --> Links
     Preview --> Meta
+    Preview --> Keys
     
     CLI --> Config
     CLI --> Commands
     CLI --> Sync
+    CLI --> CryptCli
+    
+    CryptCli --> GitOps
+    CryptCli --> GitFilter
+    CryptCli --> Envelope
+    GitFilter --> Envelope
+    Envelope --> Keys
+    PageHelpers --> Keys
     
     Commands --> Common
     Scanner --> Meta
@@ -201,6 +234,7 @@ graph TB
     Sync --> Client
     Sync --> Meta
     Sync --> Tree
+    Sync --> Keys
     Convert --> Meta
 ```
 
@@ -217,18 +251,27 @@ graph TB
 ```python
 class MkdocsNotePlugin(BasePlugin[MkdocsNoteConfig]):
     """MkDocs Note Plugin entry point."""
-    
+
     notes_list: list[File] = []
-    
-    # Event Hooks:
-    def on_config(config)           # Graph assets; preview assets if enabled
-    def on_pre_build(config)        # Init Graph / PreviewBuilder if enabled
-    def on_files(files, config)     # Scan and validate notes
-    def on_nav(nav, config, files)  # Store files reference
-    def on_page_markdown(markdown)  # Insert recent notes
-    def on_post_page(output)        # Inject graph script; preview options if enabled
-    def on_post_build(config)       # Build graph/previews JSON, copy static assets
+
+    # Event Hooks (value in brackets = event priority):
+    def on_config(config)                  # Graph/preview assets; Notion deprecation notice
+    def on_pre_build(config)               # Init Graph / PreviewBuilder if enabled
+    def on_files(files, config) [100]      # Scan and validate notes
+    def on_nav(nav, config, files)         # Store files reference
+    def _on_page_markdown_decrypt(...) [100]   # Decrypt an at-rest envelope first
+    def _on_page_markdown_recent(...)          # Insert recent notes (default priority)
+    on_page_markdown = CombinedEvent(decrypt, recent)
+    def on_page_content(...) [-1000]       # Replace encrypted page with stub + payload
+    def on_post_page(output)               # Inject graph/preview/encrypt runtime assets
+    def on_post_build(config)              # Build graph/previews JSON, copy assets, leak audit
 ```
+
+`on_page_markdown` is a `mkdocs.plugins.CombinedEvent`: the decrypt handler runs
+at priority 100 so every other plugin sees plaintext, while the recent-notes
+handler keeps the default priority. `on_page_content` runs at -1000 so the
+payload captures the final HTML after other plugins and site `hooks:` have run.
+Both handlers live in the `CombinedEvent` / `on_page_content` sections below.
 
 **Recent Notes Insertion**:
 - Scans notes using `scanner.scan_notes()`
@@ -251,6 +294,8 @@ def cli():
 @cli.command("remove")   # Remove note (alias: rm)
 @cli.command("move")     # Move/rename note (alias: mv)
 @cli.command("clean")    # Clean orphaned assets
+@cli.group("crypt")      # init / status / check / uninstall (+ hidden filter-process, clean, smudge)
+@cli.command("notion-sync", deprecated=...)  # Deprecated since 3.5.0 (alias: ns)
 ```
 
 **Key Features**:
@@ -259,6 +304,9 @@ def cli():
 - Rich feedback with emojis (✅ ❌ 📝 📁)
 - Confirmation prompts (skip with `--yes`)
 - Dry-run support for `clean` command
+- `move -p` warns when the renamed permalink is an encrypted note's password
+- `crypt` commands delegate to `utils.crypt.cli`; the filter commands write binary
+  data to stdout and logs to stderr
 
 ### config.py - Configuration Management
 
@@ -292,7 +340,20 @@ class MkdocsNoteConfig(Config):
 		"mobile": False,
 		"scope": "linked_only",
 	}
+
+	encryption_config: dict = {
+		"kdf_iterations": 600000,
+		"remember": "session",   # session | local | none
+		"strict": "auto",        # auto = follow the CI environment variable
+		"rerender": True,
+		"audit": True,
+		"labels": {},
+	}
 ```
+
+`Type(dict)` options do not merge nested defaults; the build reads every key
+with `.get(key, default)`. The per-note `encrypt: true` frontmatter flag, not a
+config option, is what enables encryption.
 
 ### graph.py - Network Graph Visualization
 
@@ -305,10 +366,14 @@ class Graph:
     LINK_PATTERN = r"\[[^\]]+\]\((?P<url>.*?)\)|\[\[(?P<wikilink>[^\]]+)\]\]"
     
     def _create_nodes(files)         # Create nodes from documentation pages
-    def _create_edges(files)         # Parse markdown for links
+    def _create_edges(files)         # Parse markdown for links; skip encrypted out-edges
     def _find_links(markdown)        # Extract links using regex (via utils.links)
     def to_dict()                    # Export graph data
 ```
+
+Encrypted notes keep their node (the title is public) and edges pointing **to**
+them, but their own out-edges are skipped so an encrypted body's links do not
+leak through `graph.json`.
 
 **Supporting Functions**:
 - `add_static_resources()`: Add D3.js and custom JS/CSS to MkDocs config
@@ -334,7 +399,34 @@ class PreviewBuilder:
 - Excerpt mode: hierarchical sections + fragment-aware plain text + sanitized HTML (`utils.links` + pymdownx slugify; decoded Unicode path + fragment keys)
   - Rich HTML via site Material `markdown_extensions` (skip `toc` / `pymdownx.snippets`) then allow-list sanitize
   - Image URL rewrite: MkDocs `Files` → directory-URL parent → source-parent map; absolute CDN/`data:` unchanged
+- Pages with `encrypt: true` are skipped both as preview entries and as link
+  sources, so a decrypted note's links and text never reach `previews.json`.
 
+### utils/crypt/ - Page Encryption
+
+**Responsibility**: Per-note symmetric encryption at rest and in the browser.
+See the [user guide](../usage/encryption.md) for the workflow; this section
+covers the implementation split.
+
+| Module | Role |
+|--------|------|
+| `keys.py` | `is_encrypted`, `resolve_password` (`password` → `permalink`), NFC/trim normalization, HKDF-SHA256 at-rest key, PBKDF2-HMAC-SHA256 site key (memoized), synthetic-nonce AES-256-GCM `seal_at_rest` / `open_at_rest` / `seal_site` / `open_site` |
+| `envelope.py` | Split frontmatter with MkDocs' `YAML_RE`; build/parse the `<!-- mkdocs-note:encrypted v1 key=… -->` envelope; `clean_bytes` / `smudge_bytes`; non-flagged input passes through byte-for-byte |
+| `page.py` | Browser payload JSON (`v`, `iter`, `salt`, `iv`, `aad`, `ct`), locked/unavailable stub HTML, Material-markup TOC, asset injection/copy, plaintext canary collection and post-build leak audit |
+| `gitfilter.py` | Git long-running filter protocol v2 (pkt-line handshake, `clean` / `smudge`); content on stdout, diagnostics on stderr |
+| `gitops.py` | `git` subprocess helpers: repo root, git dir, hooks path, config get/set/unset, index and `HEAD` blobs |
+| `cli.py` | `crypt init` / `status` / `check` / `uninstall` behavior and reports |
+
+Key invariants:
+
+- Only the **body** is encrypted. The frontmatter stays clear so MkDocs parses
+  `page.meta` before our hooks run, and CI needs no key from outside the file.
+- `clean_bytes` is deterministic for the same password/body, so `git status`
+  stays stable; envelopes pass through `clean` unchanged.
+- `smudge_bytes` never fails a checkout: an undecryptable envelope is emitted
+  unchanged with one stderr warning.
+- The at-rest KDF is deliberately fast (the password is in the same file); the
+  site KDF is slow because a private repo may publish a public site.
 
 ### utils/links.py - Shared Link Normalization
 
@@ -480,8 +572,10 @@ class File:
 ---
 date: 2025-11-05 12:00:00    # datetime (required)
 title: My Note Title         # string (required)
-permalink:                   # string (optional)
+permalink:                   # string (optional; default encryption password)
 publish: true                # bool (default: true)
+encrypt: false               # bool (default: false)
+# password: "custom secret"  # string (optional; overrides permalink)
 ---
 ```
 
@@ -489,6 +583,11 @@ publish: true                # bool (default: true)
 - Uses `mkdocs.utils.meta.get_data()` for parsing
 - YAML frontmatter automatically converted to Python types
 - `date` becomes `datetime` object
+
+**Encryption fields** are read from `page.meta` by both the build hooks and the
+git filter. `encrypt: true` requires a non-empty `password` or `permalink`;
+values are normalized with Unicode NFC + `strip()` in Python and JavaScript so
+the same typed password derives the same key everywhere.
 
 ### Graph Data Model
 
@@ -553,6 +652,54 @@ graph LR
     GraphData --> SiteOutput
 ```
 
+### Encryption Data Flow
+
+```mermaid
+graph LR
+    subgraph "Author clone"
+        WT["note.md<br/>plaintext worktree"]
+        Filter["git clean / smudge<br/>mkdocs-note crypt filter-process"]
+    end
+
+    subgraph "Git repository (public)"
+        Envelope["envelope<br/>clear frontmatter<br/>+ encrypted body"]
+    end
+
+    subgraph "mkdocs build (local or CI, workflow unchanged)"
+        Decrypt["on_page_markdown @100<br/>decrypt body with page.meta password"]
+        Render["MkDocs + other plugins<br/>render the page"]
+        Encrypt["on_page_content @-1000<br/>AES-GCM payload + TOC"]
+        Stub["stub HTML<br/>lock form + payload JSON"]
+    end
+
+    subgraph "Published site"
+        Page["page.html"]
+        JS["encrypt.js<br/>PBKDF2 + AES-GCM via WebCrypto"]
+        Reader["unlocked content"]
+    end
+
+    WT -- "git add (clean)" --> Filter
+    Filter -- "git checkout (smudge)" --> WT
+    Filter --> Envelope
+    Envelope --> Decrypt
+    Decrypt --> Render
+    Render --> Encrypt
+    Encrypt --> Stub
+    Stub --> Page
+    Page --> JS
+    JS --> Reader
+```
+
+The layer keys are independent:
+
+| Layer | Key derivation | Cipher | Why |
+|-------|---------------|--------|-----|
+| At rest (git) | `HKDF-SHA256(password)` — fast | AES-256-GCM, synthetic nonce `HMAC-SHA256(K_nonce, aad ‖ 0x00 ‖ body)` | The password sits in the same file, so a slow KDF protects nothing; determinism keeps `git status` stable |
+| Site (browser) | `PBKDF2-HMAC-SHA256(password, salt=SHA-256("…" + src_uri)[:16], 600k)` | AES-256-GCM, same synthetic-nonce construction | A private repo may publish a public site; the slow KDF matters there, and a stable per-page salt keeps remembered keys valid across deploys |
+
+AAD binds each ciphertext to its context: the key field for envelopes, the
+`src_uri` for site payloads.
+
 ---
 
 ## Workflows and Data Flow
@@ -567,6 +714,7 @@ sequenceDiagram
     participant Meta
     participant Graph
     participant Preview
+    participant Crypt as utils.crypt
     
     MkDocs->>Plugin: on_config(config)
     Plugin->>Plugin: Add graph static resources
@@ -614,6 +762,17 @@ sequenceDiagram
     loop For each page
         MkDocs->>Plugin: on_page_markdown(markdown, page)
         
+        alt page.meta encrypt: true
+            Plugin->>Crypt: resolve_password(meta)
+            Plugin->>Crypt: decrypt_body(markdown, meta)
+            alt undecryptable and strict
+                Plugin-->>MkDocs: PluginError
+            else undecryptable, non-strict
+                Plugin->>Plugin: remember error; return empty body
+            end
+            Plugin->>Plugin: collect leak canaries
+        end
+
         alt Is index page in notes_root
             Plugin->>Plugin: insert_recent_note_links()
             Plugin->>Plugin: Replace marker with HTML list
@@ -621,12 +780,29 @@ sequenceDiagram
         
         Plugin-->>MkDocs: markdown
     end
+
+    Note over MkDocs,Plugin: Markdown rendered, other plugins run
+
+    loop For each page
+        MkDocs->>Plugin: on_page_content(html, page) [-1000]
+        alt page.meta encrypt: true and decryption succeeded
+            Plugin->>Crypt: build_toc_html(page.toc)
+            Plugin->>Crypt: build_site_payload(content, toc, password)
+            Plugin->>Plugin: page.toc = empty TableOfContents
+            Plugin-->>MkDocs: build_stub(title, payload)
+        else previously failed to decrypt
+            Plugin-->>MkDocs: build_unavailable_stub()
+        end
+    end
     
     loop For each page
         MkDocs->>Plugin: on_post_page(output, page)
         Plugin->>Plugin: inject_graph_script(output)
         alt preview enabled
             Plugin->>Plugin: inject_preview_script(output)
+        end
+        alt encrypted page
+            Plugin->>Plugin: inject_encrypt_assets(output)
         end
         Plugin-->>MkDocs: output
     end
@@ -636,7 +812,7 @@ sequenceDiagram
     alt Graph enabled
         Plugin->>Graph: __call__(files)
         Graph->>Graph: _create_nodes(files)
-        Graph->>Graph: _create_edges(files)
+        Graph->>Graph: _create_edges(files) — skip encrypted out-edges
         Plugin->>Plugin: Write graph.json
     end
 
@@ -644,6 +820,11 @@ sequenceDiagram
         Plugin->>Preview: __call__(files)
         Plugin->>Plugin: Write previews/previews.json
         Plugin->>Plugin: copy preview.js/css
+    end
+
+    alt Any encrypted page seen
+        Plugin->>Plugin: copy encrypt.js/css
+        Plugin->>Crypt: audit_plaintext_leaks(site_dir, canaries)
     end
     
     Plugin->>Plugin: copy_static_assets()
@@ -1060,6 +1241,52 @@ publish: true
 - Generates `graph.json` with nodes and edges
 
 - Injects JavaScript configuration via HTML hook
+
+### Why Not `on_page_read_source` for Decryption?
+
+**Decision**: Decrypt in `on_page_markdown` via a `CombinedEvent` at priority 100.
+
+`on_page_read_source` would run earlier, but it is deprecated in MkDocs 1.6, and
+replacing `File.content_string` nulls `abs_src_path`. The scanner, graph,
+preview builder and git-revision-date plugin all read that path. Decrypting in
+`on_page_markdown` keeps every other consumer working and still runs before any
+other plugin that transforms Markdown.
+
+### Why Encrypt Only the Body?
+
+**Decision**: The envelope leaves the original YAML frontmatter in clear text
+and encrypts only everything after it.
+
+- MkDocs parses `page.meta` before plugin hooks, so the password is available
+  from the same file even in a fresh CI checkout with no filter.
+- The scanner can read `date`/`title`/`publish` without a key, which keeps
+  titles in nav, recent notes and the graph (a locked decision).
+- Frontmatter edits produce readable diffs; only the body diff is opaque.
+- The frontmatter is public by design, so its contents were never the secret.
+
+### Why a Fast At-rest KDF but a Slow Site KDF?
+
+**Decision**: HKDF-SHA256 for git envelopes; PBKDF2-HMAC-SHA256 with 600k
+iterations for browser payloads.
+
+The at-rest password is stored in the same envelope's frontmatter, so an
+attacker with the repository already has it — a slow KDF would only make every
+`git add` and checkout slower. The site payload is different: in a private
+repository the frontmatter is not public, and a leaked `page.html` would turn a
+fast KDF into an offline guessing oracle. The browser can afford the slow KDF
+once per page, and results are memoized per process during `mkdocs serve`.
+
+### Why `document$.next(document)` After Unlocking?
+
+**Decision**: Optionally re-run Material's observable after the stub is
+replaced (`encryption_config.rerender`, default on).
+
+Decrypted HTML was never seen by Material's initializer, so code-copy buttons,
+tabs, tooltips, Mermaid and MathJax would not bind. `document$.next(document)`
+re-mounts those components and also re-runs site `hooks:` subscribers such as
+custom math/link scripts. A `mkdocs-note:decrypted` CustomEvent is dispatched
+for integrations that need a precise signal. Inline `<script>` in decrypted
+content still does not execute, which is documented as a limitation.
 
 ---
 

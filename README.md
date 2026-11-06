@@ -38,7 +38,9 @@ MkDocs Note is a plugin for [MkDocs](https://www.mkdocs.org/) that automatically
 
 - **Same-site Link Preview**: Opt-in hover cards for internal note links (summary or section excerpt)
 
-- **Notion Sync**: Sync your notes to [Notion](https://www.notion.so/) with ease CLI.
+- **Page Encryption**: Opt-in per-note AES-256-GCM encryption. Bodies stay encrypted in git and on the published site, and readers unlock the page in the browser with a password from the frontmatter.
+
+- **Notion Sync** (deprecated since 3.5.0; removal planned for 4.0.0): Sync your notes to [Notion](https://www.notion.so/) with ease CLI.
 
 ## Installation
 

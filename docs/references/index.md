@@ -25,6 +25,8 @@ According to the plugin's architecture, the main API of this project are divided
 
     - <a href="preview-api">Link Preview</a>
 
+    - <a href="encryption-api">Page Encryption</a>
+
 - Utils Layers
 
     - <a href="utils-layers">Utils Layers</a>
