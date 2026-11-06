@@ -23,7 +23,8 @@ In `v3.0.x`, there only has commands to create, remove, move notes with there co
 | `remove` | Remove a note file and its corresponding asset directory. |
 | `move` | Move a note file and its corresponding asset directory to a new location. |
 | `clean` | Clean up orphaned asset directories. |
-| `notion-sync` (`ns`) | Sync notes to a Notion wiki (incremental via git diff). |
+| `crypt` | Manage per-note encryption: git filter setup, status, staged-blob check, uninstall. |
+| `notion-sync` (`ns`) | Deprecated since 3.5.0: sync notes to a Notion wiki (incremental via git diff). |
 
 ## Commands Detail
 
@@ -333,7 +334,67 @@ mkdocs-note clean [OPTIONS]
     ✅ Successfully removed 3 orphaned asset directories
     ```
 
+### `crypt`
+
+Manage per-note encryption. The full workflow is documented in
+[Page Encryption](encryption.md); this section only summarizes the commands.
+
+- **Subcommands:**
+
+    | Command | Description |
+    |:-------:|:------------|
+    | `init` | Configure the git clean/smudge filter, `.gitattributes` entry, and pre-commit hook in this clone |
+    | `status` | Report each flagged note's worktree / index / `HEAD` state and filter setup; exits non-zero on problems |
+    | `check --staged` | Verify staged encrypted notes are valid envelopes (used by the hook) |
+    | `uninstall` | Remove the filter configuration and the hook |
+
+    Two more subcommands are hidden internals: `filter-process` implements the
+    git long-running filter protocol, and `clean` / `smudge` are single-shot
+    transforms useful for debugging.
+
+- **Usage:**
+
+    ```bash
+    mkdocs-note crypt init
+    mkdocs-note crypt status
+    mkdocs-note crypt check --staged
+    mkdocs-note crypt uninstall
+    ```
+
+- **Examples:**
+
+    ```bash
+    # One-time setup in a fresh clone that edits encrypted notes
+    mkdocs-note crypt init
+    git add .gitattributes
+    git commit -m "chore: enable mkdocs-note encryption filter"
+
+    # Diagnose notes that are plaintext in the index or HEAD
+    mkdocs-note crypt status
+
+    # Remove the filter before downgrading the plugin or deleting the venv
+    mkdocs-note crypt uninstall
+    ```
+
+- **Output (status):**
+
+    ```
+    Filter commands:
+      process: .../python -m mkdocs_note crypt filter-process
+      ...
+    Attribute: /docs/**/*.md filter=mkdocs-note
+    Pre-commit hook: installed
+
+    docs/note/secret.md  key=permalink  worktree=plaintext  index=envelope  HEAD=envelope
+    ```
+
 ### `notion-sync`
+
+!!! warning "Deprecated since 3.5.0"
+
+    This command will be removed in mkdocs-note 4.0.0. It still works in
+    3.5.x, prints a deprecation notice on every run, and skips notes with
+    `encrypt: true`.
 
 Sync MkDocs notes to a Notion wiki database (incremental via git diff by default).
 

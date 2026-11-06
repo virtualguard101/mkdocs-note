@@ -7,3 +7,14 @@ repos:
     - id: ruff-check
     # Run the formatter.
     - id: ruff-format
+- repo: local
+  hooks:
+    # Refuse a plaintext or corrupted envelope for a note with `encrypt: true`.
+    # The equivalent hook is installed directly by `mkdocs-note crypt init`
+    # in clones that do not use the pre-commit framework.
+    - id: mkdocs-note-crypt-check
+      name: encrypted notes are staged as envelopes
+      entry: uv run --no-sync mkdocs-note crypt check --staged
+      language: system
+      pass_filenames: false
+      always_run: true

@@ -12,7 +12,9 @@ sys.path.insert(
 )
 
 from mkdocs_note.utils.notion.sync import (
+	DiffSet,
 	MigrationState,
+	collect_targets,
 	ensure_section,
 	resolve_parent_id,
 )
@@ -209,6 +211,65 @@ class TestResolveParentId(unittest.TestCase):
 
 		self.assertEqual(parent_id, "section-page")
 		self.assertEqual(kind, "page")
+
+
+class TestCollectTargetsSkipsEncrypted(unittest.TestCase):
+	"""The deprecated Notion sync must never upload an encrypted note."""
+
+	def setUp(self):
+		self.tmp = tempfile.TemporaryDirectory()
+		self.addCleanup(self.tmp.cleanup)
+		self.docs = Path(self.tmp.name)
+		(self.docs / "plain.md").write_text(
+			"---\ntitle: Plain\n---\n\nPublic body.\n", encoding="utf-8"
+		)
+		(self.docs / "secret.md").write_text(
+			"---\n"
+			"title: Secret\n"
+			"encrypt: true\n"
+			"permalink: secret\n"
+			"---\n"
+			"\n"
+			"Secret body.\n",
+			encoding="utf-8",
+		)
+
+	def _nav_index(self) -> dict[str, TreeNode]:
+		return _nav(
+			TreeNode(
+				key="plain.md",
+				title="Plain",
+				file_rel="plain.md",
+				parent_key="",
+			),
+			TreeNode(
+				key="secret.md",
+				title="Secret",
+				file_rel="secret.md",
+				parent_key="",
+			),
+		)
+
+	def test_full_sync_skips_encrypted_note(self):
+		items, deleted = collect_targets(
+			full=True,
+			diff=DiffSet(),
+			nav_index=self._nav_index(),
+			docs_dir=self.docs,
+			sections=None,
+		)
+		self.assertEqual([item.file_rel for item in items], ["plain.md"])
+		self.assertEqual(deleted, set())
+
+	def test_incremental_sync_skips_encrypted_note(self):
+		items, _deleted = collect_targets(
+			full=False,
+			diff=DiffSet(md_changed={"plain.md", "secret.md"}),
+			nav_index=self._nav_index(),
+			docs_dir=self.docs,
+			sections=None,
+		)
+		self.assertEqual([item.file_rel for item in items], ["plain.md"])
 
 
 if __name__ == "__main__":

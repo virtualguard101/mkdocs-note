@@ -1,6 +1,8 @@
 from mkdocs.config import Config
 from mkdocs.config import config_options as config_opt
 
+from mkdocs_note.utils.crypt.page import DEFAULT_LABELS
+
 
 class MkdocsNoteConfig(Config):
 	"""Configuration class, managing all configuration parameters."""
@@ -67,6 +69,32 @@ class MkdocsNoteConfig(Config):
     - include_fragments: Emit ``#heading`` keys when mode is excerpt
     - mobile: Enable touch preview strategy (default off)
     - scope: ``linked_only`` (link targets only) or ``all`` pages
+    """
+
+	encryption_config = config_opt.Type(
+		dict,
+		default={
+			"kdf_iterations": 600_000,
+			"remember": "session",  # session | local | none
+			"strict": "auto",  # auto | true | false
+			"rerender": True,
+			"audit": True,
+			"labels": dict(DEFAULT_LABELS),
+		},
+	)
+	"""Configuration for per-note page encryption.
+
+    Encryption is opted into per note with ``encrypt: true`` in the note's
+    frontmatter; this block only tunes the browser experience and the guard
+    rails. Available options:
+    - kdf_iterations: PBKDF2-HMAC-SHA256 iterations for the browser payload
+    - remember: Where to cache the derived key (``session``/``local``/``none``)
+    - strict: Fail the build for plaintext/undecryptable encrypted notes;
+      ``auto`` enables it when the ``CI`` environment variable is truthy
+    - rerender: Call ``document$.next(document)`` after decrypting so Material
+      and user scripts re-initialize the revealed content
+    - audit: Warn when plaintext of an encrypted note is found in the built site
+    - labels: UI strings for the lock form (English defaults)
     """
 
 	notion_sync = config_opt.Type(

@@ -14,7 +14,9 @@ from mkdocs.plugins import get_plugin_logger
 from mkdocs.structure.files import Files
 from mkdocs.structure.pages import Page
 
+from mkdocs_note.utils.crypt import keys
 from mkdocs_note.utils.links import LINK_PATTERN, normalize_link, unescape_url
+from mkdocs_note.utils.meta import parse_frontmatter
 
 logger = get_plugin_logger(__name__)
 
@@ -91,6 +93,12 @@ class Graph:
 			try:
 				with open(node["path"], "r", encoding="utf-8") as f:
 					markdown = f.read()
+				# The title is public by design, so the node stays. Its links
+				# are part of the encrypted body and must not become edges.
+				meta, _ = parse_frontmatter(markdown)
+				if keys.is_encrypted(meta):
+					logger.debug(f"Skipping out-edges of encrypted note {node['id']}")
+					continue
 				self.edges.extend(self._find_links(markdown, node["id"], files))
 			except FileNotFoundError:
 				logger.warning(f"File not found: {node['path']}")

@@ -12,6 +12,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.5.0 - 2026-11-06
+
+### Added
+
+- Per-note page encryption (`encrypt: true` frontmatter): note bodies are stored as AES-256-GCM envelopes in git, rendered pages are published as a lock form plus an encrypted payload, and the browser decrypts them with WebCrypto after the reader enters a password.
+
+- `mkdocs-note crypt` command group: `init` (git clean/smudge filter, `.gitattributes`, pre-commit hook), `status`, `check --staged`, `uninstall`, plus hidden `filter-process` / `clean` / `smudge` internals.
+
+- Plugin config `encryption_config` (`kdf_iterations`, `remember`, `strict`, `rerender`, `audit`, `labels`).
+
+- Password rules: frontmatter `password` first, then `permalink`; both stay readable in the frontmatter so CI needs no secrets or workflow changes. YAML frontmatter is required.
+
+- Guards: strict mode (auto in CI) refuses to publish a plaintext or undecryptable flagged note; a post-build audit searches the site for plaintext canaries; a pre-commit hook rejects plaintext or corrupted envelopes; local builds warn when the clone has no filter.
+
+- Encrypted notes are excluded from link preview payloads and graph out-edges (titles stay visible in nav, recent notes, and the graph); `move -p` warns when renaming a permalink that is the note's password; Material blog posts with `encrypt` fail the build.
+
+- User guide: [Page Encryption](../usage/encryption.md) and [Frontmatter Metadata](../usage/meta.md); API: [Page Encryption Module](../references/encryption-api.md). The encryption guide is itself encrypted on this site as a live demo.
+- Runtime dependency: `cryptography`.
+
+### Changed
+
+- `on_page_markdown` is now a `CombinedEvent`: the decrypt step runs first (priority 100), the recent-notes insertion keeps its default priority.
+- `on_page_content` runs last (priority -1000) so encrypted pages capture the final HTML, including content added by other plugins and site hooks.
+
+### Deprecated
+
+- Notion sync (`notion-sync` / `ns`, `notion_sync` config) is deprecated since 3.5.0 and will be removed in 4.0.0. It still works, prints a deprecation notice, and skips notes with `encrypt: true`.
+
 ## 3.4.2 - 2026-10-01
 
 ### Fixed
@@ -23,24 +51,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Link preview ([#84](https://github.com/virtualguard101/mkdocs-note/issues/84)):
-  - `scope: linked_only` also includes recent-notes pages, notes-index out-links, and soft graph node pages (not only markdown/wiki link targets).
-  - Fragment keys store decoded Unicode (CJK headings); runtime lookup tries decoded and percent-encoded variants.
-  - Relative preview images resolve via MkDocs `Files` (then directory-URL / source-parent fallbacks); absolute CDN/`data:` URLs are left unchanged.
-  - Parent heading sections include nested subsections; empty parents descend to child content; page summaries skip `!!!` / `???` / `===` admonition markers.
+
+    - `scope: linked_only` also includes recent-notes pages, notes-index out-links, and soft graph node pages (not only markdown/wiki link targets).
+
+    - Fragment keys store decoded Unicode (CJK headings); runtime lookup tries decoded and percent-encoded variants.
+
+    - Relative preview images resolve via MkDocs `Files` (then directory-URL / source-parent fallbacks); absolute CDN/`data:` URLs are left unchanged.
+
+    - Parent heading sections include nested subsections; empty parents descend to child content; page summaries skip `!!!` / `???` / `===` admonition markers.
 
 ## 3.4.0 - 2026-10-01
 
 ### Added
 
 - Same-site link hover preview ([#82](https://github.com/virtualguard101/mkdocs-note/issues/82)): opt-in `preview_config` builds `previews.json` and shows title/summary (or section excerpt) cards on internal article links.
+
 - Preview modes: `summary` and `excerpt` (fragment-aware; rich HTML aligned with site Material `markdown_extensions`, then sanitized; optional `preview_image`).
+
 - Runtime polish: hover delay, Esc dismiss, `prefers-reduced-motion`, optional mobile first-tap preview, LRU + `AbortController`, soft graph-neighbor prefetch when the network graph is enabled.
+
 - Shared `mkdocs_note.utils.links` for markdown/wiki link normalization (used by graph and preview).
+
 - User guide: [Same-site Link Preview](../usage/link-preview.md); API: [Link Preview Module](../references/preview-api.md).
 
 ### Changed
 
 - Network graph link parsing delegates to `utils.links` (behavior-preserving refactor).
+
 - Architecture docs updated for preview hooks, assets, and dependency diagram.
 
 ## 3.3.1 - 2026-09-07

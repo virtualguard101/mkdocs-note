@@ -20,6 +20,7 @@ from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import get_plugin_logger
 from mkdocs.structure.files import Files
 
+from mkdocs_note.utils.crypt import keys
 from mkdocs_note.utils.links import find_link_targets
 from mkdocs_note.utils.meta import parse_frontmatter
 
@@ -759,6 +760,11 @@ class PreviewBuilder:
 				text = Path(f.abs_src_path).read_text(encoding="utf-8")
 			except OSError:
 				return
+			# An encrypted note's links are part of its secret body. They must
+			# not turn other pages into link targets in the public JSON.
+			meta, _ = parse_frontmatter(text)
+			if keys.is_encrypted(meta):
+				return
 			for target_src, frag in find_link_targets(text, f.src_path, known):
 				linked.add(target_src)
 				decoded = decode_fragment(frag)
@@ -797,6 +803,10 @@ class PreviewBuilder:
 
 		meta, body = parse_frontmatter(raw)
 		if meta.get("preview") is False:
+			return
+		# The body of an encrypted note is not available here; publishing a
+		# summary/excerpt would either leak it or describe the envelope.
+		if keys.is_encrypted(meta):
 			return
 
 		page_url = f.url  # e.g. notes/foo/

@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from mkdocs_note.utils.meta import extract_tags
+from mkdocs_note.utils.crypt import keys as crypt_keys
+from mkdocs_note.utils.meta import extract_tags, parse_frontmatter
 from mkdocs_note.utils.notion.client import (
 	TagsSchemaCache,
 	attach_placeholder_images,
@@ -877,6 +878,20 @@ def sync_one_page(
 	return "created" if created else "updated"
 
 
+def _is_encrypted_note(docs_dir: Path, rel: str) -> bool:
+	"""Return whether a note opts into page encryption.
+
+	Notion sync is deprecated as of 3.5.0; until it is removed it must not
+	push the secret body of an encrypted note to a third-party service.
+	"""
+	try:
+		raw = (docs_dir / rel).read_text(encoding="utf-8")
+	except (OSError, UnicodeDecodeError):
+		return False
+	meta, _ = parse_frontmatter(raw)
+	return crypt_keys.is_encrypted(meta)
+
+
 def collect_targets(
 	*,
 	full: bool,
@@ -898,13 +913,16 @@ def collect_targets(
 		return filter_sections(rel, sections)
 
 	if full:
-		items = [
-			item
-			for item in nav_index.values()
-			if item.file_rel
-			and _include(item.file_rel)
-			and (docs_dir / item.file_rel).exists()
-		]
+		items: list[NavItem] = []
+		for item in nav_index.values():
+			if not item.file_rel or not _include(item.file_rel):
+				continue
+			if not (docs_dir / item.file_rel).exists():
+				continue
+			if _is_encrypted_note(docs_dir, item.file_rel):
+				log.info("skip encrypted note: %s", item.file_rel)
+				continue
+			items.append(item)
 		return items, deleted
 
 	wanted = set(diff.md_changed)
@@ -919,6 +937,9 @@ def collect_targets(
 			log.info("skip index.md: %s", rel)
 			continue
 		if not filter_sections(rel, sections):
+			continue
+		if _is_encrypted_note(docs_dir, rel):
+			log.info("skip encrypted note: %s", rel)
 			continue
 		item = nav_index.get(rel)
 		if item is None or not item.file_rel:

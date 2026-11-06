@@ -13,6 +13,10 @@ This section is about the underlying utility functions that are used in the plug
 
 And specifically, the `common` module of [CLI](cli-api.md) will call [plugin core](config-api.md) to get the plugin configuration instance, and `scanner` module will call `meta` module to validate the note file's frontmatter.
 
+Page encryption lives under `mkdocs_note.utils.crypt`, covered by the
+[Page Encryption Module](encryption-api.md); its build-time helpers are called
+from the plugin hooks and its git helpers from the `crypt` CLI.
+
 Notion sync lives under `mkdocs_note.utils.notion` and is invoked only from the CLI (`notion-sync` / `ns`), not from MkDocs build hooks.
 
 ## Developer note: Cursor MCP token (optional)

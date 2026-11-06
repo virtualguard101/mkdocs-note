@@ -7,6 +7,13 @@ publish: true
 
 # Notion Sync
 
+!!! warning "Deprecated since 3.5.0"
+
+    Notion sync is deprecated and will be removed in mkdocs-note 4.0.0. It
+    still works in 3.5.x, but it skips notes with `encrypt: true` so their
+    bodies are never uploaded to Notion. New projects should keep their notes
+    in git and publish them with MkDocs instead.
+
 Sync your MkDocs notes to a Notion wiki database. The CLI uses git-diff
 incremental sync by default so routine commits only touch changed pages.
 
