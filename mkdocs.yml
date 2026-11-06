@@ -126,6 +126,7 @@ plugins:
         mobile: false
         scope: linked_only
       encryption_config:
+        remember: none
         labels:
           prompt: |-
             This note is encrypted. Enter the password to read it.
