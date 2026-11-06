@@ -5,11 +5,13 @@ alias s := serve
 test OPTIONS="":
     uv run pytest {{ OPTIONS }}
 
+# Publish a tagged release from the merged remote main.
 publish VERSION:
-    git checkout main
-    git pull origin main
-    git tag -a {{ VERSION }}
-    git push --tags
+    # Do not check out main: switching branches can break the encrypted-notes
+    # git filter.
+    git fetch origin main
+    git tag -a {{ VERSION }} origin/main -m "{{ VERSION }}"
+    git push origin {{ VERSION }}
 
 check:
     uvx ruff check
