@@ -28,7 +28,7 @@ from mkdocs.commands import build as mkdocs_build
 from mkdocs.config import load_config
 from mkdocs.exceptions import Abort
 
-from mkdocs_note.utils.crypt import envelope, keys
+from mkdocs_note.utils.crypt import envelope, keys, page
 
 CANARY = "CANARY-SECRET-2026"
 CANARY_TEXT = f"这一段独有标记 {CANARY} 只应存在于解密后的页面里。"
@@ -299,6 +299,13 @@ class TestEncryptedBuildFailsClosed(CryptBuildTestCase):
 
 		with patch.dict(os.environ, {"CI": "1"}):
 			self.assert_build_fails("not supported for Material blog posts")
+
+
+class TestStubMarkup(unittest.TestCase):
+	def test_prompt_line_breaks_become_br(self):
+		"""Newlines in the prompt survive HTML minification as <br>."""
+		stub = page.build_stub("Title", {"v": 1}, {"prompt": "Line one\n<b>two</b>"})
+		self.assertIn("Line one<br>&lt;b&gt;two&lt;/b&gt;", stub)
 
 
 if __name__ == "__main__":

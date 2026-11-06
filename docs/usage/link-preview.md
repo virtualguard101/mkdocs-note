@@ -70,7 +70,7 @@ plugins:
 | `max_chars` | `200` | Truncation for plain-text summary / excerpt |
 | `include_fragments` | `true` | In `excerpt` mode, emit `#heading-id` keys |
 | `mobile` | `false` | Touch: first tap shows preview, second tap navigates |
-| `scope` | `linked_only` | See [Scope](#scope) below; or `all` documentation pages |
+| `scope` | `linked_only` | See [Scope](#Scope) below; or `all` documentation pages |
 
 ## Scope
 

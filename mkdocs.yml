@@ -127,7 +127,9 @@ plugins:
         scope: linked_only
       encryption_config:
         labels:
-          prompt: 'This note is encrypted. Enter the password to read it. Try to type "mkdocs-note-demo".'
+          prompt: |-
+            This note is encrypted. Enter the password to read it.
+            Hint: Try to type "mkdocs-note-demo".
   - mkdocstrings:
       handlers:
         python:

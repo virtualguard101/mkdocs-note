@@ -60,6 +60,15 @@ def label(labels: Mapping[str, str], key: str) -> str:
 	return html.escape(labels.get(key, DEFAULT_LABELS.get(key, "")))
 
 
+def label_with_breaks(labels: Mapping[str, str], key: str) -> str:
+	"""Return an escaped label with newlines rendered as ``<br>``.
+
+	HTML collapses newlines in text, and mkdocs-minify removes them entirely,
+	so a multi-line label needs explicit line breaks.
+	"""
+	return label(labels, key).replace("\n", "<br>")
+
+
 def ensure_heading(content: str, title: str) -> str:
 	"""Prepend the page title when Material would have added it itself.
 
@@ -202,7 +211,8 @@ def build_stub(
 		f"<h1>{escaped_title}</h1>"
 		f'<p class="{STUB_CLASS}__title">{label(labels, "title")}</p>'
 		f'<form class="{STUB_CLASS}__form" autocomplete="off">'
-		f'<p class="{STUB_CLASS}__prompt">{label(labels, "prompt")}</p>'
+		f'<p class="{STUB_CLASS}__prompt">'
+		f"{label_with_breaks(labels, 'prompt')}</p>"
 		f'<label class="{STUB_CLASS}__label" for="{PASSWORD_INPUT_ID}">'
 		f"{label(labels, 'placeholder')}</label>"
 		f'<div class="{STUB_CLASS}__row">'
